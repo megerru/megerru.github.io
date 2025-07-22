@@ -149,7 +149,7 @@ function calculatePremium() {
         const secondMinguoYear = secondAdYear - 1911;
         document.getElementById('periodSummary').innerText = `有效月數：${firstMinguoYear}年 (${monthsInFirstYear.toFixed(1)}個月) / ${secondMinguoYear}年 (${monthsInSecondYear.toFixed(1)}個月)`;
         document.getElementById('resultYear1').innerHTML = `<h3>${firstMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForFirstYear}</p>`;
-        document.getElementById('resultYear2').innerHTML = `<h3>${secondMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForSecondYear}</p>`;
+        document.getElementById('resultYear2innerHTML=`<h3>${secondMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForSecondYear}</p>`;
         document.getElementById('result').className = 'result-visible';
     } catch (error) {
         console.error("計算過程中發生預期外的錯誤:", error);
@@ -338,14 +338,3 @@ function resetInvoiceForm() {
     }
     updateInvoiceSummary();
 }
-```</details>
-
-### **操作指南**
-
-1.  請用上面這份最新的、**完整的 `script.js` 程式碼**，**徹底地覆蓋**您電腦上的檔案。
-2.  **清空您的 GitHub 倉庫**，然後**重新上傳**您電腦上最新的 `index.html`, `style.css`, 和這份**真正完整的 `script.js`** 三個檔案。
-3.  等待部署完成後，用**無痕模式**或**強制重新整理**來訪問您的網頁。
-
-這次，因為我們使用了**真正完整的 `script.js`**，所有的函式都已經被正確定義，您點擊「保險費計算」和「銷項發票」按鈕時，應該都能正常切換頁面，不會再出現任何錯誤。
-
-我為這個過程中因我的疏忽而給您帶來的困擾和時間浪費，再次向您致歉。感謝您的耐心，讓我們一起完成這個專案！
