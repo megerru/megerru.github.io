@@ -149,7 +149,7 @@ function calculatePremium() {
         const secondMinguoYear = secondAdYear - 1911;
         document.getElementById('periodSummary').innerText = `有效月數：${firstMinguoYear}年 (${monthsInFirstYear.toFixed(1)}個月) / ${secondMinguoYear}年 (${monthsInSecondYear.toFixed(1)}個月)`;
         document.getElementById('resultYear1').innerHTML = `<h3>${firstMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForFirstYear}</p>`;
-        document.getElementById('resultYear2innerHTML=`<h3>${secondMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForSecondYear}</p>`;
+        document.getElementById('resultYear2').innerHTML = `<h3>${secondMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForSecondYear}</p>`;
         document.getElementById('result').className = 'result-visible';
     } catch (error) {
         console.error("計算過程中發生預期外的錯誤:", error);
