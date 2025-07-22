@@ -1,5 +1,5 @@
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-.container { background-color: #fff; padding: 30px 40px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08); width: 100%; max-width: 800px; /* 加寬以容納更多欄位 */ text-align: center; }
+.container { background-color: #fff; padding: 30px 40px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08); width: 100%; max-width: 800px; text-align: center; }
 #welcome-section { display: flex; justify-content: center; align-items: center; min-height: 250px; }
 .welcome-buttons-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
 .welcome-button { background-color: #0056b3; color: white; font-size: 1.5em; font-weight: bold; padding: 20px 40px; border: none; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; }
@@ -16,13 +16,11 @@ input[type="date"], input[type="number"], input[type="text"], input[type="tel"] 
 .back-to-welcome-button:hover { text-decoration: underline; }
 
 /* --- 保險計算機專用 --- */
-#insurance-calculator-section { position: relative; max-width: 600px; /* 維持原寬度 */ }
+#insurance-calculator-section { position: relative; max-width: 600px; }
 .date-input-group { display: flex; align-items: center; gap: 10px; }
 .date-input-group .date-picker { flex-grow: 1; }
 .manual-date-container { display: flex; flex-grow: 1; align-items: center; gap: 5px; }
-.manual-date-container input { text-align: center; -moz-appearance: textfield; }
-.manual-date-container input::-webkit-outer-spin-button,
-.manual-date-container input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.manual-date-container input { text-align: center; }
 .manual-date-container span { color: #aaa; font-weight: bold; }
 .toggle-button { padding: 12px; font-size: 14px; background-color: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; flex-shrink: 0; width: 90px; transition: background-color 0.3s; }
 .toggle-button:hover { background-color: #5a6268; }
@@ -57,8 +55,19 @@ input[type="date"], input[type="number"], input[type="text"], input[type="tel"] 
 #reset-invoice-button { position: absolute; top: 20px; right: 25px; bottom: auto; width: 40px; height: 40px; background-color: #dc3545; color: white; border: none; border-radius: 50%; font-size: 20px; line-height: 40px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; transition: all 0.3s ease; z-index: 10; }
 #reset-invoice-button:hover { background-color: #c82333; transform: scale(1.1) rotate(90deg); }
 
-
 /* --- 通用工具 --- */
 .hidden { display: none !important; }
 .result-hidden { display: none; }
 .result-visible { display: block; }
+
+/* *** 新增功能：移除所有數字輸入框的上下箭頭 *** */
+/* 適用於 Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* 適用於 Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
