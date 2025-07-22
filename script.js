@@ -105,7 +105,7 @@ document.getElementById('invoice-section').addEventListener('input', function(e)
     const row = e.target.closest('tr');
     if (!row) return;
 
-    if (e.target.classList.contains('total-2')) { // 二聯式：輸入總計
+    if (e.target.classList.contains('total-2')) {
         const total = parseFloat(e.target.value) || 0;
         const tax = Math.round(total / 1.05 * 0.05);
         const sales = total - tax;
@@ -113,14 +113,14 @@ document.getElementById('invoice-section').addEventListener('input', function(e)
         row.querySelector('.tax-2').value = tax;
     }
     
-    if (e.target.classList.contains('sales-3')) { // 三聯式：輸入銷售額
+    if (e.target.classList.contains('sales-3')) {
         const sales = parseFloat(e.target.value) || 0;
         const tax = Math.round(sales * 0.05);
         row.querySelector('.tax-3').value = tax;
         row.querySelector('.total-3').value = sales + tax;
     }
     
-    if (e.target.classList.contains('tax-3')) { // 三聯式：手動修改稅額
+    if (e.target.classList.contains('tax-3')) {
         const sales = parseFloat(row.querySelector('.sales-3').value) || 0;
         const tax = parseFloat(e.target.value) || 0;
         row.querySelector('.total-3').value = sales + tax;
@@ -150,6 +150,9 @@ document.getElementById('invoice-section').addEventListener('keydown', function(
 function resetInvoiceForm() {
     twoPartBody.innerHTML = '';
     threePartBody.innerHTML = '';
-    addInvoiceRow();
+    // 新增前先確保當前顯示的是正確的表格
+    if (getCurrentInvoiceBody().rows.length === 0) {
+       addInvoiceRow();
+    }
     updateInvoiceSummary();
 }
