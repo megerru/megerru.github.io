@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>年度保險費分攤計算機</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="welcome-section" class="container">
+        <button class="welcome-button" onclick="showCalculator()">保險費計算</button>
+    </div>
+
+    <div id="calculator-section" class="container hidden">
+        <h1>年度保險費分攤計算機</h1>
+        <div class="form-group">
+            <label for="startDate">保險起始日期：</label>
+            <div class="date-input-group" id="start-date-group">
+                <input type="date" class="date-picker" id="startDate">
+                <div class="manual-date-container hidden" id="startDateManualContainer">
+                    <input type="tel" id="startDateManualYear" placeholder="113" maxlength="3" onkeyup="autoTab(this, 'startDateManualMonth')">
+                    <span>/</span>
+                    <input type="tel" id="startDateManualMonth" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'startDateManualDay')">
+                    <span>/</span>
+                    <input type="tel" id="startDateManualDay" placeholder="30" maxlength="2" onkeyup="autoTab(this, 'endDateManualYear')">
+                </div>
+                <button class="toggle-button" onclick="toggleInputMode('start')">手動輸入</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="endDate">保險結束日期：</label>
+            <div class="date-input-group" id="end-date-group">
+                <input type="date" class="date-picker" id="endDate">
+                <div class="manual-date-container hidden" id="endDateManualContainer">
+                    <input type="tel" id="endDateManualYear" placeholder="114" maxlength="3" onkeyup="autoTab(this, 'endDateManualMonth')">
+                    <span>/</span>
+                    <input type="tel" id="endDateManualMonth" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'endDateManualDay')">
+                    <span>/</span>
+                    <input type="tel" id="endDateManualDay" placeholder="23" maxlength="2" onkeyup="autoTab(this, 'totalPremium')">
+                </div>
+                <button class="toggle-button" onclick="toggleInputMode('end')">手動輸入</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="totalPremium">一年期總保費：</label>
+            <input type="number" id="totalPremium" placeholder="例如：36500">
+        </div>
+        <button class="main-calculate-button" onclick="calculatePremium()">計算費用</button>
+        <div id="result" class="result-hidden">
+            <h2>計算結果</h2>
+            <p id="periodSummary"></p>
+            <div class="result-split">
+                <div id="resultYear1"></div>
+                <div id="resultYear2"></div>
+            </div>
+        </div>
+        <button id="reset-button" onclick="resetForm()">↺</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
