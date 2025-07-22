@@ -20,16 +20,17 @@ function calculatePremium(){try{updatePickerFromManual("start"),updatePickerFrom
 // III. 銷項發票計算機
 // ===================================================================
 
-const twoPartTable = document.getElementById('invoice-table-two-part');
-const threePartTable = document.getElementById('invoice-table-three-part');
 const twoPartBody = document.getElementById('invoice-table-body-two-part');
 const threePartBody = document.getElementById('invoice-table-body-three-part');
-const twoPartSummary = document.getElementById('invoice-summary-two-part');
-const threePartSummary = document.getElementById('invoice-summary-three-part');
 const invoiceTypeSelect = document.getElementById('invoice-type-select');
 
 function switchInvoiceType() {
     const type = invoiceTypeSelect.value;
+    const twoPartTable = document.getElementById('invoice-table-two-part');
+    const threePartTable = document.getElementById('invoice-table-three-part');
+    const twoPartSummary = document.getElementById('invoice-summary-two-part');
+    const threePartSummary = document.getElementById('invoice-summary-three-part');
+
     if (type === 'two-part') {
         twoPartTable.classList.remove('hidden');
         twoPartSummary.classList.remove('hidden');
@@ -41,9 +42,7 @@ function switchInvoiceType() {
         twoPartTable.classList.add('hidden');
         twoPartSummary.classList.add('hidden');
     }
-    if (getCurrentInvoiceBody().rows.length === 0) {
-        addInvoiceRow();
-    }
+    resetInvoiceForm();
 }
 
 function getCurrentInvoiceBody() {
@@ -65,38 +64,37 @@ function addInvoiceRow() {
         newRow.innerHTML = `
             <td>${rowIndex}</td>
             <td><input type="number" class="sales-3" placeholder="未稅銷售額"></td>
-            <td><input type="number" class="tax-3" placeholder="營業稅"></td>
+            <td><input type="number" class="tax-3"></td>
             <td><input type="number" class="total-3" readonly></td>`;
     }
     newRow.querySelector('input:not([readonly])').focus();
 }
 
 function updateInvoiceSummary() {
-    if (invoiceTypeSelect.value === 'two-part') {
-        const allTotals = document.querySelectorAll('.total-2');
-        let totalSum = 0, salesSum = 0, taxSum = 0;
-        allTotals.forEach(input => {
-            const row = input.closest('tr');
-            totalSum += parseFloat(input.value) || 0;
+    const type = invoiceTypeSelect.value;
+    let count = 0, totalSum = 0, salesSum = 0, taxSum = 0;
+
+    if (type === 'two-part') {
+        const rows = twoPartBody.rows;
+        count = rows.length;
+        for (const row of rows) {
+            totalSum += parseFloat(row.querySelector('.total-2').value) || 0;
             salesSum += parseFloat(row.querySelector('.sales-2').value) || 0;
             taxSum += parseFloat(row.querySelector('.tax-2').value) || 0;
-        });
-        document.getElementById('invoice-count-two').textContent = allTotals.length;
+        }
+        document.getElementById('invoice-count-two').textContent = count;
         document.getElementById('total-sum-two').textContent = totalSum.toLocaleString();
         document.getElementById('sales-sum-two').textContent = salesSum.toLocaleString();
         document.getElementById('tax-sum-two').textContent = taxSum.toLocaleString();
     } else {
-        const allSales = document.querySelectorAll('.sales-3');
-        const allTaxes = document.querySelectorAll('.tax-3');
-        let totalSum = 0, salesSum = 0, taxSum = 0;
-        allSales.forEach(input => {
-            salesSum += parseFloat(input.value) || 0;
-            totalSum += parseFloat(input.closest('tr').querySelector('.total-3').value) || 0;
-        });
-         allTaxes.forEach(input => {
-            taxSum += parseFloat(input.value) || 0;
-        });
-        document.getElementById('invoice-count-three').textContent = allSales.length;
+        const rows = threePartBody.rows;
+        count = rows.length;
+        for (const row of rows) {
+            salesSum += parseFloat(row.querySelector('.sales-3').value) || 0;
+            taxSum += parseFloat(row.querySelector('.tax-3').value) || 0;
+            totalSum += parseFloat(row.querySelector('.total-3').value) || 0;
+        }
+        document.getElementById('invoice-count-three').textContent = count;
         document.getElementById('sales-sum-three').textContent = salesSum.toLocaleString();
         document.getElementById('tax-sum-three').textContent = taxSum.toLocaleString();
         document.getElementById('total-sum-three').textContent = totalSum.toLocaleString();
@@ -107,16 +105,24 @@ document.getElementById('invoice-section').addEventListener('input', function(e)
     const row = e.target.closest('tr');
     if (!row) return;
 
-    if (e.target.classList.contains('total-2')) {
+    if (e.target.classList.contains('total-2')) { // 二聯式：輸入總計
         const total = parseFloat(e.target.value) || 0;
         const tax = Math.round(total / 1.05 * 0.05);
         const sales = total - tax;
         row.querySelector('.sales-2').value = sales;
         row.querySelector('.tax-2').value = tax;
     }
-    if (e.target.classList.contains('sales-3') || e.target.classList.contains('tax-3')) {
+    
+    if (e.target.classList.contains('sales-3')) { // 三聯式：輸入銷售額
+        const sales = parseFloat(e.target.value) || 0;
+        const tax = Math.round(sales * 0.05);
+        row.querySelector('.tax-3').value = tax;
+        row.querySelector('.total-3').value = sales + tax;
+    }
+    
+    if (e.target.classList.contains('tax-3')) { // 三聯式：手動修改稅額
         const sales = parseFloat(row.querySelector('.sales-3').value) || 0;
-        const tax = parseFloat(row.querySelector('.tax-3').value) || 0;
+        const tax = parseFloat(e.target.value) || 0;
         row.querySelector('.total-3').value = sales + tax;
     }
     updateInvoiceSummary();
