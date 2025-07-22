@@ -65,7 +65,9 @@ function addInvoiceRow() {
             <td>${rowIndex}</td>
             <td><input type="number" class="sales-3" placeholder="未稅銷售額"></td>
             <td><input type="number" class="tax-3"></td>
-            <td><input type="number" class="total-3" readonly></td>`;
+            <td><input type="number" class="total-3" readonly></td>
+            <td><input type="text" class="tax-id-3" maxlength="8"></td>
+            <td><input type="text" class="company-3" readonly></td>`;
     }
     newRow.querySelector('input:not([readonly])').focus();
 }
@@ -101,6 +103,26 @@ function updateInvoiceSummary() {
     }
 }
 
+async function lookupCompanyByTaxId(taxId, companyInput) {
+    if (taxId.length !== 8 || !/^\d+$/.test(taxId)) {
+        companyInput.value = '統編格式錯誤';
+        return;
+    }
+    companyInput.value = '查詢中...';
+    try {
+        const proxyUrl = 'https://api.allorigins.win/get?url=';
+        const targetUrl = `https://data.gov.tw/api/v2/rest/dataset/9D17AE0D-09B5-4732-A8F4-81ADED04B679?&\$filter=Business_Accounting_NO eq ${taxId}`;
+        const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
+        if (!response.ok) throw new Error('Proxy error');
+        const data = await response.json();
+        const results = JSON.parse(data.contents);
+        companyInput.value = (results && results.length > 0) ? results[0]['營業人名稱'] : '查無資料';
+    } catch (error) {
+        console.error('API Error:', error);
+        companyInput.value = '查詢失敗';
+    }
+}
+
 document.getElementById('invoice-section').addEventListener('input', function(e) {
     const row = e.target.closest('tr');
     if (!row) return;
@@ -108,8 +130,7 @@ document.getElementById('invoice-section').addEventListener('input', function(e)
     if (e.target.classList.contains('total-2')) {
         const total = parseFloat(e.target.value) || 0;
         const tax = Math.round(total / 1.05 * 0.05);
-        const sales = total - tax;
-        row.querySelector('.sales-2').value = sales;
+        row.querySelector('.sales-2').value = total - tax;
         row.querySelector('.tax-2').value = tax;
     }
     
@@ -125,6 +146,16 @@ document.getElementById('invoice-section').addEventListener('input', function(e)
         const tax = parseFloat(e.target.value) || 0;
         row.querySelector('.total-3').value = sales + tax;
     }
+    
+    if (e.target.classList.contains('tax-id-3')) {
+        const taxId = e.target.value;
+        const companyInput = row.querySelector('.company-3');
+        if (taxId.length === 8) {
+            lookupCompanyByTaxId(taxId, companyInput);
+        } else {
+            companyInput.value = '';
+        }
+    }
     updateInvoiceSummary();
 });
 
@@ -137,20 +168,20 @@ document.getElementById('invoice-section').addEventListener('keydown', function(
 
     e.preventDefault();
 
-    const allInputsInRow = Array.from(row.querySelectorAll('input:not([readonly])'));
-    const currentIndex = allInputsInRow.indexOf(targetInput);
-
-    if (currentIndex === allInputsInRow.length - 1) {
-        addInvoiceRow();
-    } else if (currentIndex > -1) {
-        allInputsInRow[currentIndex + 1].focus();
+    const financialInputs = Array.from(row.querySelectorAll('.sales-3, .tax-3, .total-2'));
+    if (financialInputs.includes(targetInput)) {
+        const currentIndex = financialInputs.indexOf(targetInput);
+        if (currentIndex === financialInputs.length - 1) {
+            addInvoiceRow();
+        } else {
+            financialInputs[currentIndex + 1].focus();
+        }
     }
 });
 
 function resetInvoiceForm() {
     twoPartBody.innerHTML = '';
     threePartBody.innerHTML = '';
-    // 新增前先確保當前顯示的是正確的表格
     if (getCurrentInvoiceBody().rows.length === 0) {
        addInvoiceRow();
     }
