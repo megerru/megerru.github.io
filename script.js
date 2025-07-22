@@ -1,5 +1,17 @@
 function autoTab(currentElement, nextElementId) { if (currentElement.value.length === currentElement.maxLength) { document.getElementById(nextElementId).focus(); } }
-function showCalculator() { document.getElementById('welcome-section').classList.add('hidden'); document.getElementById('calculator-section').classList.remove('hidden'); }
+
+function showCalculator() {
+    document.getElementById('welcome-section').classList.add('hidden');
+    document.getElementById('calculator-section').classList.remove('hidden');
+}
+
+// *** 新增功能：顯示歡迎畫面並清空表單 ***
+function showWelcome() {
+    document.getElementById('calculator-section').classList.add('hidden');
+    document.getElementById('welcome-section').classList.remove('hidden');
+    resetForm(); // 返回時自動呼叫重置函式
+}
+
 function toggleInputMode(type) {
     const picker = document.getElementById(`${type}Date`);
     const manualContainer = document.getElementById(`${type}DateManualContainer`);
@@ -22,6 +34,7 @@ function toggleInputMode(type) {
         }
     }
 }
+
 function updatePickerFromManual(type) {
     const yearInput = document.getElementById(`${type}DateManualYear`);
     const monthInput = document.getElementById(`${type}DateManualMonth`);
@@ -47,6 +60,7 @@ function updatePickerFromManual(type) {
         } else { picker.value = ''; }
     } else { picker.value = ''; }
 }
+
 function resetForm() {
     ['start', 'end'].forEach(type => {
         document.getElementById(`${type}Date`).value = '';
@@ -63,20 +77,17 @@ function resetForm() {
     }
 }
 
-// 規則1：計算【起始月份】的權重
 function getProratedMonthValueForStart(day) {
     if (day >= 1 && day <= 10) return 1;
     if (day >= 11 && day <= 20) return 0.5;
     return 0;
 }
-// 規則2：計算【結束月份】的權重
 function getProratedMonthValueForEnd(day) {
     if (day >= 21) return 1;
     if (day >= 11) return 0.5;
     return 0;
 }
 
-// *** 核心演算法最終完美版：完全統一的月份規則 ***
 function calculatePremium() {
     try {
         updatePickerFromManual('start');
@@ -88,56 +99,38 @@ function calculatePremium() {
             alert("請確保所有欄位都已正確填寫！");
             return;
         }
-
         const startDate = new Date(startDateString);
         const endDate = new Date(endDateString);
-        
-        startDate.setUTCHours(12, 0, 0, 0);
-        endDate.setUTCHours(12, 0, 0, 0);
-
         if (endDate <= startDate) {
             alert("結束日期必須晚於起始日期！");
             return;
         }
-
         const firstAdYear = startDate.getFullYear();
         const secondAdYear = endDate.getFullYear();
-        
         if (firstAdYear === secondAdYear || secondAdYear - firstAdYear > 1) {
             alert("目前僅支援橫跨兩個連續年度的計算。");
             return;
         }
-        
-        // --- 1. 完全按您的規則，計算兩個年度各自的有效月數 ---
         let monthsInFirstYear = 0;
         monthsInFirstYear += getProratedMonthValueForStart(startDate.getDate());
-        monthsInFirstYear += (11 - startDate.getMonth()); // 剩餘的完整月份
-        
+        monthsInFirstYear += (11 - startDate.getMonth());
         let monthsInSecondYear = 0;
-        monthsInSecondYear += endDate.getMonth(); // 之前的完整月份
+        monthsInSecondYear += endDate.getMonth();
         monthsInSecondYear += getProratedMonthValueForEnd(endDate.getDate());
-        
         const totalEffectiveMonths = monthsInFirstYear + monthsInSecondYear;
-
         if (totalEffectiveMonths <= 0) {
             alert("根據您的規則，計算出的有效總月份為0，無法計算費用。");
             return;
         }
-
-        // --- 2. 根據有效月數，計算費用 ---
         const premiumPerEffectiveMonth = totalPremium / totalEffectiveMonths;
         const premiumForFirstYear = Math.round(premiumPerEffectiveMonth * monthsInFirstYear);
         const premiumForSecondYear = Math.round(totalPremium - premiumForFirstYear);
-        
-        // --- 3. 顯示結果 ---
         const firstMinguoYear = firstAdYear - 1911;
         const secondMinguoYear = secondAdYear - 1911;
-        
         document.getElementById('periodSummary').innerText = `有效月數：${firstMinguoYear}年 (${monthsInFirstYear.toFixed(1)}個月) / ${secondMinguoYear}年 (${monthsInSecondYear.toFixed(1)}個月)`;
         document.getElementById('resultYear1').innerHTML = `<h3>${firstMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForFirstYear}</p>`;
         document.getElementById('resultYear2').innerHTML = `<h3>${secondMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForSecondYear}</p>`;
         document.getElementById('result').className = 'result-visible';
-
     } catch (error) {
         console.error("計算過程中發生預期外的錯誤:", error);
         alert("計算失敗！請檢查輸入的日期是否有效，或按 F12 查看錯誤日誌。");
