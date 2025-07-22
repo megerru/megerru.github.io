@@ -1,17 +1,26 @@
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
 .container { background-color: #fff; padding: 30px 40px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08); width: 100%; max-width: 600px; text-align: center; }
+
+/* --- 歡迎頁面樣式 --- */
 #welcome-section { display: flex; justify-content: center; align-items: center; min-height: 250px; }
-.welcome-button { background-color: #0056b3; color: white; font-size: 1.8em; font-weight: bold; padding: 25px 50px; border: none; border-radius: 15px; cursor: pointer; transition: all 0.3s ease; }
+.welcome-buttons-container { display: flex; gap: 20px; } /* 讓按鈕並排 */
+.welcome-button { background-color: #0056b3; color: white; font-size: 1.5em; font-weight: bold; padding: 20px 40px; border: none; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; }
 .welcome-button:hover { background-color: #00448f; transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0, 86, 179, 0.4); }
-#calculator-section { position: relative; }
-#back-to-welcome-button { display: block; width: auto; position: relative; left: -15px; margin-bottom: 20px; background: none; border: none; color: #007bff; font-size: 16px; cursor: pointer; padding: 5px; }
-#back-to-welcome-button:hover { text-decoration: underline; }
-#calculator-section h1 { text-align: center; color: #1a2c4e; }
+.welcome-button.secondary { background-color: #1a2c4e; } /* 第二個按鈕的顏色 */
+.welcome-button.secondary:hover { background-color: #121f37; }
+
+/* --- 通用計算機樣式 --- */
+.container h1 { text-align: center; color: #1a2c4e; }
 .form-group { margin-bottom: 20px; }
 .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; text-align: left; }
 input[type="date"], input[type="number"], input[type="text"], input[type="tel"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
 .main-calculate-button { width: 100%; padding: 15px; background-color: #007bff; color: #fff; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; }
 .main-calculate-button:hover { background-color: #0056b3; }
+#back-to-welcome-button { display: block; width: auto; position: relative; left: -15px; margin-bottom: 20px; background: none; border: none; color: #007bff; font-size: 16px; cursor: pointer; padding: 5px; }
+#back-to-welcome-button:hover { text-decoration: underline; }
+
+/* --- 保險計算機專用 --- */
+#insurance-calculator-section { position: relative; }
 .date-input-group { display: flex; align-items: center; gap: 10px; }
 .date-input-group .date-picker { flex-grow: 1; }
 .manual-date-container { display: flex; flex-grow: 1; align-items: center; gap: 5px; }
@@ -25,29 +34,24 @@ input[type="date"], input[type="number"], input[type="text"], input[type="tel"] 
 .result-split { display: flex; justify-content: space-around; text-align: center; margin-top: 20px; }
 .result-split h3 { margin-bottom: 10px; color: #1a2c4e; }
 .result-split p { font-size: 24px; font-weight: bold; color: #007bff; margin: 0; }
-
-/* *** 核心變更：重置按鈕的新定位 *** */
-#reset-button {
-    position: absolute;
-    top: 20px;          /* 距離容器【頂部】 20px */
-    right: 25px;        /* 距離容器右側 25px */
-    bottom: auto;       /* 【移除】底部的定位 */
-    width: 40px;        /* 稍微縮小尺寸以適應頂部空間 */
-    height: 40px;
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    font-size: 20px;
-    line-height: 40px;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    z-index: 10;
-}
+#reset-button { position: absolute; top: 20px; right: 25px; bottom: auto; width: 40px; height: 40px; background-color: #dc3545; color: white; border: none; border-radius: 50%; font-size: 20px; line-height: 40px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; transition: all 0.3s ease; z-index: 10; }
 #reset-button:hover { background-color: #c82333; transform: scale(1.1) rotate(90deg); }
 
+/* --- 銷項發票區塊樣式 --- */
+.invoice-controls { margin-bottom: 20px; text-align: left; }
+#invoice-type-select { font-size: 16px; padding: 8px; border-radius: 8px; }
+.invoice-table-container { max-height: 300px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px;}
+#invoice-table { width: 100%; border-collapse: collapse; }
+#invoice-table th, #invoice-table td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; }
+#invoice-table th { background-color: #f8f9fa; font-weight: 600; }
+#invoice-table input { width: 90%; text-align: right; }
+.add-row-button { background-color: #28a745; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; margin-bottom: 20px; }
+.add-row-button:hover { background-color: #218838; }
+#invoice-summary { border-top: 2px solid #007bff; padding-top: 20px; text-align: right; font-size: 18px; }
+#invoice-summary p { margin: 5px 0; }
+#invoice-summary span { font-weight: bold; min-width: 80px; display: inline-block; text-align: left;}
+
+/* --- 通用工具 --- */
 .hidden { display: none !important; }
 .result-hidden { display: none; }
 .result-visible { display: block; }

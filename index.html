@@ -3,19 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>年度保險費分攤計算機</title>
+    <!-- 1. 更改網頁標題 -->
+    <title>計算機</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- 2. 改造首頁 -->
     <div id="welcome-section" class="container">
-        <button class="welcome-button" onclick="showCalculator()">保險費計算</button>
+        <div class="welcome-buttons-container">
+            <button class="welcome-button" onclick="showInsuranceCalculator()">保險費計算</button>
+            <button class="welcome-button secondary" onclick="showInvoiceCalculator()">銷項發票</button>
+        </div>
     </div>
 
-    <div id="calculator-section" class="container hidden">
-        <!-- *** 新增功能：返回首頁按鈕 *** -->
+    <!-- 原有的保險費計算機 (ID 已更改) -->
+    <div id="insurance-calculator-section" class="container hidden">
         <button id="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
-        
         <h1>年度保險費分攤計算機</h1>
+        <!-- ... (保險費計算機的表單內容維持不變) ... -->
         <div class="form-group">
             <label for="startDate">保險起始日期：</label>
             <div class="date-input-group" id="start-date-group">
@@ -59,6 +64,42 @@
         </div>
         <button id="reset-button" onclick="resetForm()">↺</button>
     </div>
+
+    <!-- 3. 新增銷項發票區塊 -->
+    <div id="invoice-section" class="container hidden">
+        <button id="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
+        <h1>銷項發票稅額計算</h1>
+
+        <div class="invoice-controls">
+            <select id="invoice-type-select">
+                <option value="two-part">二聯式發票</option>
+                <option value="three-part">三聯式發票 (功能待開發)</option>
+            </select>
+        </div>
+
+        <div class="invoice-table-container">
+            <table id="invoice-table">
+                <thead>
+                    <tr>
+                        <th>總計</th>
+                        <th>稅額 (自動計算)</th>
+                    </tr>
+                </thead>
+                <tbody id="invoice-table-body">
+                    <!-- 發票列將由 JavaScript 動態新增 -->
+                </tbody>
+            </table>
+        </div>
+        
+        <button class="add-row-button" onclick="addInvoiceRow()">+ 新增一列</button>
+
+        <div id="invoice-summary">
+            <p>共 <span id="invoice-count">0</span> 筆資料</p>
+            <p>總計加總: <span id="invoice-total-sum">0</span></p>
+            <p>稅額加總: <span id="invoice-tax-sum">0</span></p>
+        </div>
+    </div>
+    
     <script src="script.js"></script>
 </body>
 </html>
