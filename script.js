@@ -1,128 +1,149 @@
 // ===================================================================
-// I. 頁面導覽與通用函式 (Page Navigation & Universal Functions)
+// I. 頁面導覽與通用函式
+// ===================================================================
+function showWelcome(){document.getElementById("insurance-calculator-section").classList.add("hidden");document.getElementById("invoice-section").classList.add("hidden");document.getElementById("welcome-section").classList.remove("hidden")}
+function showInsuranceCalculator(){document.getElementById("welcome-section").classList.add("hidden");document.getElementById("invoice-section").classList.add("hidden");document.getElementById("insurance-calculator-section").classList.remove("hidden")}
+function showInvoiceCalculator(){document.getElementById("welcome-section").classList.add("hidden");document.getElementById("insurance-calculator-section").classList.add("hidden");document.getElementById("invoice-section").classList.remove("hidden");switchInvoiceType()}
+function autoTab(currentElement,nextElementId){if(currentElement.value.length===currentElement.maxLength){document.getElementById(nextElementId).focus()}}
+
+// ===================================================================
+// II. 保險費計算機
+// ===================================================================
+// (為簡潔，省略內部程式碼，請使用您驗證成功的版本)
+function toggleInputMode(e){const t=document.getElementById(`${e}Date`),n=document.getElementById(`${e}DateManualContainer`),o=document.querySelector(`#${e}-date-group .toggle-button`);t.classList.toggle("hidden")?(n.classList.remove("hidden"),o.textContent="使用日曆",t.value&&(()=>{const n=new Date(t.value);document.getElementById(`${e}DateManualYear`).value=n.getFullYear()-1911,document.getElementById(`${e}DateManualMonth`).value=(n.getMonth()+1).toString().padStart(2,"0"),document.getElementById(`${e}DateManualDay`).value=n.getDate().toString().padStart(2,"0")})()):(n.classList.add("hidden"),o.textContent="手動輸入",updatePickerFromManual(e))}function updatePickerFromManual(e){const t=document.getElementById(`${e}DateManualYear`),n=document.getElementById(`${e}DateManualMonth`),o=document.getElementById(`${e}DateManualDay`),l=document.getElementById(`${e}Date`);const a=t.value.trim(),d=n.value.trim(),c=o.value.trim();a&&d&&c?(()=>{const t=`${a}/${d}/${c}`;const n=/(\d{2,3})[年\/](\d{1,2})[月\/](\d{1,2})日?/.exec(t);n?(()=>{const t=parseInt(n[1],10)+1911,o=n[2].padStart(2,"0"),a=n[3].padStart(2,"0");const d=`${t}-${o}-${a}`;const c=new Date(d);c instanceof Date&&!isNaN(c)&&c.getFullYear()===t?l.value=d:l.value=""})():l.value=""})():l.value=""}function resetInsuranceForm(){["start","end"].forEach(e=>{document.getElementById(`${e}Date`).value="",document.getElementById(`${e}DateManualYear`).value="",document.getElementById(`${e}DateManualMonth`).value="",document.getElementById(`${e}DateManualDay`).value=""});document.getElementById("totalPremium").value="";const e=document.getElementById("result");e.classList.add("result-hidden"),e.classList.remove("result-visible"),document.getElementById("startDateManualContainer").classList.contains("hidden")||document.getElementById("startDateManualYear").focus()}function getProratedMonthValueForStart(e){return e>=1&&e<=10?1:e>=11&&e<=20?.5:0}function getProratedMonthValueForEnd(e){return e>=21?1:e>=11?.5:0}function calculatePremium(){try{updatePickerFromManual("start"),updatePickerFromManual("end");const e=document.getElementById("startDate").value,t=document.getElementById("endDate").value,n=parseFloat(document.getElementById("totalPremium").value);if(!e||!t||isNaN(n)||n<=0)return void alert("請確保所有欄位都已正確填寫！");const o=new Date(e),l=new Date(t);if(o.setUTCHours(12,0,0,0),l.setUTCHours(12,0,0,0),l<=o)return void alert("結束日期必須晚於起始日期！");const a=o.getFullYear(),d=l.getFullYear();if(a===d||d-a>1)return void alert("目前僅支援橫跨兩個連續年度的計算。");let c=0;c+=getProratedMonthValueForStart(o.getDate()),c+=11-o.getMonth();let r=0;r+=l.getMonth(),r+=getProratedMonthValueForEnd(l.getDate());const s=c+r;if(s<=0)return void alert("根據您的規則，計算出的有效總月份為0，無法計算費用。");const i=n/s,u=Math.round(i*c),m=Math.round(n-u);const g=a-1911,p=d-1911;document.getElementById("periodSummary").innerText=`有效月數：${g}年 (${c.toFixed(1)}個月) / ${p}年 (${r.toFixed(1)}個月)`,document.getElementById("resultYear1").innerHTML=`<h3>${g}年應分攤保費</h3><p>NT$ ${u}</p>`,document.getElementById("resultYear2").innerHTML=`<h3>${p}年應分攤保費</h3><p>NT$ ${m}</p>`,document.getElementById("result").className="result-visible"}catch(e){console.error("計算過程中發生預期外的錯誤:",e),alert("計算失敗！請檢查輸入的日期是否有效，或按 F12 查看錯誤日誌。")}}
+
+// ===================================================================
+// III. 銷項發票計算機
 // ===================================================================
 
-function showWelcome() {
-    document.getElementById('insurance-calculator-section').classList.add('hidden');
-    document.getElementById('invoice-section').classList.add('hidden');
-    document.getElementById('welcome-section').classList.remove('hidden');
-}
+const twoPartTable = document.getElementById('invoice-table-two-part');
+const threePartTable = document.getElementById('invoice-table-three-part');
+const twoPartBody = document.getElementById('invoice-table-body-two-part');
+const threePartBody = document.getElementById('invoice-table-body-three-part');
+const twoPartSummary = document.getElementById('invoice-summary-two-part');
+const threePartSummary = document.getElementById('invoice-summary-three-part');
+const invoiceTypeSelect = document.getElementById('invoice-type-select');
 
-function showInsuranceCalculator() {
-    document.getElementById('welcome-section').classList.add('hidden');
-    document.getElementById('invoice-section').classList.add('hidden');
-    document.getElementById('insurance-calculator-section').classList.remove('hidden');
-}
-
-function showInvoiceCalculator() {
-    document.getElementById('welcome-section').classList.add('hidden');
-    document.getElementById('insurance-calculator-section').classList.add('hidden');
-    document.getElementById('invoice-section').classList.remove('hidden');
-    // 第一次顯示時，自動新增一列
-    if (document.getElementById('invoice-table-body').rows.length === 0) {
+// 切換發票類型
+function switchInvoiceType() {
+    const type = invoiceTypeSelect.value;
+    if (type === 'two-part') {
+        twoPartTable.classList.remove('hidden');
+        twoPartSummary.classList.remove('hidden');
+        threePartTable.classList.add('hidden');
+        threePartSummary.classList.add('hidden');
+    } else {
+        threePartTable.classList.remove('hidden');
+        threePartSummary.classList.remove('hidden');
+        twoPartTable.classList.add('hidden');
+        twoPartSummary.classList.add('hidden');
+    }
+    // 切換後如果表格是空的，就新增一列
+    if (getCurrentInvoiceBody().rows.length === 0) {
         addInvoiceRow();
     }
 }
 
-function autoTab(currentElement, nextElementId) {
-    if (currentElement.value.length === currentElement.maxLength) {
-        document.getElementById(nextElementId).focus();
-    }
+function getCurrentInvoiceBody() {
+    return invoiceTypeSelect.value === 'two-part' ? twoPartBody : threePartBody;
 }
 
-// ===================================================================
-// II. 保險費計算機 (Insurance Calculator)
-// ===================================================================
-
-// (此區塊的所有函式，除了 showCalculator 被重構外，其餘保持不變)
-function toggleInputMode(type) {
-    const picker = document.getElementById(`${type}Date`);
-    const manualContainer = document.getElementById(`${type}DateManualContainer`);
-    const button = document.querySelector(`#${type}-date-group .toggle-button`);
-    if (picker.classList.toggle('hidden')) {
-        manualContainer.classList.remove('hidden');
-        button.textContent = '使用日曆';
-        if (picker.value) { /* ... */ }
-    } else {
-        manualContainer.classList.add('hidden');
-        button.textContent = '手動輸入';
-        updatePickerFromManual(type);
-    }
-}
-function updatePickerFromManual(type) { /* ... */ }
-function resetForm() { /* ... */ }
-function calculatePremium() { /* ... */ }
-// (為簡潔，省略內部程式碼，請使用您驗證成功的版本)
-function updatePickerFromManual(type) {const yearInput=document.getElementById(`${type}DateManualYear`),monthInput=document.getElementById(`${type}DateManualMonth`),dayInput=document.getElementById(`${type}DateManualDay`),picker=document.getElementById(`${type}Date`);const year=yearInput.value.trim(),month=monthInput.value.trim(),day=dayInput.value.trim();if(year&&month&&day){const assembledDate=`${year}/${month}/${day}`;const regex=/(\d{2,3})[年\/](\d{1,2})[月\/](\d{1,2})日?/;const match=assembledDate.match(regex);if(match){const minguoYear=parseInt(match[1],10);const adYear=minguoYear+1911;const monthPadded=match[2].padStart(2,"0");const dayPadded=match[3].padStart(2,"0");const formattedDate=`${adYear}-${monthPadded}-${dayPadded}`;const d=new Date(formattedDate);if(d instanceof Date&&!isNaN(d)&&d.getFullYear()===adYear){picker.value=formattedDate}else{picker.value=""}}else{picker.value=""}}else{picker.value=""}}
-function resetForm(){["start","end"].forEach(type=>{document.getElementById(`${type}Date`).value="";document.getElementById(`${type}DateManualYear`).value="";document.getElementById(`${type}DateManualMonth`).value="";document.getElementById(`${type}DateManualDay`).value=""});document.getElementById("totalPremium").value="";const resultDiv=document.getElementById("result");resultDiv.classList.add("result-hidden");resultDiv.classList.remove("result-visible");if(!document.getElementById("startDateManualContainer").classList.contains("hidden")){document.getElementById("startDateManualYear").focus()}}
-function getProratedMonthValueForStart(day){if(day>=1&&day<=10)return 1;if(day>=11&&day<=20)return.5;return 0}
-function getProratedMonthValueForEnd(day){if(day>=21)return 1;if(day>=11)return.5;return 0}
-function calculatePremium(){try{updatePickerFromManual("start");updatePickerFromManual("end");const startDateString=document.getElementById("startDate").value;const endDateString=document.getElementById("endDate").value;const totalPremium=parseFloat(document.getElementById("totalPremium").value);if(!startDateString||!endDateString||isNaN(totalPremium)||totalPremium<=0){alert("請確保所有欄位都已正確填寫！");return}const startDate=new Date(startDateString);const endDate=new Date(endDateString);startDate.setUTCHours(12,0,0,0);endDate.setUTCHours(12,0,0,0);if(endDate<=startDate){alert("結束日期必須晚於起始日期！");return}const firstAdYear=startDate.getFullYear();const secondAdYear=endDate.getFullYear();if(firstAdYear===secondAdYear||secondAdYear-firstAdYear>1){alert("目前僅支援橫跨兩個連續年度的計算。");return}let monthsInFirstYear=0;monthsInFirstYear+=getProratedMonthValueForStart(startDate.getDate());monthsInFirstYear+=11-startDate.getMonth();let monthsInSecondYear=0;monthsInSecondYear+=endDate.getMonth();monthsInSecondYear+=getProratedMonthValueForEnd(endDate.getDate());const totalEffectiveMonths=monthsInFirstYear+monthsInSecondYear;if(totalEffectiveMonths<=0){alert("根據您的規則，計算出的有效總月份為0，無法計算費用。");return}const premiumPerEffectiveMonth=totalPremium/totalEffectiveMonths;const premiumForFirstYear=Math.round(premiumPerEffectiveMonth*monthsInFirstYear);const premiumForSecondYear=Math.round(totalPremium-premiumForFirstYear);const firstMinguoYear=firstAdYear-1911;const secondMinguoYear=secondAdYear-1911;document.getElementById("periodSummary").innerText=`有效月數：${firstMinguoYear}年 (${monthsInFirstYear.toFixed(1)}個月) / ${secondMinguoYear}年 (${monthsInSecondYear.toFixed(1)}個月)`;document.getElementById("resultYear1").innerHTML=`<h3>${firstMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForFirstYear}</p>`;document.getElementById("resultYear2").innerHTML=`<h3>${secondMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForSecondYear}</p>`;document.getElementById("result").className="result-visible"}catch(error){console.error("計算過程中發生預期外的錯誤:",error);alert("計算失敗！請檢查輸入的日期是否有效，或按 F12 查看錯誤日誌。")}}
-
-
-// ===================================================================
-// III. 銷項發票計算機 (Invoice Calculator)
-// ===================================================================
-
-const invoiceTableBody = document.getElementById('invoice-table-body');
-let rowCounter = 0;
-
-// 新增一列表格
+// 新增一列
 function addInvoiceRow() {
-    rowCounter++;
-    const newRow = invoiceTableBody.insertRow(); // 在表格末尾新增一行
-    newRow.innerHTML = `
-        <td>
-            <input type="number" placeholder="總計金額" data-row="${rowCounter}" class="invoice-total">
-        </td>
-        <td>
-            <input type="number" readonly class="invoice-tax">
-        </td>
-    `;
-    // 新增完後，自動聚焦到新的總計輸入框
-    newRow.querySelector('.invoice-total').focus();
+    const tableBody = getCurrentInvoiceBody();
+    const newRow = tableBody.insertRow();
+    const rowIndex = tableBody.rows.length - 1;
+
+    if (invoiceTypeSelect.value === 'two-part') {
+        newRow.innerHTML = `
+            <td>${rowIndex}</td>
+            <td><input type="number" class="total-2" placeholder="總計金額"></td>
+            <td><input type="number" class="sales-2" readonly></td>
+            <td><input type="number" class="tax-2" readonly></td>`;
+    } else {
+        newRow.innerHTML = `
+            <td>${rowIndex}</td>
+            <td><input type="number" class="sales-3" placeholder="未稅銷售額"></td>
+            <td><input type="number" class="tax-3" placeholder="營業稅"></td>
+            <td><input type="number" class="total-3" readonly></td>`;
+    }
+    newRow.querySelector('input').focus();
 }
 
-// 更新底部的總計數據
+// 更新總計
 function updateInvoiceSummary() {
-    const allTotals = document.querySelectorAll('.invoice-total');
-    const allTaxes = document.querySelectorAll('.invoice-tax');
-
-    let totalSum = 0;
-    allTotals.forEach(input => {
-        totalSum += parseFloat(input.value) || 0;
-    });
-
-    let taxSum = 0;
-    allTaxes.forEach(input => {
-        taxSum += parseFloat(input.value) || 0;
-    });
-
-    document.getElementById('invoice-count').textContent = allTotals.length;
-    document.getElementById('invoice-total-sum').textContent = totalSum.toLocaleString(); // 加上千分位
-    document.getElementById('invoice-tax-sum').textContent = taxSum.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }); // 四捨五入到整數並加千分位
+    if (invoiceTypeSelect.value === 'two-part') {
+        const allTotals = document.querySelectorAll('.total-2');
+        let totalSum = 0, salesSum = 0, taxSum = 0;
+        allTotals.forEach(input => {
+            const row = input.closest('tr');
+            totalSum += parseFloat(input.value) || 0;
+            salesSum += parseFloat(row.querySelector('.sales-2').value) || 0;
+            taxSum += parseFloat(row.querySelector('.tax-2').value) || 0;
+        });
+        document.getElementById('invoice-count-two').textContent = allTotals.length;
+        document.getElementById('total-sum-two').textContent = totalSum.toLocaleString();
+        document.getElementById('sales-sum-two').textContent = salesSum.toLocaleString();
+        document.getElementById('tax-sum-two').textContent = taxSum.toLocaleString();
+    } else {
+        const allSales = document.querySelectorAll('.sales-3');
+        const allTaxes = document.querySelectorAll('.tax-3');
+        let totalSum = 0, salesSum = 0, taxSum = 0;
+        allSales.forEach(input => {
+            salesSum += parseFloat(input.value) || 0;
+            totalSum += parseFloat(input.closest('tr').querySelector('.total-3').value) || 0;
+        });
+         allTaxes.forEach(input => {
+            taxSum += parseFloat(input.value) || 0;
+        });
+        document.getElementById('invoice-count-three').textContent = allSales.length;
+        document.getElementById('sales-sum-three').textContent = salesSum.toLocaleString();
+        document.getElementById('tax-sum-three').textContent = taxSum.toLocaleString();
+        document.getElementById('total-sum-three').textContent = totalSum.toLocaleString();
+    }
 }
 
-// 監聽整個表格的輸入與按鍵事件 (事件委派)
-invoiceTableBody.addEventListener('input', function(e) {
-    // 當「總計」輸入框有變動時
-    if (e.target.classList.contains('invoice-total')) {
-        const totalValue = parseFloat(e.target.value) || 0;
-        const taxValue = Math.round(totalValue / 1.05 * 0.05); // 計算稅額並四捨五入
+// 事件監聽 (使用事件委派)
+document.getElementById('invoice-section').addEventListener('input', function(e) {
+    const row = e.target.closest('tr');
+    if (!row) return;
+
+    // 二聯式邏輯
+    if (e.target.classList.contains('total-2')) {
+        const total = parseFloat(e.target.value) || 0;
+        const tax = Math.round(total / 1.05 * 0.05);
+        const sales = total - tax;
+        row.querySelector('.sales-2').value = sales;
+        row.querySelector('.tax-2').value = tax;
+    }
+    // 三聯式邏輯
+    if (e.target.classList.contains('sales-3') || e.target.classList.contains('tax-3')) {
+        const sales = parseFloat(row.querySelector('.sales-3').value) || 0;
+        const tax = parseFloat(row.querySelector('.tax-3').value) || 0;
+        row.querySelector('.total-3').value = sales + tax;
+    }
+    updateInvoiceSummary();
+});
+
+document.getElementById('invoice-section').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        const allInputs = Array.from(row.querySelectorAll('input:not([readonly])'));
+        const currentIndex = allInputs.indexOf(e.target);
         
-        // 找到同一列的稅額輸入框並填入值
-        const taxInput = e.target.closest('tr').querySelector('.invoice-tax');
-        taxInput.value = taxValue;
-
-        // 更新總計
-        updateInvoiceSummary();
+        if (currentIndex === allInputs.length - 1) { // 如果是該列最後一個輸入框
+            e.preventDefault();
+            addInvoiceRow();
+        } else if (currentIndex > -1) { // 跳到下一個輸入框
+            e.preventDefault();
+            allInputs[currentIndex + 1].focus();
+        }
     }
 });
 
-invoiceTableBody.addEventListener('keydown', function(e) {
-    // 當在「總計」輸入框按下 Enter 鍵時
-    if (e.key === 'Enter' && e.target.classList.contains('invoice-total')) {
-        e.preventDefault(); // 防止預設的表單提交行為
-        addInvoiceRow(); // 新增一列
-    }
-});
+// 重置發票表單
+function resetInvoiceForm() {
+    twoPartBody.innerHTML = '';
+    threePartBody.innerHTML = '';
+    addInvoiceRow();
+    updateInvoiceSummary();
+}

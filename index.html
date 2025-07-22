@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 1. 更改網頁標題 -->
     <title>計算機</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- 2. 改造首頁 -->
     <div id="welcome-section" class="container">
         <div class="welcome-buttons-container">
             <button class="welcome-button" onclick="showInsuranceCalculator()">保險費計算</button>
@@ -16,87 +14,74 @@
         </div>
     </div>
 
-    <!-- 原有的保險費計算機 (ID 已更改) -->
+    <!-- 原有的保險費計算機 -->
     <div id="insurance-calculator-section" class="container hidden">
-        <button id="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
+        <button class="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
         <h1>年度保險費分攤計算機</h1>
         <!-- ... (保險費計算機的表單內容維持不變) ... -->
-        <div class="form-group">
-            <label for="startDate">保險起始日期：</label>
-            <div class="date-input-group" id="start-date-group">
-                <input type="date" class="date-picker" id="startDate">
-                <div class="manual-date-container hidden" id="startDateManualContainer">
-                    <input type="tel" id="startDateManualYear" placeholder="113" maxlength="3" onkeyup="autoTab(this, 'startDateManualMonth')">
-                    <span>/</span>
-                    <input type="tel" id="startDateManualMonth" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'startDateManualDay')">
-                    <span>/</span>
-                    <input type="tel" id="startDateManualDay" placeholder="30" maxlength="2" onkeyup="autoTab(this, 'endDateManualYear')">
-                </div>
-                <button class="toggle-button" onclick="toggleInputMode('start')">手動輸入</button>
-            </div>
-        </div>
-        <div class="form-group">
-            <label for="endDate">保險結束日期：</label>
-            <div class="date-input-group" id="end-date-group">
-                <input type="date" class="date-picker" id="endDate">
-                <div class="manual-date-container hidden" id="endDateManualContainer">
-                    <input type="tel" id="endDateManualYear" placeholder="114" maxlength="3" onkeyup="autoTab(this, 'endDateManualMonth')">
-                    <span>/</span>
-                    <input type="tel" id="endDateManualMonth" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'endDateManualDay')">
-                    <span>/</span>
-                    <input type="tel" id="endDateManualDay" placeholder="23" maxlength="2" onkeyup="autoTab(this, 'totalPremium')">
-                </div>
-                <button class="toggle-button" onclick="toggleInputMode('end')">手動輸入</button>
-            </div>
-        </div>
-        <div class="form-group">
-            <label for="totalPremium">一年期總保費：</label>
-            <input type="number" id="totalPremium" placeholder="例如：36500">
-        </div>
+        <div class="form-group"><label for="startDate">保險起始日期：</label><div class="date-input-group" id="start-date-group"><input type="date" class="date-picker" id="startDate"><div class="manual-date-container hidden" id="startDateManualContainer"><input type="tel" id="startDateManualYear" placeholder="113" maxlength="3" onkeyup="autoTab(this, 'startDateManualMonth')"><span>/</span><input type="tel" id="startDateManualMonth" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'startDateManualDay')"><span>/</span><input type="tel" id="startDateManualDay" placeholder="30" maxlength="2" onkeyup="autoTab(this, 'endDateManualYear')"></div><button class="toggle-button" onclick="toggleInputMode('start')">手動輸入</button></div></div>
+        <div class="form-group"><label for="endDate">保險結束日期：</label><div class="date-input-group" id="end-date-group"><input type="date" class="date-picker" id="endDate"><div class="manual-date-container hidden" id="endDateManualContainer"><input type="tel" id="endDateManualYear" placeholder="114" maxlength="3" onkeyup="autoTab(this, 'endDateManualMonth')"><span>/</span><input type="tel" id="endDateManualMonth" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'endDateManualDay')"><span>/</span><input type="tel" id="endDateManualDay" placeholder="23" maxlength="2" onkeyup="autoTab(this, 'totalPremium')"></div><button class="toggle-button" onclick="toggleInputMode('end')">手動輸入</button></div></div>
+        <div class="form-group"><label for="totalPremium">一年期總保費：</label><input type="number" id="totalPremium" placeholder="例如：36500"></div>
         <button class="main-calculate-button" onclick="calculatePremium()">計算費用</button>
-        <div id="result" class="result-hidden">
-            <h2>計算結果</h2>
-            <p id="periodSummary"></p>
-            <div class="result-split">
-                <div id="resultYear1"></div>
-                <div id="resultYear2"></div>
-            </div>
-        </div>
-        <button id="reset-button" onclick="resetForm()">↺</button>
+        <div id="result" class="result-hidden"><h2>計算結果</h2><p id="periodSummary"></p><div class="result-split"><div id="resultYear1"></div><div id="resultYear2"></div></div></div>
+        <button id="reset-button" onclick="resetInsuranceForm()">↺</button>
     </div>
 
-    <!-- 3. 新增銷項發票區塊 -->
+    <!-- 銷項發票區塊 -->
     <div id="invoice-section" class="container hidden">
-        <button id="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
+        <button class="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
         <h1>銷項發票稅額計算</h1>
+        <button id="reset-invoice-button" onclick="resetInvoiceForm()">↺</button>
 
         <div class="invoice-controls">
-            <select id="invoice-type-select">
+            <select id="invoice-type-select" onchange="switchInvoiceType()">
                 <option value="two-part">二聯式發票</option>
-                <option value="three-part">三聯式發票 (功能待開發)</option>
+                <option value="three-part">三聯式發票</option>
             </select>
         </div>
 
         <div class="invoice-table-container">
-            <table id="invoice-table">
+            <!-- 二聯式表格 (預設顯示) -->
+            <table id="invoice-table-two-part">
                 <thead>
                     <tr>
-                        <th>總計</th>
-                        <th>稅額 (自動計算)</th>
+                        <th class="col-index">#</th>
+                        <th class="col-total">總計 (含稅)</th>
+                        <th class="col-sales">銷售額 (未稅)</th>
+                        <th class="col-tax">稅額</th>
                     </tr>
                 </thead>
-                <tbody id="invoice-table-body">
-                    <!-- 發票列將由 JavaScript 動態新增 -->
-                </tbody>
+                <tbody id="invoice-table-body-two-part"></tbody>
+            </table>
+            <!-- 三聯式表格 (預設隱藏) -->
+            <table id="invoice-table-three-part" class="hidden">
+                 <thead>
+                    <tr>
+                        <th class="col-index">#</th>
+                        <th class="col-sales">銷售額合計 (未稅)</th>
+                        <th class="col-tax">營業稅</th>
+                        <th class="col-total">總計 (自動計算)</th>
+                    </tr>
+                </thead>
+                <tbody id="invoice-table-body-three-part"></tbody>
             </table>
         </div>
         
         <button class="add-row-button" onclick="addInvoiceRow()">+ 新增一列</button>
 
-        <div id="invoice-summary">
-            <p>共 <span id="invoice-count">0</span> 筆資料</p>
-            <p>總計加總: <span id="invoice-total-sum">0</span></p>
-            <p>稅額加總: <span id="invoice-tax-sum">0</span></p>
+        <!-- 二聯式總計 -->
+        <div id="invoice-summary-two-part" class="invoice-summary">
+            <p>共 <span id="invoice-count-two">0</span> 筆資料</p>
+            <p>總計加總: <span id="total-sum-two">0</span></p>
+            <p>銷售額加總: <span id="sales-sum-two">0</span></p>
+            <p>稅額加總: <span id="tax-sum-two">0</span></p>
+        </div>
+        <!-- 三聯式總計 -->
+         <div id="invoice-summary-three-part" class="invoice-summary hidden">
+            <p>共 <span id="invoice-count-three">0</span> 筆資料</p>
+            <p>銷售額加總: <span id="sales-sum-three">0</span></p>
+            <p>營業稅加總: <span id="tax-sum-three">0</span></p>
+            <p>總計加總: <span id="total-sum-three">0</span></p>
         </div>
     </div>
     
