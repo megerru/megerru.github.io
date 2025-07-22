@@ -1,20 +1,161 @@
 // ===================================================================
 // I. 頁面導覽與通用函式
 // ===================================================================
-function showWelcome(){document.getElementById("insurance-calculator-section").classList.add("hidden");document.getElementById("invoice-section").classList.add("hidden");document.getElementById("welcome-section").classList.remove("hidden")}
-function showInsuranceCalculator(){document.getElementById("welcome-section").classList.add("hidden");document.getElementById("invoice-section").classList.add("hidden");document.getElementById("insurance-calculator-section").classList.remove("hidden")}
-function showInvoiceCalculator(){document.getElementById("welcome-section").classList.add("hidden");document.getElementById("insurance-calculator-section").classList.add("hidden");document.getElementById("invoice-section").classList.remove("hidden");switchInvoiceType()}
-function autoTab(currentElement,nextElementId){if(currentElement.value.length===currentElement.maxLength){document.getElementById(nextElementId).focus()}}
+
+function showWelcome() {
+    document.getElementById('insurance-calculator-section').classList.add('hidden');
+    document.getElementById('invoice-section').classList.add('hidden');
+    document.getElementById('welcome-section').classList.remove('hidden');
+}
+
+function showInsuranceCalculator() {
+    document.getElementById('welcome-section').classList.add('hidden');
+    document.getElementById('invoice-section').classList.add('hidden');
+    document.getElementById('insurance-calculator-section').classList.remove('hidden');
+}
+
+function showInvoiceCalculator() {
+    document.getElementById('welcome-section').classList.add('hidden');
+    document.getElementById('insurance-calculator-section').classList.add('hidden');
+    document.getElementById('invoice-section').classList.remove('hidden');
+    // 進入頁面時，根據下拉選單初始化
+    switchInvoiceType();
+}
+
+function autoTab(currentElement, nextElementId) {
+    if (currentElement.value.length === currentElement.maxLength) {
+        document.getElementById(nextElementId).focus();
+    }
+}
 
 // ===================================================================
 // II. 保險費計算機
 // ===================================================================
-function toggleInputMode(e){const t=document.getElementById(`${e}Date`),n=document.getElementById(`${e}DateManualContainer`),o=document.querySelector(`#${e}-date-group .toggle-button`);t.classList.toggle("hidden")?(n.classList.remove("hidden"),o.textContent="使用日曆",t.value&&(()=>{const n=new Date(t.value);document.getElementById(`${e}DateManualYear`).value=n.getFullYear()-1911,document.getElementById(`${e}DateManualMonth`).value=(n.getMonth()+1).toString().padStart(2,"0"),document.getElementById(`${e}DateManualDay`).value=n.getDate().toString().padStart(2,"0")})()):(n.classList.add("hidden"),o.textContent="手動輸入",updatePickerFromManual(e))}
-function updatePickerFromManual(e){const t=document.getElementById(`${e}DateManualYear`),n=document.getElementById(`${e}DateManualMonth`),o=document.getElementById(`${e}DateManualDay`),l=document.getElementById(`${e}Date`);const a=t.value.trim(),d=n.value.trim(),c=o.value.trim();if(a&&d&&c){const t=`${a}/${d}/${c}`;const n=/(\d{2,3})[年\/](\d{1,2})[月\/](\d{1,2})日?/.exec(t);if(n){const t=parseInt(n[1],10)+1911,o=n[2].padStart(2,"0"),a=n[3].padStart(2,"0");const d=`${t}-${o}-${a}`;const c=new Date(d);c instanceof Date&&!isNaN(c)&&c.getFullYear()===t?l.value=d:l.value=""}else l.value=""}else l.value=""}
-function resetInsuranceForm(){["start","end"].forEach(e=>{document.getElementById(`${e}Date`).value="",document.getElementById(`${e}DateManualYear`).value="",document.getElementById(`${e}DateManualMonth`).value="",document.getElementById(`${e}DateManualDay`).value=""});document.getElementById("totalPremium").value="";const e=document.getElementById("result");e.classList.add("result-hidden"),e.classList.remove("result-visible"),document.getElementById("startDateManualContainer").classList.contains("hidden")||document.getElementById("startDateManualYear").focus()}
-function getProratedMonthValueForStart(e){return e>=1&&e<=10?1:e>=11&&e<=20?.5:0}
-function getProratedMonthValueForEnd(e){return e>=21?1:e>=11?.5:0}
-function calculatePremium(){try{updatePickerFromManual("start"),updatePickerFromManual("end");const e=document.getElementById("startDate").value,t=document.getElementById("endDate").value,n=parseFloat(document.getElementById("totalPremium").value);if(!e||!t||isNaN(n)||n<=0)return void alert("請確保所有欄位都已正確填寫！");const o=new Date(e),l=new Date(t);if(o.setUTCHours(12,0,0,0),l.setUTCHours(12,0,0,0),l<=o)return void alert("結束日期必須晚於起始日期！");const a=o.getFullYear(),d=l.getFullYear();if(a===d||d-a>1)return void alert("目前僅支援橫跨兩個連續年度的計算。");let c=0;c+=getProratedMonthValueForStart(o.getDate()),c+=11-o.getMonth();let r=0;r+=l.getMonth(),r+=getProratedMonthValueForEnd(l.getDate());const s=c+r;if(s<=0)return void alert("根據您的規則，計算出的有效總月份為0，無法計算費用。");const i=n/s,u=Math.round(i*c),m=Math.round(n-u);const g=a-1911,p=d-1911;document.getElementById("periodSummary").innerText=`有效月數：${g}年 (${c.toFixed(1)}個月) / ${p}年 (${r.toFixed(1)}個月)`,document.getElementById("resultYear1").innerHTML=`<h3>${g}年應分攤保費</h3><p>NT$ ${u}</p>`,document.getElementById("resultYear2").innerHTML=`<h3>${p}年應分攤保費</h3><p>NT$ ${m}</p>`,document.getElementById("result").className="result-visible"}catch(e){console.error("計算過程中發生預期外的錯誤:",e),alert("計算失敗！請檢查輸入的日期是否有效，或按 F12 查看錯誤日誌。")}}
+
+function toggleInputMode(type) {
+    const picker = document.getElementById(`${type}Date`);
+    const manualContainer = document.getElementById(`${type}DateManualContainer`);
+    const button = document.querySelector(`#${type}-date-group .toggle-button`);
+    const isPickerHidden = picker.classList.contains('hidden');
+    if (isPickerHidden) {
+        picker.classList.remove('hidden');
+        manualContainer.classList.add('hidden');
+        button.textContent = '手動輸入';
+        updatePickerFromManual(type);
+    } else {
+        picker.classList.add('hidden');
+        manualContainer.classList.remove('hidden');
+        button.textContent = '使用日曆';
+        if (picker.value) {
+            const date = new Date(picker.value);
+            document.getElementById(`${type}DateManualYear`).value = date.getFullYear() - 1911;
+            document.getElementById(`${type}DateManualMonth`).value = (date.getMonth() + 1).toString().padStart(2, '0');
+            document.getElementById(`${type}DateManualDay`).value = date.getDate().toString().padStart(2, '0');
+        }
+    }
+}
+
+function updatePickerFromManual(type) {
+    const yearInput = document.getElementById(`${type}DateManualYear`);
+    const monthInput = document.getElementById(`${type}DateManualMonth`);
+    const dayInput = document.getElementById(`${type}DateManualDay`);
+    const picker = document.getElementById(`${type}Date`);
+    const year = yearInput.value.trim();
+    const month = monthInput.value.trim();
+    const day = dayInput.value.trim();
+    if (year && month && day) {
+        const assembledDate = `${year}/${month}/${day}`;
+        const regex = /(\d{2,3})[年\/](\d{1,2})[月\/](\d{1,2})日?/;
+        const match = assembledDate.match(regex);
+        if (match) {
+            const minguoYear = parseInt(match[1], 10);
+            const adYear = minguoYear + 1911;
+            const monthPadded = match[2].padStart(2, '0');
+            const dayPadded = match[3].padStart(2, '0');
+            const formattedDate = `${adYear}-${monthPadded}-${dayPadded}`;
+            const d = new Date(formattedDate);
+            if (d instanceof Date && !isNaN(d) && d.getFullYear() === adYear) {
+                picker.value = formattedDate;
+            } else { picker.value = ''; }
+        } else { picker.value = ''; }
+    } else { picker.value = ''; }
+}
+
+function resetInsuranceForm() {
+    ['start', 'end'].forEach(type => {
+        document.getElementById(`${type}Date`).value = '';
+        document.getElementById(`${type}DateManualYear`).value = '';
+        document.getElementById(`${type}DateManualMonth`).value = '';
+        document.getElementById(`${type}DateManualDay`).value = '';
+    });
+    document.getElementById('totalPremium').value = '';
+    const resultDiv = document.getElementById('result');
+    resultDiv.classList.add('result-hidden');
+    resultDiv.classList.remove('result-visible');
+    if (!document.getElementById('startDateManualContainer').classList.contains('hidden')) {
+        document.getElementById('startDateManualYear').focus();
+    }
+}
+
+function getProratedMonthValueForStart(day) {
+    if (day >= 1 && day <= 10) return 1;
+    if (day >= 11 && day <= 20) return 0.5;
+    return 0;
+}
+function getProratedMonthValueForEnd(day) {
+    if (day >= 21) return 1;
+    if (day >= 11) return 0.5;
+    return 0;
+}
+
+function calculatePremium() {
+    try {
+        updatePickerFromManual('start');
+        updatePickerFromManual('end');
+        const startDateString = document.getElementById('startDate').value;
+        const endDateString = document.getElementById('endDate').value;
+        const totalPremium = parseFloat(document.getElementById('totalPremium').value);
+        if (!startDateString || !endDateString || isNaN(totalPremium) || totalPremium <= 0) {
+            alert("請確保所有欄位都已正確填寫！");
+            return;
+        }
+        const startDate = new Date(startDateString);
+        const endDate = new Date(endDateString);
+        if (endDate <= startDate) {
+            alert("結束日期必須晚於起始日期！");
+            return;
+        }
+        const firstAdYear = startDate.getFullYear();
+        const secondAdYear = endDate.getFullYear();
+        if (firstAdYear === secondAdYear || secondAdYear - firstAdYear > 1) {
+            alert("目前僅支援橫跨兩個連續年度的計算。");
+            return;
+        }
+        let monthsInFirstYear = 0;
+        monthsInFirstYear += getProratedMonthValueForStart(startDate.getDate());
+        monthsInFirstYear += (11 - startDate.getMonth());
+        let monthsInSecondYear = 0;
+        monthsInSecondYear += endDate.getMonth();
+        monthsInSecondYear += getProratedMonthValueForEnd(endDate.getDate());
+        const totalEffectiveMonths = monthsInFirstYear + monthsInSecondYear;
+        if (totalEffectiveMonths <= 0) {
+            alert("根據您的規則，計算出的有效總月份為0，無法計算費用。");
+            return;
+        }
+        const premiumPerEffectiveMonth = totalPremium / totalEffectiveMonths;
+        const premiumForFirstYear = Math.round(premiumPerEffectiveMonth * monthsInFirstYear);
+        const premiumForSecondYear = Math.round(totalPremium - premiumForFirstYear);
+        const firstMinguoYear = firstAdYear - 1911;
+        const secondMinguoYear = secondAdYear - 1911;
+        document.getElementById('periodSummary').innerText = `有效月數：${firstMinguoYear}年 (${monthsInFirstYear.toFixed(1)}個月) / ${secondMinguoYear}年 (${monthsInSecondYear.toFixed(1)}個月)`;
+        document.getElementById('resultYear1').innerHTML = `<h3>${firstMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForFirstYear}</p>`;
+        document.getElementById('resultYear2').innerHTML = `<h3>${secondMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForSecondYear}</p>`;
+        document.getElementById('result').className = 'result-visible';
+    } catch (error) {
+        console.error("計算過程中發生預期外的錯誤:", error);
+        alert("計算失敗！請檢查輸入的日期是否有效，或按 F12 查看錯誤日誌。");
+    }
+}
 
 // ===================================================================
 // III. 銷項發票計算機
@@ -69,6 +210,7 @@ function addInvoiceRow() {
             <td><input type="text" class="tax-id-3" maxlength="8"></td>
             <td><input type="text" class="company-3" readonly></td>`;
     }
+    // 聚焦到第一個不是唯讀的輸入框
     newRow.querySelector('input:not([readonly])').focus();
 }
 
@@ -104,22 +246,41 @@ function updateInvoiceSummary() {
 }
 
 async function lookupCompanyByTaxId(taxId, companyInput) {
-    if (taxId.length !== 8 || !/^\d+$/.test(taxId)) {
+    if (!/^\d{8}$/.test(taxId)) {
         companyInput.value = '統編格式錯誤';
         return;
     }
+
     companyInput.value = '查詢中...';
+    const targetUrl = `https://company.g0v.ronny.tw/api/show/${taxId}`;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     try {
-        const proxyUrl = 'https://api.allorigins.win/get?url=';
-        const targetUrl = `https://data.gov.tw/api/v2/rest/dataset/9D17AE0D-09B5-4732-A8F4-81ADED04B679?&\$filter=Business_Accounting_NO eq ${taxId}`;
-        const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
-        if (!response.ok) throw new Error('Proxy error');
+        const response = await fetch(targetUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error('API 回應錯誤');
+        }
+
         const data = await response.json();
-        const results = JSON.parse(data.contents);
-        companyInput.value = (results && results.length > 0) ? results[0]['營業人名稱'] : '查無資料';
+
+        if (data && data.data) {
+            companyInput.value = data.data['公司名稱'];
+        } else {
+            companyInput.value = '查無此公司資料';
+        }
+
     } catch (error) {
-        console.error('API Error:', error);
-        companyInput.value = '查詢失敗';
+        if (error.name === 'AbortError') {
+            console.error('API Error: Request timed out');
+            companyInput.value = '查詢超時，請再試一次';
+        } else {
+            console.error('API Error:', error);
+            companyInput.value = '查詢失敗';
+        }
     }
 }
 
@@ -168,14 +329,13 @@ document.getElementById('invoice-section').addEventListener('keydown', function(
 
     e.preventDefault();
 
-    const financialInputs = Array.from(row.querySelectorAll('.sales-3, .tax-3, .total-2'));
-    if (financialInputs.includes(targetInput)) {
-        const currentIndex = financialInputs.indexOf(targetInput);
-        if (currentIndex === financialInputs.length - 1) {
-            addInvoiceRow();
-        } else {
-            financialInputs[currentIndex + 1].focus();
-        }
+    const allInputsInRow = Array.from(row.querySelectorAll('input:not([readonly])'));
+    const currentIndex = allInputsInRow.indexOf(targetInput);
+
+    if (currentIndex === allInputsInRow.length - 1) {
+        addInvoiceRow();
+    } else if (currentIndex > -1) {
+        allInputsInRow[currentIndex + 1].focus();
     }
 });
 
