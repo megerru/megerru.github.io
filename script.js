@@ -97,17 +97,6 @@ function resetInsuranceForm() {
     }
 }
 
-function getProratedMonthValueForStart(day) {
-    if (day >= 1 && day <= 10) return 1;
-    if (day >= 11 && day <= 20) return 0.5;
-    return 0;
-}
-function getProratedMonthValueForEnd(day) {
-    if (day >= 21) return 1;
-    if (day >= 11) return 0.5;
-    return 0;
-}
-
 function calculatePremium() {
     try {
         updatePickerFromManual('start');
@@ -115,56 +104,68 @@ function calculatePremium() {
         const startDateString = document.getElementById('startDate').value;
         const endDateString = document.getElementById('endDate').value;
         const totalPremium = parseFloat(document.getElementById('totalPremium').value);
+
         if (!startDateString || !endDateString || isNaN(totalPremium) || totalPremium <= 0) {
             alert("請確保所有欄位都已正確填寫！");
             return;
         }
+
         const startDate = new Date(startDateString);
         const endDate = new Date(endDateString);
-        if (endDate <= startDate) {
+        
+        const startUTC = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        const endUTC = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+        if (endUTC <= startUTC) {
             alert("結束日期必須晚於起始日期！");
             return;
         }
+
         const firstAdYear = startDate.getFullYear();
         const secondAdYear = endDate.getFullYear();
-        if (firstAdYear === secondAdYear || secondAdYear - firstAdYear > 1) {
-            alert("目前僅支援橫跨兩個連續年度的計算。");
-            return;
-        }
-        let monthsInFirstYear = 0;
-        monthsInFirstYear += getProratedMonthValueForStart(startDate.getDate());
-        monthsInFirstYear += (11 - startDate.getMonth());
-        let monthsInSecondYear = 0;
-        monthsInSecondYear += endDate.getMonth();
-        monthsInSecondYear += getProratedMonthValueForEnd(endDate.getDate());
-        const totalEffectiveMonths = monthsInFirstYear + monthsInSecondYear;
-        if (totalEffectiveMonths <= 0) {
-            alert("根據您的規則，計算出的有效總月份為0，無法計算費用。");
-            return;
-        }
-        const premiumPerEffectiveMonth = totalPremium / totalEffectiveMonths;
-        const premiumForFirstYear = Math.round(premiumPerEffectiveMonth * monthsInFirstYear);
-        const premiumForSecondYear = Math.round(totalPremium - premiumForFirstYear);
         const firstMinguoYear = firstAdYear - 1911;
         const secondMinguoYear = secondAdYear - 1911;
-        document.getElementById('periodSummary').innerText = `有效月數：${firstMinguoYear}年 (${monthsInFirstYear.toFixed(1)}個月) / ${secondMinguoYear}年 (${monthsInSecondYear.toFixed(1)}個月)`;
+
+        const totalDays = (endUTC - startUTC) / (1000 * 60 * 60 * 24);
+        if (totalDays <= 0) {
+            alert("計算出的總天數無效。");
+            return;
+        }
+
+        let premiumForFirstYear, premiumForSecondYear;
+        let daysInFirstYear, daysInSecondYear;
+
+        if (firstAdYear === secondAdYear) {
+            daysInFirstYear = totalDays;
+            daysInSecondYear = 0;
+            premiumForFirstYear = totalPremium;
+            premiumForSecondYear = 0;
+        } else {
+            const endOfYear1UTC = Date.UTC(firstAdYear + 1, 0, 1);
+            daysInFirstYear = (endOfYear1UTC - startUTC) / (1000 * 60 * 60 * 24);
+            daysInSecondYear = totalDays - daysInFirstYear;
+            premiumForFirstYear = Math.round((totalPremium / totalDays) * daysInFirstYear);
+            premiumForSecondYear = Math.round(totalPremium - premiumForFirstYear);
+        }
+        
+        document.getElementById('periodSummary').innerText = `期間總天數：${totalDays}天 (${firstMinguoYear}年: ${daysInFirstYear}天 / ${secondMinguoYear}年: ${daysInSecondYear}天)`;
         document.getElementById('resultYear1').innerHTML = `<h3>${firstMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForFirstYear}</p>`;
         document.getElementById('resultYear2').innerHTML = `<h3>${secondMinguoYear}年應分攤保費</h3><p>NT$ ${premiumForSecondYear}</p>`;
         document.getElementById('result').className = 'result-visible';
+
     } catch (error) {
         console.error("計算過程中發生預期外的錯誤:", error);
         alert("計算失敗！請檢查輸入的日期是否有效，或按 F12 查看錯誤日誌。");
     }
 }
 
+
 // ===================================================================
 // III. 銷項發票計算機
 // ===================================================================
-
 const twoPartBody = document.getElementById('invoice-table-body-two-part');
 const threePartBody = document.getElementById('invoice-table-body-three-part');
 const invoiceTypeSelect = document.getElementById('invoice-type-select');
-
 function switchInvoiceType() {
     const type = invoiceTypeSelect.value;
     const twoPartTable = document.getElementById('invoice-table-two-part');
@@ -184,11 +185,9 @@ function switchInvoiceType() {
     }
     resetInvoiceForm();
 }
-
 function getCurrentInvoiceBody() {
     return invoiceTypeSelect.value === 'two-part' ? twoPartBody : threePartBody;
 }
-
 function addInvoiceRow() {
     const tableBody = getCurrentInvoiceBody();
     const newRow = tableBody.insertRow();
@@ -210,7 +209,6 @@ function addInvoiceRow() {
     }
     newRow.querySelector('input:not([readonly])').focus();
 }
-
 function updateInvoiceSummary() {
     const type = invoiceTypeSelect.value;
     let count = 0, totalSum = 0, salesSum = 0, taxSum = 0;
@@ -240,7 +238,6 @@ function updateInvoiceSummary() {
         document.getElementById('total-sum-three').textContent = totalSum.toLocaleString();
     }
 }
-
 async function lookupCompanyByTaxId(taxId, companyInput) {
     if (!/^\d{8}$/.test(taxId)) {
         companyInput.value = '統編格式錯誤';
@@ -282,7 +279,6 @@ async function lookupCompanyByTaxId(taxId, companyInput) {
         companyInput.value = '查詢失敗(網路問題)';
     }
 }
-
 document.getElementById('invoice-section').addEventListener('input', function(e) {
     const row = e.target.closest('tr');
     if (!row) return;
@@ -314,7 +310,6 @@ document.getElementById('invoice-section').addEventListener('input', function(e)
     }
     updateInvoiceSummary();
 });
-
 document.getElementById('invoice-section').addEventListener('keydown', function(e) {
     if (e.key !== 'Enter') return;
     const targetInput = e.target;
@@ -329,7 +324,6 @@ document.getElementById('invoice-section').addEventListener('keydown', function(
         allInputsInRow[currentIndex + 1].focus();
     }
 });
-
 function resetInvoiceForm() {
     twoPartBody.innerHTML = '';
     threePartBody.innerHTML = '';
