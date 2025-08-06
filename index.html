@@ -57,16 +57,15 @@
             </div>
         </div>
         <div class="form-group">
-            <label for="totalPremium">一年期總保費：</label>
+            <label for="totalPremium">總保費：</label>
             <input type="number" id="totalPremium" placeholder="例如：36500">
         </div>
         <button class="main-calculate-button" onclick="calculatePremium()">計算費用</button>
         <div id="result" class="result-hidden">
             <h2>計算結果</h2>
             <p id="periodSummary"></p>
-            <div class="result-split">
-                <div id="resultYear1"></div>
-                <div id="resultYear2"></div>
+            <!-- 這個 div 將由 JavaScript 動態填入結果 -->
+            <div class="result-split" id="result-container">
             </div>
         </div>
     </div>
