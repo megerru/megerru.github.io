@@ -120,8 +120,8 @@ function calculatePremium() {
             return;
         }
 
-        // --- 2. 計算總天數與各年度天數 (新邏輯：不包含結束日) ---
-        // 使用 UTC 避免時區問題。總天數不包含結束日期當天。
+        // --- 2. 計算總天數與各年度天數 ---
+        // 標準天數差計算 (endDate - startDate)，符合「算頭不算尾」原則
         const totalDays = (Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()) - Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())) / (1000 * 60 * 60 * 24);
 
         if (totalDays < 1) {
@@ -132,66 +132,71 @@ function calculatePremium() {
         const yearData = [];
         const startYear = startDate.getFullYear();
         const endYear = endDate.getFullYear();
+        let daysAccountedFor = 0;
 
-        // 循環遍歷從開始到結束的每一年
-        for (let year = startYear; year <= endYear; year++) {
-            // 計算該保險期間在 "這一年" 有幾天
-            const periodStartForYear = (year === startYear) ? startDate : new Date(Date.UTC(year, 0, 1));
-            // 期間的結束點是下一年的第一天，或是保單的最終結束日
-            const periodEndForYear = (year === endYear) ? endDate : new Date(Date.UTC(year + 1, 0, 1));
-            
-            const daysInYear = (periodEndForYear - periodStartForYear) / (1000 * 60 * 60 * 24);
-
-            // 如果該年度沒有任何天數，則跳過 (主要發生在結束日剛好是 1/1 的邊界情況)
-            if (daysInYear === 0) continue;
-            
-            // 根據您的規則，中間的完整年度天數視為 365 天
-            let daysForCalc = daysInYear;
-            if (year > startYear && year < endYear) {
-                // 只要是中間的完整年度，計算時就用365天
-                daysForCalc = 365;
+        // 循環遍歷除最後一年外的每一年
+        if (startYear < endYear) {
+            for (let year = startYear; year < endYear; year++) {
+                const yearStartDate = (year === startYear) ? startDate : new Date(Date.UTC(year, 0, 1));
+                const yearEndDate = new Date(Date.UTC(year, 11, 31)); // 算到當年的最後一天
+                
+                // 計算天數時，採用「算頭又算尾」來計算該年度佔了幾天
+                const daysInYear = (yearEndDate - yearStartDate) / (1000 * 60 * 60 * 24) + 1;
+                
+                let daysForCalc = daysInYear;
+                // 若為跨多年的中間完整年度，按規則使用365天計算
+                if (year > startYear && year < endYear) {
+                     daysForCalc = 365;
+                }
+                
+                daysAccountedFor += daysForCalc;
+                yearData.push({
+                    adYear: year,
+                    minguoYear: year - 1911,
+                    days: Math.round(daysInYear),
+                    daysForCalc: daysForCalc
+                });
             }
-
-            yearData.push({
-                adYear: year,
-                minguoYear: year - 1911,
-                days: Math.round(daysInYear), // 實際天數，用於顯示
-                daysForCalc: daysForCalc // 用於計算的天數 (考慮到365規則)
-            });
         }
         
+        // 最後一年(或唯一一年)的天數 = 總天數 - 已計算的天數
+        const lastYearDays = totalDays - daysAccountedFor;
+        yearData.push({
+            adYear: endYear,
+            minguoYear: endYear - 1911,
+            days: Math.round(lastYearDays),
+            daysForCalc: lastYearDays
+        });
+
+
         // --- 3. 計算各年度應分攤保費 ---
         let allocatedPremium = 0;
         const premiumResults = [];
 
-        // 從倒數第二個年度開始往前計算，以確保 rounding 誤差最小
+        // 從倒數第二個年度開始往前計算
         for (let i = yearData.length - 1; i > 0; i--) {
             const data = yearData[i];
-            // 使用您的公式：總金額 * (該年天數 / 總天數)
             const premium = Math.round(totalPremium * (data.daysForCalc / totalDays));
             premiumResults.push({ minguoYear: data.minguoYear, premium: premium });
             allocatedPremium += premium;
         }
 
-        // 第一年的保費 = 總保費 - 已分配的所有保費 (避免 rounding 誤差)
+        // 第一年的保費 = 總保費 - 已分配的所有保費
         const firstYearPremium = totalPremium - allocatedPremium;
         premiumResults.push({ minguoYear: yearData[0].minguoYear, premium: firstYearPremium });
-        premiumResults.reverse(); // 將順序轉回 chronological order
+        premiumResults.reverse(); // 轉回正常順序
 
         // --- 4. 動態更新畫面 ---
         const resultContainer = document.getElementById('result-container');
         const periodSummary = document.getElementById('periodSummary');
         
-        // 清空舊的結果
         resultContainer.innerHTML = '';
 
-        // 建立期間天數摘要文字
         let summaryText = `期間總天數: ${totalDays}天 (`;
         summaryText += yearData.map(d => `${d.minguoYear}年: ${d.days}天`).join(' / ');
         summaryText += ')';
         periodSummary.innerText = summaryText;
 
-        // 根據計算結果，動態創建顯示區塊
         premiumResults.forEach(result => {
             const resultDiv = document.createElement('div');
             resultDiv.innerHTML = `<h3>${result.minguoYear}年應分攤保費</h3><p>NT$ ${result.premium.toLocaleString()}</p>`;
@@ -205,6 +210,7 @@ function calculatePremium() {
         alert("計算失敗！請檢查輸入的日期是否有效，或按 F12 查看錯誤日誌。");
     }
 }
+
 
 // ===================================================================
 // III. 銷項發票計算機 (此區塊維持不變)
