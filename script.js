@@ -200,7 +200,7 @@ function adjustInputWidth(input) {
     const style = window.getComputedStyle(input);
     textMeasureSpan.style.font = style.font;
     textMeasureSpan.textContent = input.value || input.placeholder;
-    const newTdWidth = textMeasureSpan.offsetWidth + 25; // 增加緩衝空間
+    const newTdWidth = textMeasureSpan.offsetWidth + 25; 
     input.parentElement.style.minWidth = `${newTdWidth}px`;
 }
 
@@ -378,8 +378,11 @@ document.getElementById('invoice-section').addEventListener('input', function(e)
     const target = e.target;
     if (!target.matches('input')) return;
 
-    adjustInputWidth(target);
     const row = target.closest('tr');
+    // 【重要】修正：檢查 row 是否存在，防止錯誤
+    if (!row) return;
+
+    adjustInputWidth(target);
     
     if (target.classList.contains('data-date') || target.classList.contains('tax-id-3')) {
         const numericValue = target.value.replace(/\D/g, '');
