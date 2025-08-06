@@ -64,28 +64,44 @@
         <div id="result" class="result-hidden">
             <h2>計算結果</h2>
             <p id="periodSummary"></p>
-            <!-- 這個 div 將由 JavaScript 動態填入結果 -->
             <div class="result-split" id="result-container">
             </div>
         </div>
     </div>
 
-    <!-- 銷項發票計算機 -->
+    <!-- 銷項發票計算機 (已更新) -->
     <div id="invoice-section" class="container hidden">
         <button class="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
         <h1>銷項發票稅額計算</h1>
         <button id="reset-invoice-button" onclick="resetInvoiceForm()">↺</button>
+        
         <div class="invoice-controls">
             <select id="invoice-type-select" onchange="switchInvoiceType()">
                 <option value="two-part">二聯式發票</option>
                 <option value="three-part">三聯式發票</option>
             </select>
         </div>
+
+        <!-- 可選欄位控制 -->
+        <div class="optional-columns-controls" id="optional-controls-two-part">
+            <label><input type="checkbox" id="toggle-col-date-2" onclick="toggleOptionalColumn('date', 2)"> 日期</label>
+            <label><input type="checkbox" id="toggle-col-buyer-2" onclick="toggleOptionalColumn('buyer', 2)"> 買受人</label>
+            <label><input type="checkbox" id="toggle-col-item-2" onclick="toggleOptionalColumn('item', 2)"> 品名</label>
+        </div>
+        <div class="optional-columns-controls hidden" id="optional-controls-three-part">
+            <label><input type="checkbox" id="toggle-col-date-3" onclick="toggleOptionalColumn('date', 3)"> 日期</label>
+            <label><input type="checkbox" id="toggle-col-item-3" onclick="toggleOptionalColumn('item', 3)"> 品名</label>
+        </div>
+
         <div class="invoice-table-container">
+            <!-- 二聯式表格 (已更新標頭) -->
             <table id="invoice-table-two-part">
                 <thead>
                     <tr>
                         <th class="col-index">#</th>
+                        <th class="col-optional col-date">日期</th>
+                        <th class="col-optional col-buyer">買受人</th>
+                        <th class="col-optional col-item">品名</th>
                         <th class="col-total">總計 (含稅)</th>
                         <th class="col-sales">銷售額 (未稅)</th>
                         <th class="col-tax">稅額</th>
@@ -93,27 +109,36 @@
                 </thead>
                 <tbody id="invoice-table-body-two-part"></tbody>
             </table>
+            <!-- 三聯式表格 (已更新標頭) -->
             <table id="invoice-table-three-part" class="hidden">
                  <thead>
                     <tr>
                         <th class="col-index">#</th>
+                        <th class="col-optional col-date">日期</th>
+                        <th class="col-tax-id">統一編號</th>
+                        <th class="col-company">公司名稱</th>
+                        <th class="col-optional col-item">品名</th>
                         <th class="col-sales">銷售額 (未稅)</th>
                         <th class="col-tax">營業稅</th>
                         <th class="col-total">總計 (含稅)</th>
-                        <th class="col-tax-id">統一編號</th>
-                        <th class="col-company">公司名稱</th>
                     </tr>
                 </thead>
                 <tbody id="invoice-table-body-three-part"></tbody>
             </table>
         </div>
+
         <button class="add-row-button" onclick="addInvoiceRow()">+ 新增一列</button>
+        <!-- 匯出按鈕 -->
+        <button class="export-button" id="export-excel-button" onclick="exportToExcel()">匯出 Excel</button>
+
+        <!-- 二聯式總結 -->
         <div id="invoice-summary-two-part" class="invoice-summary">
             <p>共 <span id="invoice-count-two">0</span> 筆資料</p>
             <p>總計加總: <span id="total-sum-two">0</span></p>
             <p>銷售額加總: <span id="sales-sum-two">0</span></p>
             <p>稅額加總: <span id="tax-sum-two">0</span></p>
         </div>
+        <!-- 三聯式總結 -->
          <div id="invoice-summary-three-part" class="invoice-summary hidden">
             <p>共 <span id="invoice-count-three">0</span> 筆資料</p>
             <p>銷售額加總: <span id="sales-sum-three">0</span></p>
@@ -122,6 +147,8 @@
         </div>
     </div>
     
+    <!-- 引入 Excel 函式庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
