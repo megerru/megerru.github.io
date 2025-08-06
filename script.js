@@ -120,54 +120,65 @@ function calculatePremium() {
             return;
         }
 
-        // --- 2. 計算總天數與各年度天數 ---
-        // 標準天數差計算 (endDate - startDate)，符合「算頭不算尾」原則
+        // --- 2. 核心計算邏輯 (完全按照使用者範例重寫) ---
         const totalDays = (Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()) - Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())) / (1000 * 60 * 60 * 24);
 
         if (totalDays < 1) {
             alert("計算出的總天數無效，期間必須至少為一天。");
             return;
         }
+        
+        // --- Helper functions ---
+        const isLeap = (year) => year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+        const getDaysInYear = (year) => isLeap(year) ? 366 : 365;
+        const dayOfYear = (date) => {
+            const startOfYear = Date.UTC(date.getUTCFullYear(), 0, 0);
+            return (date - startOfYear) / (1000 * 60 * 60 * 24);
+        };
+        // --- End Helper functions ---
 
         const yearData = [];
         const startYear = startDate.getFullYear();
         const endYear = endDate.getFullYear();
-        let daysAccountedFor = 0;
 
-        // 循環遍歷除最後一年外的每一年
-        if (startYear < endYear) {
-            for (let year = startYear; year < endYear; year++) {
-                const yearStartDate = (year === startYear) ? startDate : new Date(Date.UTC(year, 0, 1));
-                const yearEndDate = new Date(Date.UTC(year, 11, 31)); // 算到當年的最後一天
-                
-                // 計算天數時，採用「算頭又算尾」來計算該年度佔了幾天
-                const daysInYear = (yearEndDate - yearStartDate) / (1000 * 60 * 60 * 24) + 1;
-                
-                let daysForCalc = daysInYear;
-                // 若為跨多年的中間完整年度，按規則使用365天計算
-                if (year > startYear && year < endYear) {
-                     daysForCalc = 365;
-                }
-                
-                daysAccountedFor += daysForCalc;
+        if (startYear === endYear) {
+            //情況1：保險期間在同一年內
+            yearData.push({
+                adYear: startYear,
+                minguoYear: startYear - 1911,
+                days: totalDays,
+                daysForCalc: totalDays
+            });
+        } else {
+            //情況2：保險期間跨年度
+            // 計算第一年的天數 (剩餘天數)
+            const firstYearDays = getDaysInYear(startYear) - dayOfYear(startDate);
+            yearData.push({
+                adYear: startYear,
+                minguoYear: startYear - 1911,
+                days: firstYearDays,
+                daysForCalc: firstYearDays
+            });
+
+            // 計算中間完整年度的天數
+            for (let year = startYear + 1; year < endYear; year++) {
                 yearData.push({
                     adYear: year,
                     minguoYear: year - 1911,
-                    days: Math.round(daysInYear),
-                    daysForCalc: daysForCalc
+                    days: 365, // 依照規則，中間年度都算365天
+                    daysForCalc: 365
                 });
             }
-        }
-        
-        // 最後一年(或唯一一年)的天數 = 總天數 - 已計算的天數
-        const lastYearDays = totalDays - daysAccountedFor;
-        yearData.push({
-            adYear: endYear,
-            minguoYear: endYear - 1911,
-            days: Math.round(lastYearDays),
-            daysForCalc: lastYearDays
-        });
 
+            // 計算最後一年的天數 (已過天數)
+            const lastYearDays = dayOfYear(endDate);
+            yearData.push({
+                adYear: endYear,
+                minguoYear: endYear - 1911,
+                days: lastYearDays,
+                daysForCalc: lastYearDays
+            });
+        }
 
         // --- 3. 計算各年度應分攤保費 ---
         let allocatedPremium = 0;
@@ -192,7 +203,9 @@ function calculatePremium() {
         
         resultContainer.innerHTML = '';
 
-        let summaryText = `期間總天數: ${totalDays}天 (`;
+        // 重新加總驗證天數，確保與總天數一致
+        const calculatedTotalDays = yearData.reduce((sum, d) => sum + d.days, 0);
+        let summaryText = `期間總天數: ${calculatedTotalDays}天 (`;
         summaryText += yearData.map(d => `${d.minguoYear}年: ${d.days}天`).join(' / ');
         summaryText += ')';
         periodSummary.innerText = summaryText;
