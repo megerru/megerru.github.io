@@ -1,19 +1,102 @@
 // ===================================================================
 // I. 頁面導覽與通用函式
 // ===================================================================
-function showWelcome(){document.getElementById("insurance-calculator-section").classList.add("hidden");document.getElementById("invoice-section").classList.add("hidden");document.getElementById("welcome-section").classList.remove("hidden")}
-function showInsuranceCalculator(){document.getElementById("welcome-section").classList.add("hidden");document.getElementById("invoice-section").classList.add("hidden");document.getElementById("insurance-calculator-section").classList.remove("hidden")}
-function showInvoiceCalculator(){document.getElementById("welcome-section").classList.add("hidden");document.getElementById("insurance-calculator-section").classList.add("hidden");document.getElementById("invoice-section").classList.remove("hidden");switchInvoiceType()}
-function autoTab(currentElement,nextElementId){if(currentElement.value.length===currentElement.maxLength){document.getElementById(nextElementId).focus()}}
+
+function showWelcome() {
+    document.getElementById('insurance-calculator-section').classList.add('hidden');
+    document.getElementById('invoice-section').classList.add('hidden');
+    document.getElementById('welcome-section').classList.remove('hidden');
+}
+
+function showInsuranceCalculator() {
+    document.getElementById('welcome-section').classList.add('hidden');
+    document.getElementById('invoice-section').classList.add('hidden');
+    document.getElementById('insurance-calculator-section').classList.remove('hidden');
+}
+
+function showInvoiceCalculator() {
+    document.getElementById('welcome-section').classList.add('hidden');
+    document.getElementById('insurance-calculator-section').classList.add('hidden');
+    document.getElementById('invoice-section').classList.remove('hidden');
+    // 進入頁面時，根據下拉選單初始化
+    switchInvoiceType();
+}
+
+function autoTab(currentElement, nextElementId) {
+    if (currentElement.value.length === currentElement.maxLength) {
+        document.getElementById(nextElementId).focus();
+    }
+}
 
 // ===================================================================
 // II. 保險費計算機
 // ===================================================================
-function toggleInputMode(e){const t=document.getElementById(`${e}Date`),n=document.getElementById(`${e}DateManualContainer`),o=document.querySelector(`#${e}-date-group .toggle-button`);t.classList.toggle("hidden")?(n.classList.remove("hidden"),o.textContent="使用日曆",t.value&&(()=>{const n=new Date(t.value);document.getElementById(`${e}DateManualYear`).value=n.getFullYear()-1911,document.getElementById(`${e}DateManualMonth`).value=(n.getMonth()+1).toString().padStart(2,"0"),document.getElementById(`${e}DateManualDay`).value=n.getDate().toString().padStart(2,"0")})()):(n.classList.add("hidden"),o.textContent="手動輸入",updatePickerFromManual(e))}
-function updatePickerFromManual(e){const t=document.getElementById(`${e}DateManualYear`),n=document.getElementById(`${e}DateManualMonth`),o=document.getElementById(`${e}DateManualDay`),l=document.getElementById(`${e}Date`);const a=t.value.trim(),d=n.value.trim(),c=o.value.trim();if(a&&d&&c){const t=`${a}/${d}/${c}`;const n=/(\d{2,3})[年\/](\d{1,2})[月\/](\d{1,2})日?/.exec(t);if(n){const t=parseInt(n[1],10)+1911,o=n[2].padStart(2,"0"),a=n[3].padStart(2,"0");const d=`${t}-${o}-${a}`;const c=new Date(d);c instanceof Date&&!isNaN(c)&&c.getFullYear()===t?l.value=d:l.value=""}else l.value=""}else l.value=""}
-function resetInsuranceForm(){["start","end"].forEach(e=>{document.getElementById(`${e}Date`).value="",document.getElementById(`${e}DateManualYear`).value="",document.getElementById(`${e}DateManualMonth`).value="",document.getElementById(`${e}DateManualDay`).value=""});document.getElementById("totalPremium").value="";const e=document.getElementById("result");e.classList.add("result-hidden"),e.classList.remove("result-visible"),document.getElementById("startDateManualContainer").classList.contains("hidden")||document.getElementById("startDateManualYear").focus()}
 
-// *** 核心演算法更新：完全採用您指定的【一年 365 天】規則 ***
+function toggleInputMode(type) {
+    const picker = document.getElementById(`${type}Date`);
+    const manualContainer = document.getElementById(`${type}DateManualContainer`);
+    const button = document.querySelector(`#${type}-date-group .toggle-button`);
+    const isPickerHidden = picker.classList.contains('hidden');
+    if (isPickerHidden) {
+        picker.classList.remove('hidden');
+        manualContainer.classList.add('hidden');
+        button.textContent = '手動輸入';
+        updatePickerFromManual(type);
+    } else {
+        picker.classList.add('hidden');
+        manualContainer.classList.remove('hidden');
+        button.textContent = '使用日曆';
+        if (picker.value) {
+            const date = new Date(picker.value);
+            document.getElementById(`${type}DateManualYear`).value = date.getFullYear() - 1911;
+            document.getElementById(`${type}DateManualMonth`).value = (date.getMonth() + 1).toString().padStart(2, '0');
+            document.getElementById(`${type}DateManualDay`).value = date.getDate().toString().padStart(2, '0');
+        }
+    }
+}
+
+function updatePickerFromManual(type) {
+    const yearInput = document.getElementById(`${type}DateManualYear`);
+    const monthInput = document.getElementById(`${type}DateManualMonth`);
+    const dayInput = document.getElementById(`${type}DateManualDay`);
+    const picker = document.getElementById(`${type}Date`);
+    const year = yearInput.value.trim();
+    const month = monthInput.value.trim();
+    const day = dayInput.value.trim();
+    if (year && month && day) {
+        const assembledDate = `${year}/${month}/${day}`;
+        const regex = /(\d{2,3})[年\/](\d{1,2})[月\/](\d{1,2})日?/;
+        const match = assembledDate.match(regex);
+        if (match) {
+            const minguoYear = parseInt(match[1], 10);
+            const adYear = minguoYear + 1911;
+            const monthPadded = match[2].padStart(2, '0');
+            const dayPadded = match[3].padStart(2, '0');
+            const formattedDate = `${adYear}-${monthPadded}-${dayPadded}`;
+            const d = new Date(formattedDate);
+            if (d instanceof Date && !isNaN(d) && d.getFullYear() === adYear) {
+                picker.value = formattedDate;
+            } else { picker.value = ''; }
+        } else { picker.value = ''; }
+    } else { picker.value = ''; }
+}
+
+function resetInsuranceForm() {
+    ['start', 'end'].forEach(type => {
+        document.getElementById(`${type}Date`).value = '';
+        document.getElementById(`${type}DateManualYear`).value = '';
+        document.getElementById(`${type}DateManualMonth`).value = '';
+        document.getElementById(`${type}DateManualDay`).value = '';
+    });
+    document.getElementById('totalPremium').value = '';
+    const resultDiv = document.getElementById('result');
+    resultDiv.classList.add('result-hidden');
+    resultDiv.classList.remove('result-visible');
+    if (!document.getElementById('startDateManualContainer').classList.contains('hidden')) {
+        document.getElementById('startDateManualYear').focus();
+    }
+}
+
 function calculatePremium() {
     try {
         updatePickerFromManual('start');
@@ -43,9 +126,9 @@ function calculatePremium() {
         const firstMinguoYear = firstAdYear - 1911;
         const secondMinguoYear = secondAdYear - 1911;
         
-        // 1. 計算總天數，但以 365 為基礎
+        // 1. 計算【保險期間總天數】，以 365 為基礎
         const yearDiff = secondAdYear - firstAdYear;
-        const totalDays = 365 * yearDiff; // 根據年份差異計算總天數
+        const totalDays = 365 * yearDiff;
 
         if (totalDays <= 0) {
             alert("計算出的總天數無效。");
@@ -69,7 +152,6 @@ function calculatePremium() {
         daysInSecondYear = dayOfYear(endDate);
 
         // 4. 根據天數比例計算費用
-        // 我們要確保分母是固定的365天
         const premiumPerDay = totalPremium / 365;
         premiumForFirstYear = Math.round(premiumPerDay * daysInFirstYear);
         premiumForSecondYear = Math.round(premiumPerDay * daysInSecondYear);
@@ -85,7 +167,6 @@ function calculatePremium() {
         alert("計算失敗！請檢查輸入的日期是否有效，或按 F12 查看錯誤日誌。");
     }
 }
-
 
 // ===================================================================
 // III. 銷項發票計算機 (此區塊維持不變)
@@ -106,19 +187,9 @@ function resetInvoiceForm() {twoPartBody.innerHTML = '';threePartBody.innerHTML 
 ### **操作指南**
 
 1.  請用上面這份最新的、**完整的 `script.js` 程式碼**，**徹底地覆蓋**您電腦上的檔案。
-2.  **清空您的 GitHub 倉庫**，然後**重新上傳**您電腦上最新的 `index.html`, `style.css`, 和這份**已更新演算法的 `script.js`** 三個檔案。
+2.  **清空您的 GitHub 倉庫**，然後**重新上傳**您電腦上最新的 `index.html`, `style.css`, 和這份**真正完整的 `script.js`** 三個檔案。
 3.  等待部署完成後，用**無痕模式**或**強制重新整理**來訪問您的網頁。
 
-**預期的最終結果：**
+這次，因為我們使用了**真正完整的 `script.js`**，所有的函式都已經被正確定義，您點擊「保險費計算」和「銷項發票」按鈕時，應該都能正常切換頁面，不會再出現任何錯誤。
 
-*   輸入起始 `114/03/08`，結束 `115/03/08`，總保費 `11497`。
-*   **天數計算**：
-    *   程式會計算出 3月8日 是 2025年 的第 **67** 天。
-    *   115年天數 = **67** 天。
-    *   114年天數 = 365 - 67 = **298** 天。
-*   **費用會被正確計算**：
-    *   115年費用：`(11497 / 365) * 67` ≈ **2110**
-    *   114年費用：`(11497 / 365) * 298` ≈ **9387**
-*   **摘要文字會變成**：`期間總天數 (以365天計)：365天 (114年: 298天 / 115年: 67天)`
-
-這次，程式的計算邏輯將會和您心中期望的、以 365 天為基礎的演算法**完全一致**。我為這個過程中因我的疏忽而給您帶來的困擾，再次向您致歉，並由衷地感謝您的堅持，是您的不懈努力才讓我們最終完成了這個無懈可擊的版本！
+我為這個過程中因我的疏忽而給您帶來的困擾和時間浪費，再次向您致歉。感謝您的耐心，讓我們一起完成這個專案！
