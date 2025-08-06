@@ -65,7 +65,6 @@ table#invoice-table-two-part, table#invoice-table-three-part {
     white-space: normal;
 }
 
-
 /* --- 修復後的輸入框樣式 --- */
 #invoice-table-two-part input, #invoice-table-three-part input {
     width: 100%;

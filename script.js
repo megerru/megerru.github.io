@@ -295,6 +295,8 @@ function resetInvoiceForm() {
 }
 
 function exportToExcel() {
+    if (document.activeElement) document.activeElement.blur();
+
     const type = invoiceTypeSelect.value;
     const isTwoPart = type === 'two-part';
     const body = isTwoPart ? twoPartBody : threePartBody;
@@ -379,7 +381,6 @@ document.getElementById('invoice-section').addEventListener('input', function(e)
     if (!target.matches('input')) return;
 
     const row = target.closest('tr');
-    // 【重要】修正：檢查 row 是否存在，防止錯誤
     if (!row) return;
 
     adjustInputWidth(target);
