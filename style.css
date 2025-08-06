@@ -48,6 +48,7 @@ table#invoice-table-two-part, table#invoice-table-three-part {
     padding: 2px;
     text-align: center; 
     vertical-align: middle; 
+    white-space: nowrap; /* 防止標頭和唯獨欄位換行 */
 }
 #invoice-table-two-part th, #invoice-table-three-part th { 
     background-color: #f8f9fa; 
@@ -55,7 +56,6 @@ table#invoice-table-two-part, table#invoice-table-three-part {
     position: sticky; 
     top: 0; 
     z-index: 1; 
-    white-space: nowrap; 
     padding: 10px 8px;
 }
 
@@ -90,6 +90,14 @@ table#invoice-table-two-part, table#invoice-table-three-part {
 #invoice-table-two-part .col-item input {
     text-align: left;
 }
+/* 讓文字長的欄位可以換行顯示 */
+#invoice-table-three-part .col-company,
+#invoice-table-three-part .col-item,
+#invoice-table-two-part .col-buyer,
+#invoice-table-two-part .col-item {
+    white-space: normal;
+}
+
 
 .add-row-button { background-color: #28a745; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; margin-bottom: 20px; }
 .add-row-button:hover { background-color: #218838; }
