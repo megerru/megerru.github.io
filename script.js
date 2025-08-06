@@ -120,12 +120,12 @@ function calculatePremium() {
             return;
         }
 
-        // --- 2. 計算總天數與各年度天數 ---
-        // 使用 UTC 避免時區問題，並加 1 使期間包含結束日期當天
-        const totalDays = (Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()) - Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())) / (1000 * 60 * 60 * 24) + 1;
+        // --- 2. 計算總天數與各年度天數 (新邏輯：不包含結束日) ---
+        // 使用 UTC 避免時區問題。總天數不包含結束日期當天。
+        const totalDays = (Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()) - Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())) / (1000 * 60 * 60 * 24);
 
-        if (totalDays <= 0) {
-            alert("計算出的總天數無效。");
+        if (totalDays < 1) {
+            alert("計算出的總天數無效，期間必須至少為一天。");
             return;
         }
 
@@ -136,19 +136,20 @@ function calculatePremium() {
         // 循環遍歷從開始到結束的每一年
         for (let year = startYear; year <= endYear; year++) {
             // 計算該保險期間在 "這一年" 有幾天
-            const yearStartDate = (year === startYear) ? startDate : new Date(Date.UTC(year, 0, 1));
-            const yearEndDate = (year === endYear) ? endDate : new Date(Date.UTC(year, 11, 31));
+            const periodStartForYear = (year === startYear) ? startDate : new Date(Date.UTC(year, 0, 1));
+            // 期間的結束點是下一年的第一天，或是保單的最終結束日
+            const periodEndForYear = (year === endYear) ? endDate : new Date(Date.UTC(year + 1, 0, 1));
             
-            const daysInYear = (yearEndDate - yearStartDate) / (1000 * 60 * 60 * 24) + 1;
+            const daysInYear = (periodEndForYear - periodStartForYear) / (1000 * 60 * 60 * 24);
+
+            // 如果該年度沒有任何天數，則跳過 (主要發生在結束日剛好是 1/1 的邊界情況)
+            if (daysInYear === 0) continue;
             
             // 根據您的規則，中間的完整年度天數視為 365 天
             let daysForCalc = daysInYear;
             if (year > startYear && year < endYear) {
-                 // 檢查這是否真的是一個完整的日曆年
-                const isFullCalendarYear = (new Date(year, 0, 1).getTime() === yearStartDate.getTime()) && (new Date(year, 11, 31).getTime() === yearEndDate.getTime());
-                if(isFullCalendarYear) {
-                    daysForCalc = 365; // 依照規則，中間的完整年度用365天計算
-                }
+                // 只要是中間的完整年度，計算時就用365天
+                daysForCalc = 365;
             }
 
             yearData.push({
