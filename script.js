@@ -30,7 +30,6 @@ function calculatePremium() {
         const startDate = new Date(startDateString);
         const endDate = new Date(endDateString);
         
-        // 為了避免時區問題，並確保天數計算精準，統一使用 UTC 時間
         const startUTC = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
         const endUTC = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
 
@@ -55,25 +54,24 @@ function calculatePremium() {
         let daysInFirstYear, daysInSecondYear;
 
         if (firstAdYear === secondAdYear) {
-            // 如果在同一年，所有保費都歸屬於該年
             daysInFirstYear = totalDays;
             daysInSecondYear = 0;
             premiumForFirstYear = totalPremium;
             premiumForSecondYear = 0;
         } else {
-            // 如果跨年度
-            // 2. 計算第一年的年底 (即第二年的第一天 00:00)
-            const endOfYear1UTC = Date.UTC(firstAdYear + 1, 0, 1);
+            // **核心修正：優先計算第二年的天數**
+            // 2. 計算第二年的第一天
+            const startOfYear2UTC = Date.UTC(secondAdYear, 0, 1);
             
-            // 3. 計算保險期間落在第一年的天數
-            daysInFirstYear = (endOfYear1UTC - startUTC) / (1000 * 60 * 60 * 24);
+            // 3. 計算保險期間落在第二年的天數
+            daysInSecondYear = ((endUTC - startOfYear2UTC) / (1000 * 60 * 60 * 24)) + 1;
             
-            // 4. 計算保險期間落在第二年的天數
-            daysInSecondYear = totalDays - daysInFirstYear;
-
+            // 4. 用總天數減去第二年的天數，得到第一年的天數
+            daysInFirstYear = totalDays - daysInSecondYear;
+            
             // 5. 根據天數比例計算費用
-            premiumForFirstYear = Math.round((totalPremium / totalDays) * daysInFirstYear);
-            premiumForSecondYear = Math.round(totalPremium - premiumForFirstYear); // 用總數減去第一筆，避免四捨五入誤差
+            premiumForSecondYear = Math.round((totalPremium / totalDays) * daysInSecondYear);
+            premiumForFirstYear = Math.round(totalPremium - premiumForSecondYear);
         }
         
         // 6. 顯示結果
