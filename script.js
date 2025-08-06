@@ -289,6 +289,7 @@ function switchInvoiceType() {
         twoPartSummary.classList.add("hidden");
         twoPartControls.classList.add('hidden');
     }
+    // 每次切換都呼叫修正後的 reset 函式
     resetInvoiceForm();
 }
 
@@ -308,7 +309,6 @@ function addInvoiceRow() {
     const newRow = body.insertRow();
     const index = body.rows.length;
 
-    // --- 修改：更新日期 placeholder ---
     if (invoiceTypeSelect.value === 'two-part') {
         newRow.innerHTML = `
             <td>${index}</td>
@@ -330,40 +330,38 @@ function addInvoiceRow() {
             <td><input type="number" class="total-3" readonly></td>`;
     }
 
-    // --- 新增：為新行的所有 input 初始化寬度 ---
     newRow.querySelectorAll('input').forEach(adjustInputWidth);
 
-    // 自動聚焦到該行第一個可輸入的欄位
     const firstInput = newRow.querySelector('input:not([readonly])');
     if (firstInput) {
         firstInput.focus();
     }
 }
 
-// --- 修正：重設表單函式 ---
+// --- 已修正的 resetInvoiceForm 函式 ---
+// 這個函式現在只負責重設內容，不再處理表格的顯示/隱藏，避免邏輯衝突。
 function resetInvoiceForm() {
-    // 清空兩個表格的內容
+    // 1. 清空兩個表格的現有內容
     twoPartBody.innerHTML = '';
     threePartBody.innerHTML = '';
 
-    // 取消所有勾選框的選取
+    // 2. 取消所有可選欄位的勾選
     document.querySelectorAll('.optional-columns-controls input[type="checkbox"]').forEach(cb => {
         cb.checked = false;
     });
 
-    // 重設可選欄位的 class，但保留 table 的 hidden 狀態
-    // switchInvoiceType 函式會負責切換哪個 table 是 hidden
-    twoPartTable.className = twoPartTable.classList.contains('hidden') ? 'hidden' : '';
-    threePartTable.className = threePartTable.classList.contains('hidden') ? 'hidden' : '';
+    // 3. 移除表格上所有 'show-*' 的 class，將可選欄位恢復隱藏狀態
+    //    這樣做不會影響到 'hidden' class，表格的顯示狀態由 switchInvoiceType 函式全權負責
+    twoPartTable.className = twoPartTable.className.replace(/show-\w+/g, '').trim();
+    threePartTable.className = threePartTable.className.replace(/show-\w+/g, '').trim();
     
-    // 為當前可見的表格新增第一行
-    if (getCurrentInvoiceBody().rows.length === 0) {
-        addInvoiceRow();
-    }
+    // 4. 無條件為當前作用中的表格新增一個初始空白列
+    addInvoiceRow();
     
-    // 更新總計
+    // 5. 更新下方的總計數據
     updateInvoiceSummary();
 }
+
 
 // 匯出 Excel 的核心功能
 function exportToExcel() {
@@ -382,7 +380,6 @@ function exportToExcel() {
     const showBuyer = isTwoPart && document.getElementById('toggle-col-buyer-2').checked;
     const showItem = document.getElementById(isTwoPart ? 'toggle-col-item-2' : 'toggle-col-item-3').checked;
 
-    // --- 根據發票類型和勾選狀態，動態建立表頭 ---
     headers.push('編號');
     if (showDate) headers.push('日期');
     if (isTwoPart) {
@@ -395,17 +392,14 @@ function exportToExcel() {
         headers.push('銷售額(未稅)', '營業稅', '總計(含稅)');
     }
 
-    // --- 遍歷每一列表格，抓取對應資料 ---
     for (const row of rows) {
         const rowData = [];
         
-        // --- 二聯式資料擷取 ---
         if (isTwoPart) {
-             // 如果此列的金額為空，則跳過
             const totalValue = row.querySelector('.total-2').value;
             if (totalValue === null || totalValue.trim() === '') continue;
 
-            rowData.push(row.cells[0].textContent); // 編號
+            rowData.push(row.cells[0].textContent);
             if (showDate) rowData.push(row.querySelector('.data-date').value);
             if (showBuyer) rowData.push(row.querySelector('.data-buyer').value);
             if (showItem) rowData.push(row.querySelector('.data-item').value);
@@ -414,13 +408,11 @@ function exportToExcel() {
                 parseFloat(row.querySelector('.tax-2').value) || 0,
                 parseFloat(totalValue) || 0
             );
-        // --- 三聯式資料擷取 ---
         } else {
-             // 如果此列的金額為空，則跳過
             const salesValue = row.querySelector('.sales-3').value;
             if (salesValue === null || salesValue.trim() === '') continue;
 
-            rowData.push(row.cells[0].textContent); // 編號
+            rowData.push(row.cells[0].textContent);
             if (showDate) rowData.push(row.querySelector('.data-date').value);
             rowData.push(
                 row.querySelector('.tax-id-3').value,
@@ -441,7 +433,6 @@ function exportToExcel() {
         return;
     }
 
-    // --- 使用 SheetJS 建立並下載 Excel ---
     const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, '發票明細');
@@ -450,22 +441,19 @@ function exportToExcel() {
     XLSX.writeFile(workbook, fileName);
 }
 
-// --- 以下為既有函式，部分有微調以配合新結構 ---
 function updateInvoiceSummary(){let e=0,t=0,n=0,o=0;if("two-part"===invoiceTypeSelect.value){const l=twoPartBody.rows;o=l.length;for(const a of l)e+=parseFloat(a.querySelector(".total-2").value)||0,t+=parseFloat(a.querySelector(".sales-2").value)||0,n+=parseFloat(a.querySelector(".tax-2").value)||0;document.getElementById("invoice-count-two").textContent=o,document.getElementById("total-sum-two").textContent=e.toLocaleString(),document.getElementById("sales-sum-two").textContent=t.toLocaleString(),document.getElementById("tax-sum-two").textContent=n.toLocaleString()}else{const l=threePartBody.rows;o=l.length;for(const a of l)t+=parseFloat(a.querySelector(".sales-3").value)||0,n+=parseFloat(a.querySelector(".tax-3").value)||0,e+=parseFloat(a.querySelector(".total-3").value)||0;document.getElementById("invoice-count-three").textContent=o,document.getElementById("sales-sum-three").textContent=t.toLocaleString(),document.getElementById("tax-sum-three").textContent=n.toLocaleString(),document.getElementById("total-sum-three").textContent=e.toLocaleString()}}
 async function lookupCompanyByTaxId(taxId, companyInput) {if (!/^\d{8}$/.test(taxId)) {companyInput.value = '統編格式錯誤';return;}companyInput.value = '查詢中...'; try {adjustInputWidth(companyInput);} catch(e){} try {const proxyUrl = 'https://api.allorigins.win/get?url=';const taxApiUrl = `https://data.gov.tw/api/v2/rest/dataset/9D17AE0D-09B5-4732-A8F4-81ADED04B679?&\$filter=Business_Accounting_NO eq ${taxId}`;const response = await fetch(proxyUrl + encodeURIComponent(taxApiUrl));if (response.ok) {const data = await response.json();const results = JSON.parse(data.contents);if (results && results.length > 0 && results[0]['營業人名稱']) {companyInput.value = results[0]['營業人名稱']; adjustInputWidth(companyInput); return;}}} catch (error) {console.error('稅籍 API 查詢失敗:', error);}companyInput.value = '備用查詢中...'; adjustInputWidth(companyInput); try {const g0vApiUrl = `https://company.g0v.ronny.tw/api/show/${taxId}`;const response = await fetch(g0vApiUrl);if (response.ok) {const data = await response.json();if (data && data.data) {const companyName = data.data['公司名稱'] || data.data['名稱'];if (companyName) {companyInput.value = companyName; adjustInputWidth(companyInput); return;}}}companyInput.value = '查無資料'; adjustInputWidth(companyInput); } catch (error) {console.error('g0v API 查詢失敗:', error);companyInput.value = '查詢失敗(網路問題)'; adjustInputWidth(companyInput); }}
 
-// --- 修改：重構主要的事件監聽器以整合所有功能 ---
+// --- 主要的事件監聽器，負責計算、跳轉、調整寬度等 ---
 document.getElementById('invoice-section').addEventListener('input', function(e) {
     const target = e.target;
     const row = target.closest('tr');
     if (!row) return;
 
-    // --- 所有 input 都動態調整寬度 ---
     if (target.matches('input')) {
         adjustInputWidth(target);
     }
     
-    // --- 核心計算邏輯 ---
     if (target.classList.contains('total-2')) {
         const total = parseFloat(target.value) || 0;
         const tax = Math.round(total / 1.05 * 0.05);
@@ -488,7 +476,6 @@ document.getElementById('invoice-section').addEventListener('input', function(e)
         }
     }
 
-    // --- 日期輸入自動跳轉 ---
     if (target.classList.contains('data-date') && target.value.length === target.maxLength) {
         const allInputsInRow = Array.from(row.querySelectorAll('input:not([readonly])'));
         const currentIndex = allInputsInRow.indexOf(target);
@@ -497,9 +484,7 @@ document.getElementById('invoice-section').addEventListener('input', function(e)
         }
     }
     
-    // 更新總計
     updateInvoiceSummary();
-    // 計算後也要調整唯讀欄位的寬度
     row.querySelectorAll('input[readonly]').forEach(adjustInputWidth);
 });
 
@@ -507,7 +492,6 @@ document.getElementById('invoice-section').addEventListener('input', function(e)
 document.getElementById('invoice-section').addEventListener('focusin', function(e) {
     if (e.target.classList.contains('data-date')) {
         const input = e.target;
-        // 將 "114/06/29" 轉回 "1140629" 以便編輯
         if (input.value.includes('/')) {
             input.value = input.value.replace(/\//g, '');
         }
@@ -517,7 +501,6 @@ document.getElementById('invoice-section').addEventListener('focusin', function(
 document.getElementById('invoice-section').addEventListener('focusout', function(e) {
     if (e.target.classList.contains('data-date')) {
         const input = e.target;
-        // 將 "1140629" 轉為 "114/06/29" 提升可讀性
         if (input.value.length === 7 && !input.value.includes('/')) {
             const y = input.value.substring(0, 3);
             const m = input.value.substring(3, 5);
@@ -527,7 +510,7 @@ document.getElementById('invoice-section').addEventListener('focusout', function
     }
 });
 
-
+// --- 按下 Enter 鍵自動跳到下一格或新增一列 ---
 document.getElementById('invoice-section').addEventListener('keydown', function(e) {
     if (e.key !== 'Enter') return;
     const targetInput = e.target;
