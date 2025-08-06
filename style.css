@@ -40,7 +40,7 @@ table#invoice-table-two-part, table#invoice-table-three-part {
     width: 100%; 
     min-width: 800px;
     border-collapse: collapse; 
-    table-layout: auto; /* 【重要】改回 auto，允許欄位根據內容自適應寬度 */
+    table-layout: auto; 
 }
 #invoice-table-two-part th, #invoice-table-two-part td,
 #invoice-table-three-part th, #invoice-table-three-part td { 
