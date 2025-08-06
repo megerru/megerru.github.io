@@ -38,7 +38,7 @@ input[type="date"], input[type="number"], input[type="text"], input[type="tel"] 
 .invoice-table-container { max-height: 450px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 8px;}
 table#invoice-table-two-part, table#invoice-table-three-part { 
     width: 100%; 
-    min-width: 800px; /* 給表格一個最小寬度，防止內容過少時擠在一起 */
+    min-width: 800px;
     border-collapse: collapse; 
     table-layout: auto; /* 【重要】改回 auto，允許欄位根據內容自適應寬度 */
 }
