@@ -90,13 +90,11 @@
         </div>
         <div class="optional-columns-controls hidden" id="optional-controls-three-part">
             <label><input type="checkbox" id="toggle-col-date-3" onclick="toggleOptionalColumn('date', 3)"> 日期</label>
-            <label><input type="checkbox" id="toggle-col-tax-id-3" onclick="toggleOptionalColumn('tax-id', 3)"> 統一編號</label>
-            <label><input type="checkbox" id="toggle-col-company-3" onclick="toggleOptionalColumn('company', 3)"> 公司名稱</label>
             <label><input type="checkbox" id="toggle-col-item-3" onclick="toggleOptionalColumn('item', 3)"> 品名</label>
         </div>
 
         <div class="invoice-table-container">
-            <!-- 二聯式表格 -->
+            <!-- 二聯式表格 (已更新標頭) -->
             <table id="invoice-table-two-part">
                 <thead>
                     <tr>
@@ -111,14 +109,14 @@
                 </thead>
                 <tbody id="invoice-table-body-two-part"></tbody>
             </table>
-            <!-- 三聯式表格 -->
+            <!-- 三聯式表格 (已更新標頭) -->
             <table id="invoice-table-three-part" class="hidden">
                  <thead>
                     <tr>
                         <th class="col-index">#</th>
                         <th class="col-optional col-date">日期</th>
-                        <th class="col-optional col-tax-id">統一編號</th>
-                        <th class="col-optional col-company">公司名稱</th>
+                        <th class="col-tax-id">統一編號</th>
+                        <th class="col-company">公司名稱</th>
                         <th class="col-optional col-item">品名</th>
                         <th class="col-sales">銷售額 (未稅)</th>
                         <th class="col-tax">營業稅</th>
