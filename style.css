@@ -74,7 +74,7 @@ table#invoice-table-two-part, table#invoice-table-three-part {
     text-align: right;
     border: 1px solid transparent; 
     background-color: #f0f8ff; 
-    padding: 8px;
+    padding: 8px 10px; /* 增加左右內距 */
     caret-color: #000;
     transition: background-color 0.2s, box-shadow 0.2s;
 }
@@ -97,8 +97,15 @@ table#invoice-table-two-part, table#invoice-table-three-part {
     text-align: left;
 }
 
-.add-row-button { background-color: #28a745; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; margin-bottom: 20px; }
+.button-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+.add-row-button, .export-button, .secondary-action-button { margin-bottom: 0; }
+.add-row-button { background-color: #28a745; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
 .add-row-button:hover { background-color: #218838; }
+.export-button { background-color: #1d6f42; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
+.export-button:hover { background-color: #165934; }
+.secondary-action-button { background-color: #6c757d; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
+.secondary-action-button:hover { background-color: #5a6268; }
+
 .invoice-summary { border-top: 2px solid #007bff; padding-top: 20px; text-align: right; font-size: 18px; }
 .invoice-summary p { margin: 5px 0; }
 .invoice-summary span { font-weight: bold; min-width: 120px; display: inline-block; text-align: left;}
@@ -115,8 +122,6 @@ input[type=number] { -moz-appearance: textfield; }
 .optional-columns-controls { text-align: left; margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 8px; }
 .optional-columns-controls label { margin-right: 20px; cursor: pointer; font-weight: normal; }
 .optional-columns-controls input[type="checkbox"] { width: auto; margin-right: 5px; vertical-align: middle; }
-.export-button { background-color: #1d6f42; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; margin-bottom: 20px; margin-left: 10px; }
-.export-button:hover { background-color: #165934; }
 
 /* --- 控制可選欄位的顯示/隱藏 --- */
 .col-optional { display: none; }

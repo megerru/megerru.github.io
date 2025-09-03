@@ -185,6 +185,7 @@ const threePartBody = document.getElementById('invoice-table-body-three-part');
 const invoiceTypeSelect = document.getElementById('invoice-type-select');
 const twoPartTable = document.getElementById('invoice-table-two-part');
 const threePartTable = document.getElementById('invoice-table-three-part');
+const vatEditButton = document.getElementById('toggle-vat-edit-button');
 
 let textMeasureSpan = null;
 document.addEventListener('DOMContentLoaded', () => {
@@ -220,6 +221,7 @@ function switchInvoiceType() {
         threePartContainer.classList.add("hidden");
         threePartSummary.classList.add("hidden");
         threePartControls.classList.add('hidden');
+        vatEditButton.classList.add('hidden');
     } else {
         threePartContainer.classList.remove("hidden");
         threePartSummary.classList.remove("hidden");
@@ -227,6 +229,7 @@ function switchInvoiceType() {
         twoPartContainer.classList.add("hidden");
         twoPartSummary.classList.add("hidden");
         twoPartControls.classList.add('hidden');
+        vatEditButton.classList.remove('hidden');
     }
     resetInvoiceForm();
 }
@@ -246,6 +249,9 @@ function addInvoiceRow() {
     const newRow = body.insertRow();
     const index = body.rows.length;
 
+    const isVatLocked = vatEditButton.textContent === '修改營業稅';
+    const vatReadonlyState = isVatLocked ? 'readonly' : '';
+
     if (invoiceTypeSelect.value === 'two-part') {
         newRow.innerHTML = `
             <td>${index}</td>
@@ -263,7 +269,7 @@ function addInvoiceRow() {
             <td class="col-optional col-company"><input type="text" class="company-3" readonly></td>
             <td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td>
             <td><input type="number" class="sales-3" placeholder="未稅銷售額"></td>
-            <td><input type="number" class="tax-3"></td>
+            <td><input type="number" class="tax-3" ${vatReadonlyState}></td>
             <td><input type="number" class="total-3" readonly></td>`;
     }
 
@@ -282,6 +288,7 @@ function addInvoiceRow() {
 function resetInvoiceForm() {
     twoPartBody.innerHTML = '';
     threePartBody.innerHTML = '';
+    vatEditButton.textContent = '修改營業稅';
 
     document.querySelectorAll('.optional-columns-controls input[type="checkbox"]').forEach(cb => {
         cb.checked = false;
@@ -292,6 +299,22 @@ function resetInvoiceForm() {
     
     addInvoiceRow();
     updateInvoiceSummary();
+}
+
+function toggleVatEditMode() {
+    const vatInputs = threePartBody.querySelectorAll('.tax-3');
+    const isCurrentlyLocked = vatEditButton.textContent === '修改營業稅';
+
+    if (isCurrentlyLocked) {
+        vatInputs.forEach(input => input.removeAttribute('readonly'));
+        vatEditButton.textContent = '鎖定營業稅';
+        if (vatInputs.length > 0) {
+            vatInputs[0].focus();
+        }
+    } else {
+        vatInputs.forEach(input => input.setAttribute('readonly', true));
+        vatEditButton.textContent = '修改營業稅';
+    }
 }
 
 function exportToExcel() {
@@ -441,8 +464,15 @@ document.getElementById('invoice-section').addEventListener('keydown', function(
     if (!targetInput.matches('input')) return;
 
     e.preventDefault();
-    const nextInput = findNextVisibleInput(targetInput);
+
+    const isVatLocked = vatEditButton.textContent === '修改營業稅';
     
+    if (targetInput.classList.contains('sales-3') && isVatLocked) {
+        addInvoiceRow();
+        return;
+    }
+
+    const nextInput = findNextVisibleInput(targetInput);
     if (nextInput) {
         nextInput.focus();
     } else {
