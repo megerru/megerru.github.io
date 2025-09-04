@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工具三：資料欄位取代</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        h1, h2, h3 { text-align: center; color: #333; }
+        .tool-section { border: 2px solid #1d6f42; border-radius: 10px; padding: 20px; margin-bottom: 30px; background-color: #fff; }
+        .container { display: flex; justify-content: space-around; margin-bottom: 20px; flex-wrap: wrap; }
+        .file-container { width: 100%; }
+        .drop-zone { border: 2px dashed #ccc; border-radius: 10px; padding: 20px; text-align: center; background-color: #fff; cursor: pointer; transition: background-color 0.3s; }
+        .drop-zone.hover { background-color: #e9e9e9; }
+        .drop-zone p { margin: 0; color: #666; }
+        .file-list-display { font-weight: bold; color: #007BFF; margin-top: 5px;}
+        .controls { border: 1px solid #ddd; padding: 20px; border-radius: 10px; background-color: #fff; text-align: center; margin-top: 20px;}
+        .action-button { padding: 12px 20px; margin: 10px 20px; border-radius: 5px; border: 1px solid #ccc; background-color: #4CAF50; color: white; cursor: pointer; font-size: 16px; }
+        .action-button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .results { text-align: center; margin-top: 20px; font-weight: bold; }
+        .back-to-landing-button { display: block; width: fit-content; margin-bottom: 20px; text-decoration: none; color: #007BFF; font-size: 16px; }
+        .config-section { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0; }
+        .config-section select, .config-section input { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; }
+        .replace-pair { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .replace-pair input { flex-grow: 1; }
+        .remove-pair-btn { background-color: #ff4d4d; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer; }
+        #addPairBtn { background-color: #007BFF; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <a href="data_processing_landing.html" class="back-to-landing-button">← 返回工具箱</a>
+    <div class="tool-section">
+        <h2>工具三：資料欄位取代</h2>
+        <div class="container">
+            <div class="file-container">
+                <div class="drop-zone" id="dropZoneReplacer"><p>將一個或多個 Excel 檔案拖曳至此</p><p class="file-list-display" id="replacerFilesName"></p><input type="file" id="fileInputReplacer" multiple style="display: none;"></div>
+            </div>
+        </div>
+        <div class="controls" id="replacerControls" style="display: none;">
+            <div class="config-section">
+                <span>選擇要取代內容的欄位:</span>
+                <select id="headerSelectReplacer"></select>
+            </div>
+            <h4>設定取代規則</h4>
+            <div id="replacePairsContainer">
+                <!-- Replace pairs will be added here -->
+            </div>
+            <button id="addPairBtn">新增一組取代規則</button>
+            <hr style="margin: 20px 0;">
+            <button id="replaceButton" class="action-button">開始取代並匯出</button>
+        </div>
+        <div class="results"><p id="replacerStatus"></p></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+    (function() {
+        const dropZone = document.getElementById('dropZoneReplacer');
+        const fileInput = document.getElementById('fileInputReplacer');
+        const filesNameDisplay = document.getElementById('replacerFilesName');
+        const controls = document.getElementById('replacerControls');
+        const headerSelect = document.getElementById('headerSelectReplacer');
+        const pairsContainer = document.getElementById('replacePairsContainer');
+        const addPairBtn = document.getElementById('addPairBtn');
+        const replaceButton = document.getElementById('replaceButton');
+        const statusDisplay = document.getElementById('replacerStatus');
+
+        let allData = [];
+
+        // --- File Handling ---
+        dropZone.addEventListener('click', () => fileInput.click());
+        ['dragover', 'dragenter'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('hover'); }));
+        ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('hover'); }));
+        dropZone.addEventListener('drop', e => { if (e.dataTransfer.files.length > 0) { fileInput.files = e.dataTransfer.files; handleFiles(e.dataTransfer.files); } });
+        fileInput.addEventListener('change', e => { if (e.target.files.length > 0) handleFiles(e.target.files); });
+
+        async function handleFiles(files) {
+            filesNameDisplay.textContent = Array.from(files).map(f => f.name).join(', ');
+            statusDisplay.textContent = `正在讀取 ${files.length} 個檔案...`;
+            const readPromises = Array.from(files).map(file => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => { try { resolve(XLSX.read(new Uint8Array(e.target.result), { type: 'array' })); } catch(err) { reject(err); }};
+                reader.readAsArrayBuffer(file);
+            }));
+
+            try {
+                const workbooks = await Promise.all(readPromises);
+                allData = [];
+                workbooks.forEach(wb => {
+                    wb.SheetNames.forEach(sheetName => {
+                        const ws = wb.Sheets[sheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(ws, { defval: null, raw: false });
+                        allData = allData.concat(jsonData.filter(row => Object.values(row).some(val => val !== null && val !== undefined && String(val).trim() !== '')));
+                    });
+                });
+
+                if (allData.length > 0) {
+                    const headers = Object.keys(allData[0]);
+                    headerSelect.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
+                    controls.style.display = 'block';
+                    statusDisplay.textContent = `讀取完成！共 ${allData.length} 筆資料。請設定取代規則。`;
+                    pairsContainer.innerHTML = ''; // Clear previous pairs
+                    addReplacePair(); // Add the first pair automatically
+                } else {
+                    statusDisplay.textContent = '讀取的檔案中沒有找到有效資料。';
+                    controls.style.display = 'none';
+                }
+            } catch (error) {
+                statusDisplay.textContent = `讀取檔案失敗: ${error.message}`;
+            }
+        }
+
+        // --- Replace Pairs UI ---
+        function addReplacePair() {
+            const pairDiv = document.createElement('div');
+            pairDiv.className = 'replace-pair';
+            pairDiv.innerHTML = `
+                <input type="text" class="find-input" placeholder="尋找這個值...">
+                <span>取代為</span>
+                <input type="text" class="replace-input" placeholder="這個新值...">
+                <button class="remove-pair-btn">移除</button>
+            `;
+            pairsContainer.appendChild(pairDiv);
+            pairDiv.querySelector('.remove-pair-btn').addEventListener('click', () => {
+                pairDiv.remove();
+            });
+        }
+        addPairBtn.addEventListener('click', addReplacePair);
+
+        // --- Main Logic ---
+        replaceButton.addEventListener('click', () => {
+            const targetHeader = headerSelect.value;
+            if (!targetHeader) {
+                statusDisplay.textContent = '錯誤：請選擇一個要處理的欄位。';
+                return;
+            }
+
+            const pairs = Array.from(document.querySelectorAll('.replace-pair')).map(pairDiv => ({
+                find: pairDiv.querySelector('.find-input').value,
+                replace: pairDiv.querySelector('.replace-input').value
+            })).filter(p => p.find !== ''); // Only use pairs where "find" is not empty
+
+            if (pairs.length === 0) {
+                statusDisplay.textContent = '錯誤：請至少設定一組有效的取代規則。';
+                return;
+            }
+
+            statusDisplay.textContent = '正在處理資料...';
+            let replacementsCount = 0;
+
+            const processedData = allData.map(row => {
+                const newRow = { ...row };
+                let cellValue = newRow[targetHeader];
+
+                if (cellValue !== null && cellValue !== undefined) {
+                    let originalValue = String(cellValue);
+                    let finalValue = originalValue;
+
+                    for (const pair of pairs) {
+                        // Create a global regex to replace all occurrences
+                        const findRegex = new RegExp(pair.find.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
+                        if (finalValue.match(findRegex)) {
+                           finalValue = finalValue.replace(findRegex, pair.replace);
+                        }
+                    }
+                    
+                    if (originalValue !== finalValue) {
+                        newRow[targetHeader] = finalValue;
+                        replacementsCount++;
+                    }
+                }
+                return newRow;
+            });
+            
+            statusDisplay.textContent = '正在產生 Excel 檔案...';
+            const newWb = XLSX.utils.book_new();
+            const newWs = XLSX.utils.json_to_sheet(processedData);
+            XLSX.utils.book_append_sheet(newWb, newWs, 'Replaced Data');
+            XLSX.writeFile(newWb, 'replaced_data.xlsx');
+            statusDisplay.innerHTML = `處理完成！共取代了 <b>${replacementsCount}</b> 個儲存格的內容。<br>已匯出為 <b>replaced_data.xlsx</b>。`;
+        });
+    })();
+    </script>
+</body>
+</html>

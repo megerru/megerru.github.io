@@ -17,13 +17,9 @@ input[type="date"], input[type="number"], input[type="text"], input[type="tel"] 
 
 /* --- 保險計算機專用 --- */
 #insurance-calculator-section { position: relative; max-width: 600px; }
-.date-input-group { display: flex; align-items: center; gap: 10px; }
-.date-input-group .date-picker { flex-grow: 1; }
 .manual-date-container { display: flex; flex-grow: 1; align-items: center; gap: 5px; }
 .manual-date-container input { text-align: center; }
 .manual-date-container span { color: #aaa; font-weight: bold; }
-.toggle-button { padding: 12px; font-size: 14px; background-color: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; flex-shrink: 0; width: 90px; transition: background-color 0.3s; }
-.toggle-button:hover { background-color: #5a6268; }
 #result { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
 .result-split { display: flex; justify-content: space-around; text-align: center; margin-top: 20px; flex-wrap: wrap; gap: 20px; }
 .result-split h3 { margin-bottom: 10px; color: #1a2c4e; }
@@ -36,67 +32,14 @@ input[type="date"], input[type="number"], input[type="text"], input[type="tel"] 
 .invoice-controls { margin-bottom: 20px; text-align: left; }
 #invoice-type-select { font-size: 16px; padding: 8px; border-radius: 8px; }
 .invoice-table-container { max-height: 450px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 8px;}
-table#invoice-table-two-part, table#invoice-table-three-part { 
-    width: 100%; 
-    min-width: 800px;
-    border-collapse: collapse; 
-    table-layout: auto; 
-}
-#invoice-table-two-part th, #invoice-table-two-part td,
-#invoice-table-three-part th, #invoice-table-three-part td { 
-    border: 1px solid #ccc;
-    padding: 2px;
-    text-align: center; 
-    vertical-align: middle; 
-    white-space: nowrap;
-}
-#invoice-table-two-part th, #invoice-table-three-part th { 
-    background-color: #f8f9fa; 
-    font-weight: 600; 
-    position: sticky; 
-    top: 0; 
-    z-index: 1; 
-    padding: 10px 8px;
-}
-#invoice-table-three-part .col-company,
-#invoice-table-three-part .col-item,
-#invoice-table-two-part .col-buyer,
-#invoice-table-two-part .col-item {
-    white-space: normal;
-}
-
-/* --- 修復後的輸入框樣式 --- */
-#invoice-table-two-part input, #invoice-table-three-part input {
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-    font-size: 16px;
-    text-align: right;
-    border: 1px solid transparent; 
-    background-color: #f0f8ff; 
-    padding: 8px 10px; /* 增加左右內距 */
-    caret-color: #000;
-    transition: background-color 0.2s, box-shadow 0.2s;
-}
-#invoice-table-two-part input:focus, #invoice-table-three-part input:focus {
-    outline: none;
-    background-color: #fff;
-    box-shadow: inset 0 0 0 2px #007bff;
-}
-#invoice-table-two-part input[readonly], #invoice-table-three-part input[readonly] {
-    background-color: transparent;
-    border-color: transparent;
-    box-shadow: none;
-    color: #555;
-    text-align: center;
-}
-#invoice-table-three-part .col-company input,
-#invoice-table-three-part .col-item input,
-#invoice-table-two-part .col-buyer input,
-#invoice-table-two-part .col-item input {
-    text-align: left;
-}
-
+table#invoice-table-two-part, table#invoice-table-three-part { width: 100%; min-width: 800px; border-collapse: collapse; table-layout: auto; }
+#invoice-table-two-part th, #invoice-table-two-part td, #invoice-table-three-part th, #invoice-table-three-part td { border: 1px solid #ccc; padding: 2px; text-align: center; vertical-align: middle; white-space: nowrap; }
+#invoice-table-two-part th, #invoice-table-three-part th { background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 1; padding: 10px 8px; }
+#invoice-table-three-part .col-company, #invoice-table-three-part .col-item, #invoice-table-two-part .col-buyer, #invoice-table-two-part .col-item { white-space: normal; }
+#invoice-table-two-part input, #invoice-table-three-part input { width: 100%; height: 100%; box-sizing: border-box; font-size: 16px; text-align: right; border: 1px solid transparent; background-color: #f0f8ff; padding: 8px 10px; caret-color: #000; transition: background-color 0.2s, box-shadow 0.2s; }
+#invoice-table-two-part input:focus, #invoice-table-three-part input:focus { outline: none; background-color: #fff; box-shadow: inset 0 0 0 2px #007bff; }
+#invoice-table-two-part input[readonly], #invoice-table-three-part input[readonly] { background-color: transparent; border-color: transparent; box-shadow: none; color: #555; text-align: center; }
+#invoice-table-three-part .col-company input, #invoice-table-three-part .col-item input, #invoice-table-two-part .col-buyer input, #invoice-table-two-part .col-item input { text-align: left; }
 .button-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
 .add-row-button, .export-button, .secondary-action-button { margin-bottom: 0; }
 .add-row-button { background-color: #28a745; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
@@ -105,30 +48,18 @@ table#invoice-table-two-part, table#invoice-table-three-part {
 .export-button:hover { background-color: #165934; }
 .secondary-action-button { background-color: #6c757d; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
 .secondary-action-button:hover { background-color: #5a6268; }
-
 .invoice-summary { border-top: 2px solid #007bff; padding-top: 20px; text-align: right; font-size: 18px; }
 .invoice-summary p { margin: 5px 0; }
 .invoice-summary span { font-weight: bold; min-width: 120px; display: inline-block; text-align: left;}
 #reset-invoice-button { position: absolute; top: 20px; right: 25px; bottom: auto; width: 40px; height: 40px; background-color: #dc3545; color: white; border: none; border-radius: 50%; font-size: 20px; line-height: 40px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; transition: all 0.3s ease; z-index: 10; }
 #reset-invoice-button:hover { background-color: #c82333; transform: scale(1.1) rotate(90deg); }
-
 .hidden { display: none !important; }
 .result-hidden { display: none; }
 .result-visible { display: block; }
-
 input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 input[type=number] { -moz-appearance: textfield; }
-
 .optional-columns-controls { text-align: left; margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 8px; }
 .optional-columns-controls label { margin-right: 20px; cursor: pointer; font-weight: normal; }
 .optional-columns-controls input[type="checkbox"] { width: auto; margin-right: 5px; vertical-align: middle; }
-
-/* --- 控制可選欄位的顯示/隱藏 --- */
 .col-optional { display: none; }
-table.show-date .col-date,
-table.show-buyer .col-buyer,
-table.show-item .col-item,
-table.show-tax-id .col-tax-id,
-table.show-company .col-company {
-    display: table-cell;
-}
+table.show-date .col-date, table.show-buyer .col-buyer, table.show-item .col-item, table.show-tax-id .col-tax-id, table.show-company .col-company { display: table-cell; }

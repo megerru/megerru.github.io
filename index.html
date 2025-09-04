@@ -3,16 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- 瀏覽器分頁標題 -->
-    <title>計算機</title>
-    
-    <!-- 社群分享預覽資訊 -->
+    <title>財會計算機</title>
     <meta property="og:title" content="財會計算機小幫手">
-    <meta property="og:description" content="一個整合了年度保險費分攤與銷項發票計算的多功能工具。">
+    <meta property="og:description" content="一個整合了多種財會工具的智慧助手。">
     <meta property="og:url" content="https://megerru.github.io/">
     <meta property="og:type" content="website">
-    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,43 +15,38 @@
         <div class="welcome-buttons-container">
             <button class="welcome-button" onclick="showInsuranceCalculator()">保險費計算</button>
             <button class="welcome-button secondary" onclick="showInvoiceCalculator()">銷項發票</button>
-            <!-- ▼▼▼ 新增的按鈕 ▼▼▼ -->
-            <button class="welcome-button" onclick="window.location.href='data_processing.html'" style="background-color: #1d6f42;">資料處理</button>
+            <button class="welcome-button" onclick="window.location.href='data_processing_landing.html'" style="background-color: #1d6f42;">資料處理</button>
         </div>
     </div>
 
-    <!-- 年度保險費計算機 -->
+    <!-- 年度保險費計算機 (已更新) -->
     <div id="insurance-calculator-section" class="container hidden">
         <button class="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
         <h1>年度保險費分攤計算機</h1>
         <button id="reset-insurance-button" onclick="resetInsuranceForm()">↺</button>
         <div class="form-group">
-            <label for="startDate">保險起始日期：</label>
-            <div class="date-input-group" id="start-date-group">
-                <input type="date" class="date-picker" id="startDate">
-                <div class="manual-date-container hidden" id="startDateManualContainer">
-                    <input type="tel" id="startDateManualYear" placeholder="113" maxlength="3" onkeyup="autoTab(this, 'startDateManualMonth')">
-                    <span>/</span>
-                    <input type="tel" id="startDateManualMonth" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'startDateManualDay')">
-                    <span>/</span>
-                    <input type="tel" id="startDateManualDay" placeholder="30" maxlength="2" onkeyup="autoTab(this, 'endDateManualYear')">
-                </div>
-                <button class="toggle-button" onclick="toggleInputMode('start')">手動輸入</button>
+            <label for="startDateManualYear">保險起始日期 (民國年/月/日)：</label>
+            <div class="manual-date-container">
+                <input type="tel" id="startDateManualYear" placeholder="113" maxlength="3" onkeyup="autoTab(this, 'startDateManualMonth')">
+                <span>/</span>
+                <input type="tel" id="startDateManualMonth" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'startDateManualDay')">
+                <span>/</span>
+                <input type="tel" id="startDateManualDay" placeholder="30" maxlength="2" onkeyup="autoTab(this, 'endDateManualYear')">
             </div>
+            <!-- 隱藏的 input 用於儲存轉換後的西元年日期 -->
+            <input type="date" id="startDate" style="display: none;">
         </div>
         <div class="form-group">
-            <label for="endDate">保險結束日期：</label>
-            <div class="date-input-group" id="end-date-group">
-                <input type="date" class="date-picker" id="endDate">
-                <div class="manual-date-container hidden" id="endDateManualContainer">
-                    <input type="tel" id="endDateManualYear" placeholder="114" maxlength="3" onkeyup="autoTab(this, 'endDateManualMonth')">
-                    <span>/</span>
-                    <input type="tel" id="endDateManualMonth" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'endDateManualDay')">
-                    <span>/</span>
-                    <input type="tel" id="endDateManualDay" placeholder="23" maxlength="2" onkeyup="autoTab(this, 'totalPremium')">
-                </div>
-                <button class="toggle-button" onclick="toggleInputMode('end')">手動輸入</button>
+            <label for="endDateManualYear">保險結束日期 (民國年/月/日)：</label>
+            <div class="manual-date-container">
+                <input type="tel" id="endDateManualYear" placeholder="114" maxlength="3" onkeyup="autoTab(this, 'endDateManualMonth')">
+                <span>/</span>
+                <input type="tel" id="endDateManualMonth" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'endDateManualDay')">
+                <span>/</span>
+                <input type="tel" id="endDateManualDay" placeholder="23" maxlength="2" onkeyup="autoTab(this, 'totalPremium')">
             </div>
+            <!-- 隱藏的 input 用於儲存轉換後的西元年日期 -->
+            <input type="date" id="endDate" style="display: none;">
         </div>
         <div class="form-group">
             <label for="totalPremium">總保費：</label>
@@ -66,24 +56,21 @@
         <div id="result" class="result-hidden">
             <h2>計算結果</h2>
             <p id="periodSummary"></p>
-            <div class="result-split" id="result-container">
-            </div>
+            <div class="result-split" id="result-container"></div>
         </div>
     </div>
 
-    <!-- 銷項發票計算機 -->
+    <!-- 銷項發票計算機 (結構與之前相同) -->
     <div id="invoice-section" class="container hidden">
         <button class="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
         <h1>銷項發票稅額計算</h1>
         <button id="reset-invoice-button" onclick="resetInvoiceForm()">↺</button>
-        
         <div class="invoice-controls">
             <select id="invoice-type-select" onchange="switchInvoiceType()">
                 <option value="two-part">二聯式發票</option>
                 <option value="three-part">三聯式發票</option>
             </select>
         </div>
-
         <div class="optional-columns-controls" id="optional-controls-two-part">
             <label><input type="checkbox" id="toggle-col-date-2" onclick="toggleOptionalColumn('date', 2)"> 日期</label>
             <label><input type="checkbox" id="toggle-col-buyer-2" onclick="toggleOptionalColumn('buyer', 2)"> 買受人</label>
@@ -95,7 +82,6 @@
             <label><input type="checkbox" id="toggle-col-company-3" onclick="toggleOptionalColumn('company', 3)"> 公司名稱</label>
             <label><input type="checkbox" id="toggle-col-item-3" onclick="toggleOptionalColumn('item', 3)"> 品名</label>
         </div>
-
         <div class="invoice-table-container">
             <table id="invoice-table-two-part">
                 <thead>
@@ -127,13 +113,11 @@
                 <tbody id="invoice-table-body-three-part"></tbody>
             </table>
         </div>
-
         <div class="button-container">
             <button class="add-row-button" onclick="addInvoiceRow()">+ 新增一列</button>
             <button class="export-button" id="export-excel-button" onclick="exportToExcel()">匯出 Excel</button>
             <button class="secondary-action-button hidden" id="toggle-vat-edit-button" onclick="toggleVatEditMode()">修改營業稅</button>
         </div>
-
         <div id="invoice-summary-two-part" class="invoice-summary">
             <p>共 <span id="invoice-count-two">0</span> 筆資料</p>
             <p>總計加總: <span id="total-sum-two">0</span></p>
