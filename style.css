@@ -66,7 +66,7 @@ input[type=number] { -moz-appearance: textfield; }
 table.show-date .col-date, table.show-buyer .col-buyer, table.show-item .col-item, table.show-tax-id .col-tax-id, table.show-company .col-company { display: table-cell; }
 
 /* --- 刪除模式專用樣式 --- */
-.col-index span { display: inline; }
-.delete-checkbox { display: none; margin-right: 5px; }
+.col-index span { display: inline; vertical-align: middle; }
+.delete-checkbox { display: none; margin-right: 5px; vertical-align: middle; }
 table.deletion-mode .col-index span { display: none; }
 table.deletion-mode .delete-checkbox { display: inline-block; }
