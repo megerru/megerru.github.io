@@ -19,7 +19,7 @@
         </div>
     </div>
 
-    <!-- 年度保險費計算機 (已更新) -->
+    <!-- 年度保險費計算機 -->
     <div id="insurance-calculator-section" class="container hidden">
         <button class="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
         <h1>年度保險費分攤計算機</h1>
@@ -33,7 +33,6 @@
                 <span>/</span>
                 <input type="tel" id="startDateManualDay" placeholder="30" maxlength="2" onkeyup="autoTab(this, 'endDateManualYear')">
             </div>
-            <!-- 隱藏的 input 用於儲存轉換後的西元年日期 -->
             <input type="date" id="startDate" style="display: none;">
         </div>
         <div class="form-group">
@@ -45,7 +44,6 @@
                 <span>/</span>
                 <input type="tel" id="endDateManualDay" placeholder="23" maxlength="2" onkeyup="autoTab(this, 'totalPremium')">
             </div>
-            <!-- 隱藏的 input 用於儲存轉換後的西元年日期 -->
             <input type="date" id="endDate" style="display: none;">
         </div>
         <div class="form-group">
@@ -60,7 +58,7 @@
         </div>
     </div>
 
-    <!-- 銷項發票計算機 (結構與之前相同) -->
+    <!-- 銷項發票計算機 -->
     <div id="invoice-section" class="container hidden">
         <button class="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
         <h1>銷項發票稅額計算</h1>
@@ -116,7 +114,8 @@
         <div class="button-container">
             <button class="add-row-button" onclick="addInvoiceRow()">+ 新增一列</button>
             <button class="export-button" id="export-excel-button" onclick="exportToExcel()">匯出 Excel</button>
-            <button class="secondary-action-button hidden" id="toggle-vat-edit-button" onclick="toggleVatEditMode()">修改營業稅</button>
+            <button class="secondary-action-button" id="toggle-vat-edit-button" onclick="toggleVatEditMode()">修改稅額</button>
+            <button class="secondary-action-button" id="delete-mode-button" onclick="toggleDeleteMode()">刪除資料列</button>
         </div>
         <div id="invoice-summary-two-part" class="invoice-summary">
             <p>共 <span id="invoice-count-two">0</span> 筆資料</p>
