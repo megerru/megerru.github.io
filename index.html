@@ -20,6 +20,8 @@
         <div class="welcome-buttons-container">
             <button class="welcome-button" onclick="showInsuranceCalculator()">保險費計算</button>
             <button class="welcome-button secondary" onclick="showInvoiceCalculator()">銷項發票</button>
+            <!-- ▼▼▼ 新增的按鈕 ▼▼▼ -->
+            <button class="welcome-button" onclick="window.location.href='data_processing.html'" style="background-color: #1d6f42;">資料處理</button>
         </div>
     </div>
 
@@ -69,7 +71,7 @@
         </div>
     </div>
 
-    <!-- 銷項發票計算機 (已更新) -->
+    <!-- 銷項發票計算機 -->
     <div id="invoice-section" class="container hidden">
         <button class="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
         <h1>銷項發票稅額計算</h1>
@@ -82,7 +84,6 @@
             </select>
         </div>
 
-        <!-- 可選欄位控制 -->
         <div class="optional-columns-controls" id="optional-controls-two-part">
             <label><input type="checkbox" id="toggle-col-date-2" onclick="toggleOptionalColumn('date', 2)"> 日期</label>
             <label><input type="checkbox" id="toggle-col-buyer-2" onclick="toggleOptionalColumn('buyer', 2)"> 買受人</label>
@@ -96,7 +97,6 @@
         </div>
 
         <div class="invoice-table-container">
-            <!-- 二聯式表格 -->
             <table id="invoice-table-two-part">
                 <thead>
                     <tr>
@@ -111,7 +111,6 @@
                 </thead>
                 <tbody id="invoice-table-body-two-part"></tbody>
             </table>
-            <!-- 三聯式表格 -->
             <table id="invoice-table-three-part" class="hidden">
                  <thead>
                     <tr>
@@ -135,14 +134,12 @@
             <button class="secondary-action-button hidden" id="toggle-vat-edit-button" onclick="toggleVatEditMode()">修改營業稅</button>
         </div>
 
-        <!-- 二聯式總結 -->
         <div id="invoice-summary-two-part" class="invoice-summary">
             <p>共 <span id="invoice-count-two">0</span> 筆資料</p>
             <p>總計加總: <span id="total-sum-two">0</span></p>
             <p>銷售額加總: <span id="sales-sum-two">0</span></p>
             <p>稅額加總: <span id="tax-sum-two">0</span></p>
         </div>
-        <!-- 三聯式總結 -->
          <div id="invoice-summary-three-part" class="invoice-summary hidden">
             <p>共 <span id="invoice-count-three">0</span> 筆資料</p>
             <p>銷售額加總: <span id="sales-sum-three">0</span></p>
@@ -151,7 +148,6 @@
         </div>
     </div>
     
-    <!-- 引入 Excel 函式庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="script.js"></script>
 </body>
