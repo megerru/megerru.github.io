@@ -1,4 +1,4 @@
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f4f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
 .container { background-color: #fff; padding: 30px 40px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08); width: 100%; max-width: 950px; text-align: center; }
 #welcome-section { display: flex; justify-content: center; align-items: center; min-height: 250px; }
 .welcome-buttons-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
@@ -15,7 +15,7 @@ input[type="date"], input[type="number"], input[type="text"], input[type="tel"] 
 .back-to-welcome-button { display: block; width: auto; position: absolute; top: 20px; left: 25px; background: none; border: none; color: #007bff; font-size: 16px; cursor: pointer; padding: 5px; text-align: left; }
 .back-to-welcome-button:hover { text-decoration: underline; }
 
-/* --- 保險計算機 --- */
+/* --- 保險計算機專用 --- */
 #insurance-calculator-section { position: relative; max-width: 600px; }
 .manual-date-container { display: flex; flex-grow: 1; align-items: center; gap: 5px; }
 .manual-date-container input { text-align: center; }
@@ -27,20 +27,20 @@ input[type="date"], input[type="number"], input[type="text"], input[type="tel"] 
 #reset-insurance-button { position: absolute; top: 20px; right: 25px; bottom: auto; width: 40px; height: 40px; background-color: #dc3545; color: white; border: none; border-radius: 50%; font-size: 20px; line-height: 40px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; transition: all 0.3s ease; z-index: 10; }
 #reset-insurance-button:hover { background-color: #c82333; transform: scale(1.1) rotate(90deg); }
 
-/* --- 銷項發票 --- */
+/* --- 銷項發票區塊樣式 --- */
 #invoice-section { position: relative; }
 .invoice-controls { margin-bottom: 20px; text-align: left; }
 #invoice-type-select { font-size: 16px; padding: 8px; border-radius: 8px; }
 .invoice-table-container { max-height: 450px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 8px;}
-table { width: 100%; min-width: 800px; border-collapse: collapse; table-layout: auto; }
-th, td { border: 1px solid #ccc; padding: 2px; text-align: center; vertical-align: middle; white-space: nowrap; }
-th { background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 1; padding: 10px 8px; }
-td.col-company, td.col-item, td.col-buyer { white-space: normal; }
-input { width: 100%; height: 100%; box-sizing: border-box; font-size: 16px; text-align: right; border: 1px solid transparent; background-color: #f0f8ff; padding: 8px 10px; caret-color: #000; transition: background-color 0.2s, box-shadow 0.2s; }
-input:focus { outline: none; background-color: #fff; box-shadow: inset 0 0 0 2px #007bff; }
-input[readonly] { background-color: transparent; border-color: transparent; box-shadow: none; color: #555; text-align: center; }
-.col-company input, .col-item input, .col-buyer input { text-align: left; }
-.button-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+table#invoice-table-two-part, table#invoice-table-three-part { width: 100%; min-width: 800px; border-collapse: collapse; table-layout: auto; }
+#invoice-table-two-part th, #invoice-table-two-part td, #invoice-table-three-part th, #invoice-table-three-part td { border: 1px solid #ccc; padding: 2px; text-align: center; vertical-align: middle; white-space: nowrap; }
+#invoice-table-two-part th, #invoice-table-three-part th { background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 1; padding: 10px 8px; }
+#invoice-table-three-part .col-company, #invoice-table-three-part .col-item, #invoice-table-two-part .col-buyer, #invoice-table-two-part .col-item { white-space: normal; }
+#invoice-table-two-part input, #invoice-table-three-part input { width: 100%; height: 100%; box-sizing: border-box; font-size: 16px; text-align: right; border: 1px solid transparent; background-color: #f0f8ff; padding: 8px 10px; caret-color: #000; transition: background-color 0.2s, box-shadow 0.2s; }
+#invoice-table-two-part input:focus, #invoice-table-three-part input:focus { outline: none; background-color: #fff; box-shadow: inset 0 0 0 2px #007bff; }
+#invoice-table-two-part input[readonly], #invoice-table-three-part input[readonly] { background-color: transparent; border-color: transparent; box-shadow: none; color: #555; text-align: center; }
+#invoice-table-three-part .col-company input, #invoice-table-three-part .col-item input, #invoice-table-two-part .col-buyer input, #invoice-table-two-part .col-item input { text-align: left; }
+.button-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
 .add-row-button, .export-button, .secondary-action-button { margin-bottom: 0; }
 .add-row-button { background-color: #28a745; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
 .add-row-button:hover { background-color: #218838; }
@@ -48,9 +48,6 @@ input[readonly] { background-color: transparent; border-color: transparent; box-
 .export-button:hover { background-color: #165934; }
 .secondary-action-button { background-color: #6c757d; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
 .secondary-action-button:hover { background-color: #5a6268; }
-.delete-row-btn { background: none; border: none; cursor: pointer; font-size: 1.2em; color: #dc3545; display: none; }
-.delete-row-btn:hover { color: #c82333; transform: scale(1.2); }
-.col-actions { width: 50px; }
 .invoice-summary { border-top: 2px solid #007bff; padding-top: 20px; text-align: right; font-size: 18px; }
 .invoice-summary p { margin: 5px 0; }
 .invoice-summary span { font-weight: bold; min-width: 120px; display: inline-block; text-align: left;}

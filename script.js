@@ -28,7 +28,7 @@ function autoTab(currentElement, nextElementId) {
 }
 
 // ===================================================================
-// II. 保險費計算機
+// II. 保險費計算機 (已修改)
 // ===================================================================
 
 function updatePickerFromManual(type) {
@@ -67,6 +67,7 @@ function resetInsuranceForm() {
 
 function calculatePremium() {
     try {
+        // 直接從手動輸入框轉換日期
         updatePickerFromManual('start');
         updatePickerFromManual('end');
         const startDateString = document.getElementById('startDate').value;
@@ -138,7 +139,7 @@ function calculatePremium() {
 
 
 // ===================================================================
-// III. 銷項發票計算機
+// III. 銷項發票計算機 (結構與之前相同)
 // ===================================================================
 const twoPartBody = document.getElementById('invoice-table-body-two-part');
 const threePartBody = document.getElementById('invoice-table-body-three-part');
@@ -149,7 +150,9 @@ const vatEditButton = document.getElementById('toggle-vat-edit-button');
 
 let textMeasureSpan = null;
 document.addEventListener('DOMContentLoaded', () => {
-    if(document.getElementById('invoice-section')) {
+    // 檢查h1標題以確保只在銷項發票頁面執行
+    const h1Element = document.querySelector('h1');
+    if(h1Element && h1Element.textContent.includes('銷項發票')) {
         textMeasureSpan = document.createElement('span');
         textMeasureSpan.style.visibility = 'hidden';
         textMeasureSpan.style.position = 'absolute';
@@ -183,6 +186,7 @@ function switchInvoiceType() {
         threePartContainer.classList.add("hidden");
         threePartSummary.classList.add("hidden");
         threePartControls.classList.add('hidden');
+        vatEditButton.classList.add('hidden');
     } else {
         threePartContainer.classList.remove("hidden");
         threePartSummary.classList.remove("hidden");
@@ -190,6 +194,7 @@ function switchInvoiceType() {
         twoPartContainer.classList.add("hidden");
         twoPartSummary.classList.add("hidden");
         twoPartControls.classList.add('hidden');
+        vatEditButton.classList.remove('hidden');
     }
     resetInvoiceForm();
 }
@@ -207,53 +212,46 @@ function addInvoiceRow() {
     const body = getCurrentInvoiceBody();
     if (!body) return;
     const newRow = body.insertRow();
-    const index = body.rows.length;
-    const isVatLocked = vatEditButton.textContent === '修改稅額';
+    // 這裡的 index 仍然會是總行數，但我們在 summary 時會篩選
+    // 因為行數會隨著刪除而改變，所以這裡用一個簡單的遞增值即可，實際筆數由 updateInvoiceSummary 計算
+    const index = body.rows.length; 
+    const isVatLocked = vatEditButton.textContent === '修改營業稅';
     const vatReadonlyState = isVatLocked ? 'readonly' : '';
 
     if (invoiceTypeSelect.value === 'two-part') {
-        newRow.innerHTML = `<td>${index}</td><td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7"></td><td class="col-optional col-buyer"><input type="text" class="data-buyer" placeholder="買受人名稱"></td><td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td><td><input type="number" class="total-2" placeholder="總計金額"></td><td><input type="number" class="sales-2" readonly></td><td><input type="number" class="tax-2" ${vatReadonlyState}></td><td class="col-actions"></td>`;
+        newRow.innerHTML = `<td>${index}</td><td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7"></td><td class="col-optional col-buyer"><input type="text" class="data-buyer" placeholder="買受人名稱"></td><td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td><td><input type="number" class="total-2" placeholder="總計金額"></td><td><input type="number" class="sales-2" readonly></td><td><input type="number" class="tax-2" readonly></td>`;
     } else {
-        newRow.innerHTML = `<td>${index}</td><td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7"></td><td class="col-optional col-tax-id"><input type="tel" class="tax-id-3" maxlength="8"></td><td class="col-optional col-company"><input type="text" class="company-3" readonly></td><td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td><td><input type="number" class="sales-3" placeholder="未稅銷售額"></td><td><input type="number" class="tax-3" ${vatReadonlyState}></td><td><input type="number" class="total-3" readonly></td><td class="col-actions"></td>`;
+        newRow.innerHTML = `<td>${index}</td><td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7"></td><td class="col-optional col-tax-id"><input type="tel" class="tax-id-3" maxlength="8"></td><td class="col-optional col-company"><input type="text" class="company-3" readonly></td><td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td><td><input type="number" class="sales-3" placeholder="未稅銷售額"></td><td><input type="number" class="tax-3" ${vatReadonlyState}></td><td><input type="number" class="total-3" readonly></td>`;
     }
 
     newRow.querySelectorAll('input:not([readonly])').forEach(input => { if (input.placeholder) { adjustInputWidth(input); }});
     const firstVisibleInput = Array.from(newRow.querySelectorAll('input:not([readonly])')).find(el => el.offsetParent !== null);
     if (firstVisibleInput) { firstVisibleInput.focus(); }
+    updateInvoiceSummary(); // 新增一行後也更新一下總結
 }
 
 function resetInvoiceForm() {
     twoPartBody.innerHTML = '';
     threePartBody.innerHTML = '';
-    vatEditButton.textContent = '修改稅額';
+    vatEditButton.textContent = '修改營業稅';
     document.querySelectorAll('.optional-columns-controls input[type="checkbox"]').forEach(cb => { cb.checked = false; });
     twoPartTable.className = twoPartTable.className.replace(/show-[\w-]+/g, '').trim();
     threePartTable.className = threePartTable.className.replace(/show-[\w-]+/g, '').trim();
     addInvoiceRow();
-    updateInvoiceSummary();
+    // updateInvoiceSummary(); // 已經在 addInvoiceRow 裡調用，這裡不需要重複調用
 }
 
 function toggleVatEditMode() {
-    const isTwoPart = invoiceTypeSelect.value === 'two-part';
-    const taxInputSelector = isTwoPart ? '.tax-2' : '.tax-3';
-    const body = getCurrentInvoiceBody();
-    const taxInputs = body.querySelectorAll(taxInputSelector);
-    const isCurrentlyLocked = vatEditButton.textContent === '修改稅額';
+    const vatInputs = threePartBody.querySelectorAll('.tax-3');
+    const isCurrentlyLocked = vatEditButton.textContent === '修改營業稅';
 
     if (isCurrentlyLocked) {
-        taxInputs.forEach(input => input.removeAttribute('readonly'));
-        vatEditButton.textContent = '鎖定稅額';
-        if (taxInputs.length > 0) taxInputs[0].focus();
+        vatInputs.forEach(input => input.removeAttribute('readonly'));
+        vatEditButton.textContent = '鎖定營業稅';
+        if (vatInputs.length > 0) { vatInputs[0].focus(); }
     } else {
-        taxInputs.forEach(input => input.setAttribute('readonly', true));
-        vatEditButton.textContent = '修改稅額';
-    }
-}
-
-function reindexRows(tableBody) {
-    const rows = tableBody.rows;
-    for(let i = 0; i < rows.length; i++) {
-        rows[i].querySelector('td:first-child').textContent = i + 1;
+        vatInputs.forEach(input => input.setAttribute('readonly', true));
+        vatEditButton.textContent = '修改營業稅';
     }
 }
 
@@ -261,13 +259,30 @@ function exportToExcel() {
     if (document.activeElement) document.activeElement.blur();
     const type = invoiceTypeSelect.value;
     const isTwoPart = type === 'two-part';
-    const body = getCurrentInvoiceBody();
-    const rows = Array.from(body.rows);
-
-    const hasData = rows.some(row => { const primaryInput = isTwoPart ? row.querySelector('.total-2') : row.querySelector('.sales-3'); return primaryInput && primaryInput.value.trim() !== ''; });
-    if (!hasData) { alert('沒有資料可以匯出！'); return; }
+    const body = isTwoPart ? twoPartBody : threePartBody;
     
+    // 檢查是否有有效的資料可供匯出
+    let hasValidData = false;
+    for (const row of body.rows) {
+        if (isTwoPart) {
+            if (row.querySelector('.total-2')?.value.trim()) {
+                hasValidData = true;
+                break;
+            }
+        } else {
+            if (row.querySelector('.sales-3')?.value.trim()) {
+                hasValidData = true;
+                break;
+            }
+        }
+    }
+
+    if (!hasValidData) {
+        alert('沒有資料可以匯出！'); return;
+    }
+
     const headers = [];
+    const data = [];
     const showDate = document.getElementById(isTwoPart ? 'toggle-col-date-2' : 'toggle-col-date-3').checked;
     const showBuyer = isTwoPart && document.getElementById('toggle-col-buyer-2').checked;
     const showItem = document.getElementById(isTwoPart ? 'toggle-col-item-2' : 'toggle-col-item-3').checked;
@@ -279,7 +294,7 @@ function exportToExcel() {
     if (isTwoPart) {
         if (showBuyer) headers.push('買受人');
         if (showItem) headers.push('品名');
-        headers.push('總計(含稅)', '銷售額(未稅)', '稅額');
+        headers.push('銷售額(未稅)', '稅額', '總計(含稅)');
     } else {
         if (showTaxId) headers.push('統一編號');
         if (showCompany) headers.push('公司名稱');
@@ -287,26 +302,30 @@ function exportToExcel() {
         headers.push('銷售額(未稅)', '營業稅', '總計(含稅)');
     }
 
-    const data = rows.map((row, index) => {
-        const primaryInput = isTwoPart ? row.querySelector('.total-2') : row.querySelector('.sales-3');
-        if (!primaryInput || primaryInput.value.trim() === '') { return null; }
+    for (const row of body.rows) {
         const rowData = [];
-        rowData.push(index + 1); 
-
         if (isTwoPart) {
+            const totalValue = row.querySelector('.total-2').value;
+            if (!totalValue) continue; // 只匯出有總計金額的行
+            rowData.push(row.cells[0].textContent);
             if (showDate) rowData.push(row.querySelector('.data-date').value);
             if (showBuyer) rowData.push(row.querySelector('.data-buyer').value);
             if (showItem) rowData.push(row.querySelector('.data-item').value);
-            rowData.push(parseFloat(row.querySelector('.total-2').value) || 0, parseFloat(row.querySelector('.sales-2').value) || 0, parseFloat(row.querySelector('.tax-2').value) || 0);
+            rowData.push(parseFloat(row.querySelector('.sales-2').value) || 0, parseFloat(row.querySelector('.tax-2').value) || 0, parseFloat(totalValue) || 0);
         } else {
+            const salesValue = row.querySelector('.sales-3').value;
+            if (!salesValue) continue; // 只匯出有未稅銷售額的行
+            rowData.push(row.cells[0].textContent);
             if (showDate) rowData.push(row.querySelector('.data-date').value);
             if (showTaxId) rowData.push(row.querySelector('.tax-id-3').value);
             if (showCompany) rowData.push(row.querySelector('.company-3').value);
             if (showItem) rowData.push(row.querySelector('.data-item').value);
-            rowData.push(parseFloat(row.querySelector('.sales-3').value) || 0, parseFloat(row.querySelector('.tax-3').value) || 0, parseFloat(row.querySelector('.total-3').value) || 0);
+            rowData.push(parseFloat(salesValue) || 0, parseFloat(row.querySelector('.tax-3').value) || 0, parseFloat(row.querySelector('.total-3').value) || 0);
         }
-        return rowData;
-    }).filter(row => row !== null); 
+        data.push(rowData);
+    }
+    
+    if (data.length === 0) { alert('沒有有效的資料可以匯出！'); return; }
 
     const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
     const workbook = XLSX.utils.book_new();
@@ -314,8 +333,103 @@ function exportToExcel() {
     XLSX.writeFile(workbook, isTwoPart ? '二聯式銷項發票.xlsx' : '三聯式銷項發票.xlsx');
 }
 
-function updateInvoiceSummary(){let e=0,t=0,n=0,o=0;if("two-part"===invoiceTypeSelect.value){const l=twoPartBody.rows;o=l.length;for(const a of l)e+=parseFloat(a.querySelector(".total-2").value)||0,t+=parseFloat(a.querySelector(".sales-2").value)||0,n+=parseFloat(a.querySelector(".tax-2").value)||0;document.getElementById("invoice-count-two").textContent=o,document.getElementById("total-sum-two").textContent=e.toLocaleString(),document.getElementById("sales-sum-two").textContent=t.toLocaleString(),document.getElementById("tax-sum-two").textContent=n.toLocaleString()}else{const l=threePartBody.rows;o=l.length;for(const a of l)t+=parseFloat(a.querySelector(".sales-3").value)||0,n+=parseFloat(a.querySelector(".tax-3").value)||0,e+=parseFloat(a.querySelector(".total-3").value)||0;document.getElementById("invoice-count-three").textContent=o,document.getElementById("sales-sum-three").textContent=t.toLocaleString(),document.getElementById("tax-sum-three").textContent=n.toLocaleString(),document.getElementById("total-sum-three").textContent=e.toLocaleString()}}
-async function lookupCompanyByTaxId(taxId, companyInput) {if (!/^\d{8}$/.test(taxId)) {companyInput.value = '統編格式錯誤'; return;} companyInput.value = '查詢中...'; try {adjustInputWidth(companyInput);} catch(e){} try {const proxyUrl = 'https://api.allorigins.win/get?url=';const taxApiUrl = `https://data.gov.tw/api/v2/rest/dataset/9D17AE0D-09B5-4732-A8F4-81ADED04B679?&\$filter=Business_Accounting_NO eq ${taxId}`;const response = await fetch(proxyUrl + encodeURIComponent(taxApiUrl));if (response.ok) {const data = await response.json();const results = JSON.parse(data.contents);if (results && results.length > 0 && results[0]['營業人名稱']) {companyInput.value = results[0]['營業人名稱']; adjustInputWidth(companyInput); return;}}} catch (error) {console.error('稅籍 API 查詢失敗:', error);}companyInput.value = '備用查詢中...'; adjustInputWidth(companyInput); try {const g0vApiUrl = `https://company.g0v.ronny.tw/api/show/${taxId}`;const response = await fetch(g0vApiUrl);if (response.ok) {const data = await response.json();if (data && data.data) {const companyName = data.data['公司名稱'] || data.data['名稱'];if (companyName) {companyInput.value = companyName; adjustInputWidth(companyInput); return;}}}companyInput.value = '查無資料'; adjustInputWidth(companyInput); } catch (error) {console.error('g0v API 查詢失敗:', error);companyInput.value = '查詢失敗'; adjustInputWidth(companyInput);}}
+// 修正後的 updateInvoiceSummary 函式
+function updateInvoiceSummary() {
+    let totalSum = 0;
+    let salesSum = 0;
+    let taxSum = 0;
+    let validRowCount = 0; // 新增變數來計算有效行數
+
+    if ("two-part" === invoiceTypeSelect.value) {
+        const rows = twoPartBody.rows;
+        for (const row of rows) {
+            const totalInput = row.querySelector(".total-2");
+            // 只有當「總計 (含稅)」欄位有值時才算作有效行
+            if (totalInput && totalInput.value.trim() !== '') {
+                validRowCount++;
+                totalSum += parseFloat(totalInput.value) || 0;
+                salesSum += parseFloat(row.querySelector(".sales-2").value) || 0;
+                taxSum += parseFloat(row.querySelector(".tax-2").value) || 0;
+            }
+        }
+        document.getElementById("invoice-count-two").textContent = validRowCount; // 使用有效行數
+        document.getElementById("total-sum-two").textContent = totalSum.toLocaleString();
+        document.getElementById("sales-sum-two").textContent = salesSum.toLocaleString();
+        document.getElementById("tax-sum-two").textContent = taxSum.toLocaleString();
+    } else { // three-part
+        const rows = threePartBody.rows;
+        for (const row of rows) {
+            const salesInput = row.querySelector(".sales-3");
+            // 只有當「銷售額 (未稅)」欄位有值時才算作有效行
+            if (salesInput && salesInput.value.trim() !== '') {
+                validRowCount++;
+                salesSum += parseFloat(salesInput.value) || 0;
+                taxSum += parseFloat(row.querySelector(".tax-3").value) || 0;
+                totalSum += parseFloat(row.querySelector(".total-3").value) || 0;
+            }
+        }
+        document.getElementById("invoice-count-three").textContent = validRowCount; // 使用有效行數
+        document.getElementById("sales-sum-three").textContent = salesSum.toLocaleString();
+        document.getElementById("tax-sum-three").textContent = taxSum.toLocaleString();
+        document.getElementById("total-sum-three").textContent = totalSum.toLocaleString();
+    }
+}
+async function lookupCompanyByTaxId(taxId, companyInput) {
+    if (!/^\d{8}$/.test(taxId)) {
+        companyInput.value = '統編格式錯誤';
+        return;
+    }
+    companyInput.value = '查詢中...';
+    try {
+        adjustInputWidth(companyInput);
+    } catch(e){} // 忽略 adjustInputWidth 可能的錯誤
+
+    // 嘗試使用 data.gov.tw API
+    try {
+        const proxyUrl = 'https://api.allorigins.win/get?url='; // 使用 allorigins 代理解決 CORS 問題
+        const taxApiUrl = `https://data.gov.tw/api/v2/rest/dataset/9D17AE0D-09B5-4732-A8F4-81ADED04B679?&\$filter=Business_Accounting_NO eq ${taxId}`;
+        const response = await fetch(proxyUrl + encodeURIComponent(taxApiUrl));
+        if (response.ok) {
+            const data = await response.json();
+            const results = JSON.parse(data.contents); // allorigins 會把內容包在 `contents` 裡
+            if (results && results.length > 0 && results[0]['營業人名稱']) {
+                companyInput.value = results[0]['營業人名稱'];
+                adjustInputWidth(companyInput);
+                return;
+            }
+        }
+    } catch (error) {
+        console.error('稅籍 API 查詢失敗:', error);
+    }
+
+    // 如果 data.gov.tw 失敗，嘗試使用 g0v API
+    companyInput.value = '備用查詢中...';
+    try {
+        adjustInputWidth(companyInput);
+    } catch(e){}
+    try {
+        const g0vApiUrl = `https://company.g0v.ronny.tw/api/show/${taxId}`;
+        const response = await fetch(g0vApiUrl);
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.data) {
+                const companyName = data.data['公司名稱'] || data.data['名稱'];
+                if (companyName) {
+                    companyInput.value = companyName;
+                    adjustInputWidth(companyInput);
+                    return;
+                }
+            }
+        }
+        companyInput.value = '查無資料';
+        adjustInputWidth(companyInput);
+    } catch (error) {
+        console.error('g0v API 查詢失敗:', error);
+        companyInput.value = '查詢失敗';
+        adjustInputWidth(companyInput);
+    }
+}
+
 
 function findNextVisibleInput(currentInput) {
     const row = currentInput.closest('tr');
@@ -328,6 +442,7 @@ function findNextVisibleInput(currentInput) {
     return null;
 }
 
+// 確保事件監聽器只在 #invoice-section 存在時被添加
 if(document.getElementById('invoice-section')){
     document.getElementById('invoice-section').addEventListener('input', function(e) {
         const target = e.target;
@@ -351,10 +466,6 @@ if(document.getElementById('invoice-section')){
             const sales = Math.round(total / 1.05);
             row.querySelector('.sales-2').value = sales;
             row.querySelector('.tax-2').value = total - sales;
-        } else if (target.classList.contains('tax-2')) {
-            const total = parseFloat(row.querySelector('.total-2').value) || 0;
-            const tax = parseFloat(target.value) || 0;
-            row.querySelector('.sales-2').value = total - tax;
         } else if (target.classList.contains('sales-3')) {
             const sales = parseFloat(target.value) || 0;
             const tax = Math.round(sales * 0.05);
@@ -365,14 +476,6 @@ if(document.getElementById('invoice-section')){
             const tax = parseFloat(target.value) || 0;
             row.querySelector('.total-3').value = sales + tax;
         }
-        
-        // Update delete button visibility
-        const primaryInput = invoiceTypeSelect.value === 'two-part' ? row.querySelector('.total-2') : row.querySelector('.sales-3');
-        const deleteBtn = row.querySelector('.delete-row-btn');
-        if(deleteBtn) {
-            deleteBtn.style.display = primaryInput.value ? 'inline-block' : 'none';
-        }
-
         updateInvoiceSummary();
         row.querySelectorAll('input[readonly]').forEach(adjustInputWidth);
     });
@@ -402,24 +505,11 @@ if(document.getElementById('invoice-section')){
         const targetInput = e.target;
         if (!targetInput.matches('input')) return;
         e.preventDefault();
-        const isVatLocked = vatEditButton.textContent === '修改稅額';
-        if ((targetInput.classList.contains('sales-3') || targetInput.classList.contains('total-2')) && isVatLocked) {
-             addInvoiceRow(); return;
+        const isVatLocked = vatEditButton.textContent === '修改營業稅';
+        if (targetInput.classList.contains('sales-3') && isVatLocked) {
+            addInvoiceRow(); return;
         }
         const nextInput = findNextVisibleInput(targetInput);
         if (nextInput) { nextInput.focus(); } else { addInvoiceRow(); }
-    });
-
-    // Event listener for delete buttons
-    document.getElementById('invoice-section').addEventListener('click', function(e) {
-        if (e.target.classList.contains('delete-row-btn')) {
-            if (confirm('確定要刪除此列資料嗎？')) {
-                const row = e.target.closest('tr');
-                const body = row.parentElement;
-                row.remove();
-                reindexRows(body);
-                updateInvoiceSummary();
-            }
-        }
     });
 }
