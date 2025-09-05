@@ -186,17 +186,17 @@ function switchInvoiceType() {
         threePartContainer.classList.add("hidden");
         threePartSummary.classList.add("hidden");
         threePartControls.classList.add('hidden');
-        vatEditButton.classList.add('hidden');
-    } else {
+        // vatEditButton 不再隱藏，因為它現在是通用功能
+    } else { // three-part
         threePartContainer.classList.remove("hidden");
         threePartSummary.classList.remove("hidden");
         threePartControls.classList.remove('hidden');
         twoPartContainer.classList.add("hidden");
         twoPartSummary.classList.add("hidden");
         twoPartControls.classList.add('hidden');
-        vatEditButton.classList.remove('hidden');
+        // vatEditButton 不再隱藏，因為它現在是通用功能
     }
-    resetInvoiceForm();
+    resetInvoiceForm(); // resetInvoiceForm 會設定按鈕狀態和稅額欄位
 }
 
 function toggleOptionalColumn(columnName, type) {
@@ -212,47 +212,55 @@ function addInvoiceRow() {
     const body = getCurrentInvoiceBody();
     if (!body) return;
     const newRow = body.insertRow();
-    // 這裡的 index 仍然會是總行數，但我們在 summary 時會篩選
-    // 因為行數會隨著刪除而改變，所以這裡用一個簡單的遞增值即可，實際筆數由 updateInvoiceSummary 計算
     const index = body.rows.length; 
-    const isVatLocked = vatEditButton.textContent === '修改營業稅';
+    // 從按鈕的文字判斷目前的稅額編輯模式 (鎖定或解鎖)
+    const isVatLocked = vatEditButton.textContent === '修改營業稅'; 
     const vatReadonlyState = isVatLocked ? 'readonly' : '';
 
     if (invoiceTypeSelect.value === 'two-part') {
-        newRow.innerHTML = `<td>${index}</td><td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7"></td><td class="col-optional col-buyer"><input type="text" class="data-buyer" placeholder="買受人名稱"></td><td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td><td><input type="number" class="total-2" placeholder="總計金額"></td><td><input type="number" class="sales-2" readonly></td><td><input type="number" class="tax-2" readonly></td>`;
-    } else {
+        // tax-2 現在根據 vatReadonlyState 決定是否 readonly
+        // sales-2 保持 readonly，因為它是從 total-2 和 tax-2 計算而來
+        newRow.innerHTML = `<td>${index}</td><td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7"></td><td class="col-optional col-buyer"><input type="text" class="data-buyer" placeholder="買受人名稱"></td><td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td><td><input type="number" class="total-2" placeholder="總計金額"></td><td><input type="number" class="sales-2" readonly></td><td><input type="number" class="tax-2" ${vatReadonlyState}></td>`;
+    } else { // three-part
         newRow.innerHTML = `<td>${index}</td><td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7"></td><td class="col-optional col-tax-id"><input type="tel" class="tax-id-3" maxlength="8"></td><td class="col-optional col-company"><input type="text" class="company-3" readonly></td><td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td><td><input type="number" class="sales-3" placeholder="未稅銷售額"></td><td><input type="number" class="tax-3" ${vatReadonlyState}></td><td><input type="number" class="total-3" readonly></td>`;
     }
 
     newRow.querySelectorAll('input:not([readonly])').forEach(input => { if (input.placeholder) { adjustInputWidth(input); }});
     const firstVisibleInput = Array.from(newRow.querySelectorAll('input:not([readonly])')).find(el => el.offsetParent !== null);
     if (firstVisibleInput) { firstVisibleInput.focus(); }
-    updateInvoiceSummary(); // 新增一行後也更新一下總結
+    updateInvoiceSummary(); 
 }
 
 function resetInvoiceForm() {
     twoPartBody.innerHTML = '';
     threePartBody.innerHTML = '';
-    vatEditButton.textContent = '修改營業稅';
+    vatEditButton.textContent = '修改營業稅'; // 重設按鈕文字為鎖定狀態
     document.querySelectorAll('.optional-columns-controls input[type="checkbox"]').forEach(cb => { cb.checked = false; });
     twoPartTable.className = twoPartTable.className.replace(/show-[\w-]+/g, '').trim();
     threePartTable.className = threePartTable.className.replace(/show-[\w-]+/g, '').trim();
-    addInvoiceRow();
-    // updateInvoiceSummary(); // 已經在 addInvoiceRow 裡調用，這裡不需要重複調用
+    addInvoiceRow(); // 新增初始行，會根據按鈕狀態設定稅額欄位的 readonly
+    
+    // 確保所有現有(如果還有)的稅額輸入框都處於鎖定狀態
+    const allTaxInputs = document.querySelectorAll('#invoice-table-two-part .tax-2, #invoice-table-three-part .tax-3');
+    allTaxInputs.forEach(input => input.setAttribute('readonly', true));
 }
 
+
 function toggleVatEditMode() {
-    const vatInputs = threePartBody.querySelectorAll('.tax-3');
+    const isTwoPart = invoiceTypeSelect.value === 'two-part';
+    const taxInputs = isTwoPart ? twoPartBody.querySelectorAll('.tax-2') : threePartBody.querySelectorAll('.tax-3');
     const isCurrentlyLocked = vatEditButton.textContent === '修改營業稅';
 
     if (isCurrentlyLocked) {
-        vatInputs.forEach(input => input.removeAttribute('readonly'));
+        taxInputs.forEach(input => input.removeAttribute('readonly'));
         vatEditButton.textContent = '鎖定營業稅';
-        if (vatInputs.length > 0) { vatInputs[0].focus(); }
+        if (taxInputs.length > 0) { taxInputs[0].focus(); }
     } else {
-        vatInputs.forEach(input => input.setAttribute('readonly', true));
+        taxInputs.forEach(input => input.setAttribute('readonly', true));
         vatEditButton.textContent = '修改營業稅';
     }
+    // 切換 readonly 狀態後，重新計算總結以確保顯示正確
+    updateInvoiceSummary();
 }
 
 function exportToExcel() {
@@ -463,9 +471,21 @@ if(document.getElementById('invoice-section')){
             }
         } else if (target.classList.contains('total-2')) {
             const total = parseFloat(target.value) || 0;
-            const sales = Math.round(total / 1.05);
-            row.querySelector('.sales-2').value = sales;
-            row.querySelector('.tax-2').value = total - sales;
+            const taxInput = row.querySelector('.tax-2');
+            
+            // 如果稅額欄位被鎖定 (readonly)，則按 5% 計算銷售額和稅額
+            if (taxInput && taxInput.hasAttribute('readonly')) {
+                const sales = Math.round(total / 1.05);
+                row.querySelector('.sales-2').value = sales;
+                taxInput.value = total - sales;
+            } else { // 如果稅額欄位解鎖，則銷售額 = 總計 - 稅額
+                const tax = parseFloat(taxInput.value) || 0; // 使用當前稅額值
+                row.querySelector('.sales-2').value = total - tax;
+            }
+        } else if (target.classList.contains('tax-2')) { // 新增處理二聯式發票稅額修改的邏輯
+            const total = parseFloat(row.querySelector('.total-2').value) || 0;
+            const tax = parseFloat(target.value) || 0;
+            row.querySelector('.sales-2').value = total - tax; // 銷售額根據總計和稅額重新計算
         } else if (target.classList.contains('sales-3')) {
             const sales = parseFloat(target.value) || 0;
             const tax = Math.round(sales * 0.05);
@@ -506,10 +526,15 @@ if(document.getElementById('invoice-section')){
         if (!targetInput.matches('input')) return;
         e.preventDefault();
         const isVatLocked = vatEditButton.textContent === '修改營業稅';
-        if (targetInput.classList.contains('sales-3') && isVatLocked) {
-            addInvoiceRow(); return;
-        }
+        
+        // 針對三聯式發票，如果 sales-3 是輸入且稅額被鎖定，按 Enter 會新增一行
+        // 對於二聯式發票，只要當前欄位不是最後一個可編輯的，就跳到下一個
         const nextInput = findNextVisibleInput(targetInput);
-        if (nextInput) { nextInput.focus(); } else { addInvoiceRow(); }
+        if (nextInput) {
+            nextInput.focus();
+        } else {
+            // 如果是最後一個可編輯的欄位，則新增一行
+            addInvoiceRow();
+        }
     });
 }
