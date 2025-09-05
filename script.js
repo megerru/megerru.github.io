@@ -146,7 +146,6 @@ const invoiceTypeSelect = document.getElementById('invoice-type-select');
 const twoPartTable = document.getElementById('invoice-table-two-part');
 const threePartTable = document.getElementById('invoice-table-three-part');
 const vatEditButton = document.getElementById('toggle-vat-edit-button');
-const deleteModeButton = document.getElementById('delete-mode-button');
 
 let textMeasureSpan = null;
 document.addEventListener('DOMContentLoaded', () => {
@@ -203,9 +202,6 @@ function toggleOptionalColumn(columnName, type) {
 function getCurrentInvoiceBody() {
     return invoiceTypeSelect.value === 'two-part' ? twoPartBody : threePartBody;
 }
-function getCurrentTable() {
-    return invoiceTypeSelect.value === 'two-part' ? twoPartTable : threePartTable;
-}
 
 function addInvoiceRow() {
     const body = getCurrentInvoiceBody();
@@ -214,12 +210,11 @@ function addInvoiceRow() {
     const index = body.rows.length;
     const isVatLocked = vatEditButton.textContent === '修改稅額';
     const vatReadonlyState = isVatLocked ? 'readonly' : '';
-    const deleteCheckboxHTML = `<input type="checkbox" class="delete-checkbox" style="display: none;">`;
 
     if (invoiceTypeSelect.value === 'two-part') {
-        newRow.innerHTML = `<td>${deleteCheckboxHTML}<span>${index}</span></td><td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7"></td><td class="col-optional col-buyer"><input type="text" class="data-buyer" placeholder="買受人名稱"></td><td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td><td><input type="number" class="total-2" placeholder="總計金額"></td><td><input type="number" class="sales-2" readonly></td><td><input type="number" class="tax-2" ${vatReadonlyState}></td>`;
+        newRow.innerHTML = `<td>${index}</td><td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7"></td><td class="col-optional col-buyer"><input type="text" class="data-buyer" placeholder="買受人名稱"></td><td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td><td><input type="number" class="total-2" placeholder="總計金額"></td><td><input type="number" class="sales-2" readonly></td><td><input type="number" class="tax-2" ${vatReadonlyState}></td><td class="col-actions"></td>`;
     } else {
-        newRow.innerHTML = `<td>${deleteCheckboxHTML}<span>${index}</span></td><td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7"></td><td class="col-optional col-tax-id"><input type="tel" class="tax-id-3" maxlength="8"></td><td class="col-optional col-company"><input type="text" class="company-3" readonly></td><td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td><td><input type="number" class="sales-3" placeholder="未稅銷售額"></td><td><input type="number" class="tax-3" ${vatReadonlyState}></td><td><input type="number" class="total-3" readonly></td>`;
+        newRow.innerHTML = `<td>${index}</td><td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7"></td><td class="col-optional col-tax-id"><input type="tel" class="tax-id-3" maxlength="8"></td><td class="col-optional col-company"><input type="text" class="company-3" readonly></td><td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td><td><input type="number" class="sales-3" placeholder="未稅銷售額"></td><td><input type="number" class="tax-3" ${vatReadonlyState}></td><td><input type="number" class="total-3" readonly></td><td class="col-actions"></td>`;
     }
 
     newRow.querySelectorAll('input:not([readonly])').forEach(input => { if (input.placeholder) { adjustInputWidth(input); }});
@@ -231,11 +226,9 @@ function resetInvoiceForm() {
     twoPartBody.innerHTML = '';
     threePartBody.innerHTML = '';
     vatEditButton.textContent = '修改稅額';
-    deleteModeButton.textContent = '刪除資料列';
-    deleteModeButton.classList.remove('delete-active');
     document.querySelectorAll('.optional-columns-controls input[type="checkbox"]').forEach(cb => { cb.checked = false; });
-    twoPartTable.className = twoPartTable.className.replace(/show-|deletion-mode/g, '').trim();
-    threePartTable.className = threePartTable.className.replace(/show-|deletion-mode/g, '').trim();
+    twoPartTable.className = twoPartTable.className.replace(/show-[\w-]+/g, '').trim();
+    threePartTable.className = threePartTable.className.replace(/show-[\w-]+/g, '').trim();
     addInvoiceRow();
     updateInvoiceSummary();
 }
@@ -260,49 +253,19 @@ function toggleVatEditMode() {
 function reindexRows(tableBody) {
     const rows = tableBody.rows;
     for(let i = 0; i < rows.length; i++) {
-        rows[i].querySelector('td:first-child span').textContent = i + 1;
-    }
-}
-
-function toggleDeleteMode() {
-    const table = getCurrentTable();
-    const body = getCurrentInvoiceBody();
-    const isDeleteModeActive = table.classList.contains('deletion-mode');
-
-    if (isDeleteModeActive) {
-        const rowsToDelete = body.querySelectorAll('.delete-checkbox:checked');
-        if (rowsToDelete.length > 0 && confirm(`確定要刪除這 ${rowsToDelete.length} 筆資料嗎？`)) {
-            rowsToDelete.forEach(checkbox => checkbox.closest('tr').remove());
-            reindexRows(body);
-            updateInvoiceSummary();
-        }
-        table.classList.remove('deletion-mode');
-        deleteModeButton.textContent = '刪除資料列';
-        deleteModeButton.classList.remove('delete-active');
-    } else {
-        table.classList.add('deletion-mode');
-        deleteModeButton.textContent = '確認刪除';
-        deleteModeButton.classList.add('delete-active');
+        rows[i].querySelector('td:first-child').textContent = i + 1;
     }
 }
 
 function exportToExcel() {
     if (document.activeElement) document.activeElement.blur();
-
     const type = invoiceTypeSelect.value;
     const isTwoPart = type === 'two-part';
     const body = getCurrentInvoiceBody();
     const rows = Array.from(body.rows);
 
-    const hasData = rows.some(row => {
-        const primaryInput = isTwoPart ? row.querySelector('.total-2') : row.querySelector('.sales-3');
-        return primaryInput && primaryInput.value.trim() !== '';
-    });
-
-    if (!hasData) {
-        alert('沒有資料可以匯出！');
-        return;
-    }
+    const hasData = rows.some(row => { const primaryInput = isTwoPart ? row.querySelector('.total-2') : row.querySelector('.sales-3'); return primaryInput && primaryInput.value.trim() !== ''; });
+    if (!hasData) { alert('沒有資料可以匯出！'); return; }
     
     const headers = [];
     const showDate = document.getElementById(isTwoPart ? 'toggle-col-date-2' : 'toggle-col-date-3').checked;
@@ -326,10 +289,7 @@ function exportToExcel() {
 
     const data = rows.map((row, index) => {
         const primaryInput = isTwoPart ? row.querySelector('.total-2') : row.querySelector('.sales-3');
-        if (!primaryInput || primaryInput.value.trim() === '') {
-            return null; 
-        }
-        
+        if (!primaryInput || primaryInput.value.trim() === '') { return null; }
         const rowData = [];
         rowData.push(index + 1); 
 
@@ -337,21 +297,13 @@ function exportToExcel() {
             if (showDate) rowData.push(row.querySelector('.data-date').value);
             if (showBuyer) rowData.push(row.querySelector('.data-buyer').value);
             if (showItem) rowData.push(row.querySelector('.data-item').value);
-            rowData.push(
-                parseFloat(row.querySelector('.total-2').value) || 0,
-                parseFloat(row.querySelector('.sales-2').value) || 0,
-                parseFloat(row.querySelector('.tax-2').value) || 0
-            );
+            rowData.push(parseFloat(row.querySelector('.total-2').value) || 0, parseFloat(row.querySelector('.sales-2').value) || 0, parseFloat(row.querySelector('.tax-2').value) || 0);
         } else {
             if (showDate) rowData.push(row.querySelector('.data-date').value);
             if (showTaxId) rowData.push(row.querySelector('.tax-id-3').value);
             if (showCompany) rowData.push(row.querySelector('.company-3').value);
             if (showItem) rowData.push(row.querySelector('.data-item').value);
-            rowData.push(
-                parseFloat(row.querySelector('.sales-3').value) || 0,
-                parseFloat(row.querySelector('.tax-3').value) || 0,
-                parseFloat(row.querySelector('.total-3').value) || 0
-            );
+            rowData.push(parseFloat(row.querySelector('.sales-3').value) || 0, parseFloat(row.querySelector('.tax-3').value) || 0, parseFloat(row.querySelector('.total-3').value) || 0);
         }
         return rowData;
     }).filter(row => row !== null); 
@@ -359,8 +311,7 @@ function exportToExcel() {
     const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, '發票明細');
-    const fileName = isTwoPart ? '二聯式銷項發票.xlsx' : '三聯式銷項發票.xlsx';
-    XLSX.writeFile(workbook, fileName);
+    XLSX.writeFile(workbook, isTwoPart ? '二聯式銷項發票.xlsx' : '三聯式銷項發票.xlsx');
 }
 
 function updateInvoiceSummary(){let e=0,t=0,n=0,o=0;if("two-part"===invoiceTypeSelect.value){const l=twoPartBody.rows;o=l.length;for(const a of l)e+=parseFloat(a.querySelector(".total-2").value)||0,t+=parseFloat(a.querySelector(".sales-2").value)||0,n+=parseFloat(a.querySelector(".tax-2").value)||0;document.getElementById("invoice-count-two").textContent=o,document.getElementById("total-sum-two").textContent=e.toLocaleString(),document.getElementById("sales-sum-two").textContent=t.toLocaleString(),document.getElementById("tax-sum-two").textContent=n.toLocaleString()}else{const l=threePartBody.rows;o=l.length;for(const a of l)t+=parseFloat(a.querySelector(".sales-3").value)||0,n+=parseFloat(a.querySelector(".tax-3").value)||0,e+=parseFloat(a.querySelector(".total-3").value)||0;document.getElementById("invoice-count-three").textContent=o,document.getElementById("sales-sum-three").textContent=t.toLocaleString(),document.getElementById("tax-sum-three").textContent=n.toLocaleString(),document.getElementById("total-sum-three").textContent=e.toLocaleString()}}
@@ -414,6 +365,14 @@ if(document.getElementById('invoice-section')){
             const tax = parseFloat(target.value) || 0;
             row.querySelector('.total-3').value = sales + tax;
         }
+        
+        // Update delete button visibility
+        const primaryInput = invoiceTypeSelect.value === 'two-part' ? row.querySelector('.total-2') : row.querySelector('.sales-3');
+        const deleteBtn = row.querySelector('.delete-row-btn');
+        if(deleteBtn) {
+            deleteBtn.style.display = primaryInput.value ? 'inline-block' : 'none';
+        }
+
         updateInvoiceSummary();
         row.querySelectorAll('input[readonly]').forEach(adjustInputWidth);
     });
@@ -449,5 +408,18 @@ if(document.getElementById('invoice-section')){
         }
         const nextInput = findNextVisibleInput(targetInput);
         if (nextInput) { nextInput.focus(); } else { addInvoiceRow(); }
+    });
+
+    // Event listener for delete buttons
+    document.getElementById('invoice-section').addEventListener('click', function(e) {
+        if (e.target.classList.contains('delete-row-btn')) {
+            if (confirm('確定要刪除此列資料嗎？')) {
+                const row = e.target.closest('tr');
+                const body = row.parentElement;
+                row.remove();
+                reindexRows(body);
+                updateInvoiceSummary();
+            }
+        }
     });
 }

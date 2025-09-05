@@ -91,6 +91,7 @@
                         <th class="col-total">總計 (含稅)</th>
                         <th class="col-sales">銷售額 (未稅)</th>
                         <th class="col-tax">稅額</th>
+                        <th class="col-actions">操作</th>
                     </tr>
                 </thead>
                 <tbody id="invoice-table-body-two-part"></tbody>
@@ -106,6 +107,7 @@
                         <th class="col-sales">銷售額 (未稅)</th>
                         <th class="col-tax">營業稅</th>
                         <th class="col-total">總計 (含稅)</th>
+                        <th class="col-actions">操作</th>
                     </tr>
                 </thead>
                 <tbody id="invoice-table-body-three-part"></tbody>
@@ -115,7 +117,6 @@
             <button class="add-row-button" onclick="addInvoiceRow()">+ 新增一列</button>
             <button class="export-button" id="export-excel-button" onclick="exportToExcel()">匯出 Excel</button>
             <button class="secondary-action-button" id="toggle-vat-edit-button" onclick="toggleVatEditMode()">修改稅額</button>
-            <button class="secondary-action-button" id="delete-mode-button" onclick="toggleDeleteMode()">刪除資料列</button>
         </div>
         <div id="invoice-summary-two-part" class="invoice-summary">
             <p>共 <span id="invoice-count-two">0</span> 筆資料</p>

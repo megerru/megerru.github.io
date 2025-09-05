@@ -48,7 +48,9 @@ input[readonly] { background-color: transparent; border-color: transparent; box-
 .export-button:hover { background-color: #165934; }
 .secondary-action-button { background-color: #6c757d; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
 .secondary-action-button:hover { background-color: #5a6268; }
-.secondary-action-button.delete-active { background-color: #dc3545; }
+.delete-row-btn { background: none; border: none; cursor: pointer; font-size: 1.2em; color: #dc3545; display: none; }
+.delete-row-btn:hover { color: #c82333; transform: scale(1.2); }
+.col-actions { width: 50px; }
 .invoice-summary { border-top: 2px solid #007bff; padding-top: 20px; text-align: right; font-size: 18px; }
 .invoice-summary p { margin: 5px 0; }
 .invoice-summary span { font-weight: bold; min-width: 120px; display: inline-block; text-align: left;}
@@ -64,9 +66,3 @@ input[type=number] { -moz-appearance: textfield; }
 .optional-columns-controls input[type="checkbox"] { width: auto; margin-right: 5px; vertical-align: middle; }
 .col-optional { display: none; }
 table.show-date .col-date, table.show-buyer .col-buyer, table.show-item .col-item, table.show-tax-id .col-tax-id, table.show-company .col-company { display: table-cell; }
-
-/* --- 刪除模式專用樣式 --- */
-.col-index span { display: inline; vertical-align: middle; }
-.delete-checkbox { display: none; margin-right: 5px; vertical-align: middle; }
-table.deletion-mode .col-index span { display: none; }
-table.deletion-mode .delete-checkbox { display: inline-block; }
