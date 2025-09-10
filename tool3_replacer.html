@@ -4,10 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>工具三：資料欄位取代</title>
+    <link rel="stylesheet" href="style.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        /* ================== CSS 隔離與覆寫 ================== */
+        body.tool-page-body {
+            display: block;
+            padding: 20px;
+        }
+        body.tool-page-body .container {
+            max-width: none;
+            width: auto;
+            padding: 0;
+            box-shadow: none;
+            background-color: transparent;
+            text-align: left;
+        }
+        body.tool-page-body input[type="text"],
+        body.tool-page-body select {
+            width: auto;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff; /* 確保背景不是透明的 */
+        }
+        body.tool-page-body input[type="checkbox"] {
+            width: auto; /* 恢復 checkbox 預設大小 */
+        }
+
+        /* ================== 工具頁面自身樣式 ================== */
         h1, h2, h3 { text-align: center; color: #333; }
-        .tool-section { border: 2px solid #1d6f42; border-radius: 10px; padding: 20px; margin-bottom: 30px; background-color: #fff; }
+        .tool-section { border: 2px solid #1d6f42; border-radius: 10px; padding: 20px; margin: 0 auto; max-width: 1000px; background-color: #fff; }
         .container { display: flex; justify-content: space-around; margin-bottom: 20px; flex-wrap: wrap; }
         .file-container { width: 100%; }
         .drop-zone { border: 2px dashed #ccc; border-radius: 10px; padding: 20px; text-align: center; background-color: #fff; cursor: pointer; transition: background-color 0.3s; }
@@ -20,7 +47,6 @@
         .results { text-align: center; margin-top: 20px; font-weight: bold; }
         .back-to-landing-button { display: block; width: fit-content; margin-bottom: 20px; text-decoration: none; color: #007BFF; font-size: 16px; }
         .config-section { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0; }
-        .config-section select, .config-section input { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; }
         .replace-pair { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .replace-pair input { flex-grow: 1; }
         .remove-pair-btn { background-color: #ff4d4d; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer; }
@@ -29,7 +55,7 @@
         .direct-replace-option label { cursor: pointer; }
     </style>
 </head>
-<body>
+<body class="tool-page-body">
     <a href="data_processing_landing.html" class="back-to-landing-button">← 返回工具箱</a>
     <div class="tool-section">
         <h2>工具三：資料欄位取代</h2>
@@ -59,209 +85,196 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-    (function() {
-        const dropZone = document.getElementById('dropZoneReplacer');
-        const fileInput = document.getElementById('fileInputReplacer');
-        const filesNameDisplay = document.getElementById('replacerFilesName');
-        const controls = document.getElementById('replacerControls');
-        const headerSelect = document.getElementById('headerSelectReplacer');
-        const pairsContainer = document.getElementById('replacePairsContainer');
-        const addPairBtn = document.getElementById('addPairBtn');
-        const replaceButton = document.getElementById('replaceButton');
-        const statusDisplay = document.getElementById('replacerStatus');
-        const directReplaceCheckbox = document.getElementById('directReplaceCheckbox'); // 新增的勾選框
+        // Javascript 程式碼維持不變
+        (function() {
+            const dropZone = document.getElementById('dropZoneReplacer');
+            const fileInput = document.getElementById('fileInputReplacer');
+            const filesNameDisplay = document.getElementById('replacerFilesName');
+            const controls = document.getElementById('replacerControls');
+            const headerSelect = document.getElementById('headerSelectReplacer');
+            const pairsContainer = document.getElementById('replacePairsContainer');
+            const addPairBtn = document.getElementById('addPairBtn');
+            const replaceButton = document.getElementById('replaceButton');
+            const statusDisplay = document.getElementById('replacerStatus');
+            const directReplaceCheckbox = document.getElementById('directReplaceCheckbox');
 
-        let allData = [];
+            let allData = [];
 
-        // --- File Handling ---
-        dropZone.addEventListener('click', () => fileInput.click());
-        ['dragover', 'dragenter'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('hover'); }));
-        ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('hover'); }));
-        dropZone.addEventListener('drop', e => { if (e.dataTransfer.files.length > 0) { fileInput.files = e.dataTransfer.files; handleFiles(e.dataTransfer.files); } });
-        fileInput.addEventListener('change', e => { if (e.target.files.length > 0) handleFiles(e.target.files); });
+            dropZone.addEventListener('click', () => fileInput.click());
+            ['dragover', 'dragenter'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('hover'); }));
+            ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('hover'); }));
+            dropZone.addEventListener('drop', e => { if (e.dataTransfer.files.length > 0) { fileInput.files = e.dataTransfer.files; handleFiles(e.dataTransfer.files); } });
+            fileInput.addEventListener('change', e => { if (e.target.files.length > 0) handleFiles(e.target.files); });
 
-        async function handleFiles(files) {
-            filesNameDisplay.textContent = Array.from(files).map(f => f.name).join(', ');
-            statusDisplay.textContent = `正在讀取 ${files.length} 個檔案...`;
-            const readPromises = Array.from(files).map(file => new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = e => { try { resolve(XLSX.read(new Uint8Array(e.target.result), { type: 'array' })); } catch(err) { reject(err); }};
-                reader.readAsArrayBuffer(file);
-            }));
+            async function handleFiles(files) {
+                filesNameDisplay.textContent = Array.from(files).map(f => f.name).join(', ');
+                statusDisplay.textContent = `正在讀取 ${files.length} 個檔案...`;
+                const readPromises = Array.from(files).map(file => new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => { try { resolve(XLSX.read(new Uint8Array(e.target.result), { type: 'array' })); } catch(err) { reject(err); }};
+                    reader.readAsArrayBuffer(file);
+                }));
 
-            try {
-                const workbooks = await Promise.all(readPromises);
-                allData = [];
-                workbooks.forEach(wb => {
-                    wb.SheetNames.forEach(sheetName => {
-                        const ws = wb.Sheets[sheetName];
-                        const jsonData = XLSX.utils.sheet_to_json(ws, { defval: null, raw: false });
-                        allData = allData.concat(jsonData.filter(row => Object.values(row).some(val => val !== null && val !== undefined && String(val).trim() !== '')));
+                try {
+                    const workbooks = await Promise.all(readPromises);
+                    allData = [];
+                    workbooks.forEach(wb => {
+                        wb.SheetNames.forEach(sheetName => {
+                            const ws = wb.Sheets[sheetName];
+                            const jsonData = XLSX.utils.sheet_to_json(ws, { defval: null, raw: false });
+                            allData = allData.concat(jsonData.filter(row => Object.values(row).some(val => val !== null && val !== undefined && String(val).trim() !== '')));
+                        });
                     });
+
+                    if (allData.length > 0) {
+                        const headers = Object.keys(allData[0]);
+                        headerSelect.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
+                        controls.style.display = 'block';
+                        statusDisplay.textContent = `讀取完成！共 ${allData.length} 筆資料。請設定取代規則。`;
+                        pairsContainer.innerHTML = '';
+                        directReplaceCheckbox.checked = false;
+                        addReplacePair();
+                        directReplaceCheckbox.dispatchEvent(new Event('change'));
+                    } else {
+                        statusDisplay.textContent = '讀取的檔案中沒有找到有效資料。';
+                        controls.style.display = 'none';
+                    }
+                } catch (error) {
+                    statusDisplay.textContent = `讀取檔案失敗: ${error.message}`;
+                }
+            }
+
+            function addReplacePair() {
+                const pairDiv = document.createElement('div');
+                pairDiv.className = 'replace-pair';
+                pairDiv.innerHTML = `
+                    <input type="text" class="find-input" placeholder="尋找這個值...">
+                    <span>取代為</span>
+                    <input type="text" class="replace-input" placeholder="這個新值...">
+                    <button class="remove-pair-btn">移除</button>
+                `;
+                pairsContainer.appendChild(pairDiv);
+                
+                pairDiv.querySelector('.remove-pair-btn').addEventListener('click', () => {
+                    if (directReplaceCheckbox.checked && pairsContainer.children.length === 1) {
+                        statusDisplay.textContent = '在「直接取代」模式下，至少需要保留一組規則。';
+                        return;
+                    }
+                    pairDiv.remove();
                 });
 
-                if (allData.length > 0) {
-                    const headers = Object.keys(allData[0]);
-                    headerSelect.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
-                    controls.style.display = 'block';
-                    statusDisplay.textContent = `讀取完成！共 ${allData.length} 筆資料。請設定取代規則。`;
-                    pairsContainer.innerHTML = ''; // Clear previous pairs
-                    directReplaceCheckbox.checked = false; // 重置勾選狀態
-                    addReplacePair(); // Add the first pair automatically
-                    directReplaceCheckbox.dispatchEvent(new Event('change')); // 觸發change事件以初始化介面
-                } else {
-                    statusDisplay.textContent = '讀取的檔案中沒有找到有效資料。';
-                    controls.style.display = 'none';
+                const findInput = pairDiv.querySelector('.find-input');
+                if (directReplaceCheckbox.checked) {
+                    findInput.disabled = true;
+                    findInput.placeholder = '已勾選「直接取代」，此欄位無效';
+                    findInput.value = '';
                 }
-            } catch (error) {
-                statusDisplay.textContent = `讀取檔案失敗: ${error.message}`;
+                return pairDiv;
             }
-        }
-
-        // --- Replace Pairs UI ---
-        function addReplacePair() {
-            const pairDiv = document.createElement('div');
-            pairDiv.className = 'replace-pair';
-            pairDiv.innerHTML = `
-                <input type="text" class="find-input" placeholder="尋找這個值...">
-                <span>取代為</span>
-                <input type="text" class="replace-input" placeholder="這個新值...">
-                <button class="remove-pair-btn">移除</button>
-            `;
-            pairsContainer.appendChild(pairDiv);
             
-            // 移除按鈕事件
-            pairDiv.querySelector('.remove-pair-btn').addEventListener('click', () => {
-                // 如果只剩一個且已勾選直接取代，則不允許移除
-                if (directReplaceCheckbox.checked && pairsContainer.children.length === 1) {
-                    statusDisplay.textContent = '在「直接取代」模式下，至少需要保留一組規則。';
+            addPairBtn.addEventListener('click', () => {
+                if (directReplaceCheckbox.checked) {
+                    statusDisplay.textContent = '在「直接取代」模式下，只能有一組取代規則。';
                     return;
                 }
-                pairDiv.remove();
+                addReplacePair();
             });
 
-            // 根據 directReplaceCheckbox 狀態初始化新加入的 find-input
-            const findInput = pairDiv.querySelector('.find-input');
-            if (directReplaceCheckbox.checked) {
-                findInput.disabled = true;
-                findInput.placeholder = '已勾選「直接取代」，此欄位無效';
-                findInput.value = '';
-            }
-            return pairDiv; // 返回新創建的 div
-        }
-        
-        addPairBtn.addEventListener('click', () => {
-            if (directReplaceCheckbox.checked) {
-                statusDisplay.textContent = '在「直接取代」模式下，只能有一組取代規則。';
-                return;
-            }
-            addReplacePair();
-        });
-
-        // 新增勾選框的事件監聽器
-        directReplaceCheckbox.addEventListener('change', () => {
-            const findInputs = document.querySelectorAll('#replacePairsContainer .find-input');
-            const addPairButton = document.getElementById('addPairBtn');
-            
-            if (directReplaceCheckbox.checked) {
-                findInputs.forEach(input => {
-                    input.value = ''; // 清空尋找的值
-                    input.disabled = true;
-                    input.placeholder = '已勾選「直接取代」，此欄位無效';
-                });
-                // 只保留第一個取代規則組
-                while (pairsContainer.children.length > 1) {
-                    pairsContainer.lastChild.remove();
-                }
-                addPairButton.style.display = 'none'; // 隱藏新增按鈕
-            } else {
-                findInputs.forEach(input => {
-                    input.disabled = false;
-                    input.placeholder = '尋找這個值...';
-                });
-                addPairButton.style.display = 'inline-block'; // 顯示新增按鈕
-            }
-            statusDisplay.textContent = ''; // 清空狀態訊息
-        });
-
-
-        // --- Main Logic ---
-        replaceButton.addEventListener('click', () => {
-            const targetHeader = headerSelect.value;
-            if (!targetHeader) {
-                statusDisplay.textContent = '錯誤：請選擇一個要處理的欄位。';
-                return;
-            }
-
-            statusDisplay.textContent = '正在處理資料...';
-            let replacementsCount = 0;
-            let finalProcessedData = [];
-
-            if (directReplaceCheckbox.checked) {
-                // 直接取代模式
-                const replaceInput = document.querySelector('.replace-pair .replace-input');
-                if (!replaceInput || (replaceInput.value.trim() === '' && replaceInput.value !== '')) { // 如果值為空字串但不是undefined/null
-                    statusDisplay.textContent = '錯誤：請為「直接取代」模式輸入要覆蓋的值。';
-                    return;
-                }
-                const replaceValue = replaceInput.value;
-
-                finalProcessedData = allData.map(row => {
-                    const newRow = { ...row };
-                    // 只有當新值與舊值不同時才計數
-                    if (String(newRow[targetHeader]) !== String(replaceValue)) {
-                        newRow[targetHeader] = replaceValue;
-                        replacementsCount++;
+            directReplaceCheckbox.addEventListener('change', () => {
+                const findInputs = document.querySelectorAll('#replacePairsContainer .find-input');
+                const addPairButton = document.getElementById('addPairBtn');
+                
+                if (directReplaceCheckbox.checked) {
+                    findInputs.forEach(input => {
+                        input.value = '';
+                        input.disabled = true;
+                        input.placeholder = '已勾選「直接取代」，此欄位無效';
+                    });
+                    while (pairsContainer.children.length > 1) {
+                        pairsContainer.lastChild.remove();
                     }
-                    return newRow;
-                });
+                    addPairButton.style.display = 'none';
+                } else {
+                    findInputs.forEach(input => {
+                        input.disabled = false;
+                        input.placeholder = '尋找這個值...';
+                    });
+                    addPairButton.style.display = 'inline-block';
+                }
+                statusDisplay.textContent = '';
+            });
 
-            } else {
-                // 原有的尋找並取代模式
-                const pairs = Array.from(document.querySelectorAll('.replace-pair')).map(pairDiv => ({
-                    find: pairDiv.querySelector('.find-input').value,
-                    replace: pairDiv.querySelector('.replace-input').value
-                })).filter(p => p.find.trim() !== ''); // 確保 'find' 不是空字串或只含空白
-
-                if (pairs.length === 0) {
-                    statusDisplay.textContent = '錯誤：在非「直接取代」模式下，請至少設定一組有效的尋找-取代規則。';
+            replaceButton.addEventListener('click', () => {
+                const targetHeader = headerSelect.value;
+                if (!targetHeader) {
+                    statusDisplay.textContent = '錯誤：請選擇一個要處理的欄位。';
                     return;
                 }
 
-                finalProcessedData = allData.map(row => {
-                    const newRow = { ...row };
-                    let cellValue = newRow[targetHeader];
+                statusDisplay.textContent = '正在處理資料...';
+                let replacementsCount = 0;
+                let finalProcessedData = [];
 
-                    if (cellValue !== null && cellValue !== undefined) {
-                        let originalValue = String(cellValue);
-                        let finalValue = originalValue;
+                if (directReplaceCheckbox.checked) {
+                    const replaceInput = document.querySelector('.replace-pair .replace-input');
+                    if (!replaceInput || (replaceInput.value.trim() === '' && replaceInput.value !== '')) {
+                        statusDisplay.textContent = '錯誤：請為「直接取代」模式輸入要覆蓋的值。';
+                        return;
+                    }
+                    const replaceValue = replaceInput.value;
 
-                        for (const pair of pairs) {
-                            // Create a global regex to replace all occurrences
-                            // 修正：確保 replace 值不會被錯誤解析為正規表達式的一部分
-                            const findRegex = new RegExp(pair.find.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
-                            if (finalValue.match(findRegex)) {
-                               finalValue = finalValue.replace(findRegex, pair.replace);
-                            }
-                        }
-                        
-                        if (originalValue !== finalValue) {
-                            newRow[targetHeader] = finalValue;
+                    finalProcessedData = allData.map(row => {
+                        const newRow = { ...row };
+                        if (String(newRow[targetHeader]) !== String(replaceValue)) {
+                            newRow[targetHeader] = replaceValue;
                             replacementsCount++;
                         }
+                        return newRow;
+                    });
+
+                } else {
+                    const pairs = Array.from(document.querySelectorAll('.replace-pair')).map(pairDiv => ({
+                        find: pairDiv.querySelector('.find-input').value,
+                        replace: pairDiv.querySelector('.replace-input').value
+                    })).filter(p => p.find.trim() !== '');
+
+                    if (pairs.length === 0) {
+                        statusDisplay.textContent = '錯誤：在非「直接取代」模式下，請至少設定一組有效的尋找-取代規則。';
+                        return;
                     }
-                    return newRow;
-                });
-            }
-            
-            statusDisplay.textContent = '正在產生 Excel 檔案...';
-            const newWb = XLSX.utils.book_new();
-            const newWs = XLSX.utils.json_to_sheet(finalProcessedData);
-            XLSX.utils.book_append_sheet(newWb, newWs, 'Replaced Data');
-            XLSX.writeFile(newWb, 'replaced_data.xlsx');
-            statusDisplay.innerHTML = `處理完成！共取代了 <b>${replacementsCount}</b> 個儲存格的內容。<br>已匯出為 <b>replaced_data.xlsx</b>。`;
-        });
-    })();
+
+                    finalProcessedData = allData.map(row => {
+                        const newRow = { ...row };
+                        let cellValue = newRow[targetHeader];
+
+                        if (cellValue !== null && cellValue !== undefined) {
+                            let originalValue = String(cellValue);
+                            let finalValue = originalValue;
+
+                            for (const pair of pairs) {
+                                const findRegex = new RegExp(pair.find.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
+                                if (finalValue.match(findRegex)) {
+                                   finalValue = finalValue.replace(findRegex, pair.replace);
+                                }
+                            }
+                            
+                            if (originalValue !== finalValue) {
+                                newRow[targetHeader] = finalValue;
+                                replacementsCount++;
+                            }
+                        }
+                        return newRow;
+                    });
+                }
+                
+                statusDisplay.textContent = '正在產生 Excel 檔案...';
+                const newWb = XLSX.utils.book_new();
+                const newWs = XLSX.utils.json_to_sheet(finalProcessedData);
+                XLSX.utils.book_append_sheet(newWb, newWs, 'Replaced Data');
+                XLSX.writeFile(newWb, 'replaced_data.xlsx');
+                statusDisplay.innerHTML = `處理完成！共取代了 <b>${replacementsCount}</b> 個儲存格的內容。<br>已匯出為 <b>replaced_data.xlsx</b>。`;
+            });
+        })();
     </script>
 </body>
 </html>

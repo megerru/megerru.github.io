@@ -2,22 +2,36 @@
 // I. 頁面導覽與通用函式
 // ===================================================================
 
+const welcomeSection = document.getElementById('welcome-section');
+const insuranceSection = document.getElementById('insurance-calculator-section');
+const invoiceSection = document.getElementById('invoice-section');
+const allSections = [welcomeSection, insuranceSection, invoiceSection];
+
 function showWelcome() {
-    document.getElementById('insurance-calculator-section').classList.add('hidden');
-    document.getElementById('invoice-section').classList.add('hidden');
-    document.getElementById('welcome-section').classList.remove('hidden');
+    allSections.forEach(s => {
+        s.classList.add('hidden');
+        s.classList.remove('section-fade-in'); // 移除動畫class
+    });
+    welcomeSection.classList.remove('hidden');
+    welcomeSection.classList.add('section-fade-in'); // 加上動畫class
 }
 
 function showInsuranceCalculator() {
-    document.getElementById('welcome-section').classList.add('hidden');
-    document.getElementById('invoice-section').classList.add('hidden');
-    document.getElementById('insurance-calculator-section').classList.remove('hidden');
+    allSections.forEach(s => {
+        s.classList.add('hidden');
+        s.classList.remove('section-fade-in'); // 移除動畫class
+    });
+    insuranceSection.classList.remove('hidden');
+    insuranceSection.classList.add('section-fade-in'); // 加上動畫class
 }
 
 function showInvoiceCalculator() {
-    document.getElementById('welcome-section').classList.add('hidden');
-    document.getElementById('insurance-calculator-section').classList.add('hidden');
-    document.getElementById('invoice-section').classList.remove('hidden');
+    allSections.forEach(s => {
+        s.classList.add('hidden');
+        s.classList.remove('section-fade-in'); // 移除動畫class
+    });
+    invoiceSection.classList.remove('hidden');
+    invoiceSection.classList.add('section-fade-in'); // 加上動畫class
     switchInvoiceType();
 }
 
@@ -520,21 +534,65 @@ if(document.getElementById('invoice-section')){
         }
     });
 
+    // ▼▼▼ START: 更新後的鍵盤事件監聽區塊 ▼▼▼
     document.getElementById('invoice-section').addEventListener('keydown', function(e) {
-        if (e.key !== 'Enter') return;
         const targetInput = e.target;
         if (!targetInput.matches('input')) return;
-        e.preventDefault();
-        const isVatLocked = vatEditButton.textContent === '修改營業稅';
-        
-        // 針對三聯式發票，如果 sales-3 是輸入且稅額被鎖定，按 Enter 會新增一行
-        // 對於二聯式發票，只要當前欄位不是最後一個可編輯的，就跳到下一個
-        const nextInput = findNextVisibleInput(targetInput);
-        if (nextInput) {
-            nextInput.focus();
-        } else {
-            // 如果是最後一個可編輯的欄位，則新增一行
-            addInvoiceRow();
+
+        switch (e.key) {
+            case 'Enter': {
+                e.preventDefault();
+                const nextInput = findNextVisibleInput(targetInput);
+                if (nextInput) {
+                    nextInput.focus();
+                } else {
+                    addInvoiceRow();
+                }
+                break;
+            }
+            case 'ArrowUp':
+            case 'ArrowDown':
+            case 'ArrowLeft':
+            case 'ArrowRight': {
+                e.preventDefault(); // 阻止方向鍵的預設行為 (如增減數字)
+
+                const currentRow = targetInput.closest('tr');
+                const currentCell = targetInput.closest('td');
+                if (!currentRow || !currentCell) return;
+
+                const tableBody = currentRow.parentElement;
+                const rows = Array.from(tableBody.children);
+                const rowIndex = rows.indexOf(currentRow);
+                
+                // 找出目前儲存格在「可見」欄位中的索引
+                const visibleCellsInCurrentRow = Array.from(currentRow.children).filter(cell => cell.offsetParent !== null);
+                const visibleColIndex = visibleCellsInCurrentRow.indexOf(currentCell);
+
+                let targetInputToFocus = null;
+
+                if (e.key === 'ArrowUp' && rowIndex > 0) {
+                    const targetRow = rows[rowIndex - 1];
+                    const targetCell = Array.from(targetRow.children).filter(cell => cell.offsetParent !== null)[visibleColIndex];
+                    if (targetCell) targetInputToFocus = targetCell.querySelector('input');
+                } else if (e.key === 'ArrowDown' && rowIndex < rows.length - 1) {
+                    const targetRow = rows[rowIndex + 1];
+                    const targetCell = Array.from(targetRow.children).filter(cell => cell.offsetParent !== null)[visibleColIndex];
+                    if (targetCell) targetInputToFocus = targetCell.querySelector('input');
+                } else if (e.key === 'ArrowLeft' && visibleColIndex > 0) {
+                    const targetCell = visibleCellsInCurrentRow[visibleColIndex - 1];
+                    if (targetCell) targetInputToFocus = targetCell.querySelector('input');
+                } else if (e.key === 'ArrowRight' && visibleColIndex < visibleCellsInCurrentRow.length - 1) {
+                    const targetCell = visibleCellsInCurrentRow[visibleColIndex + 1];
+                    if (targetCell) targetInputToFocus = targetCell.querySelector('input');
+                }
+
+                if (targetInputToFocus) {
+                    targetInputToFocus.focus();
+                    targetInputToFocus.select(); // 選取內容方便直接修改
+                }
+                break;
+            }
         }
     });
+    // ▲▲▲ END: 更新後的鍵盤事件監聽區塊 ▲▲▲
 }

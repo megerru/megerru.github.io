@@ -1,5 +1,51 @@
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-.container { background-color: #fff; padding: 30px 40px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08); width: 100%; max-width: 950px; text-align: center; }
+/* =================================================================== */
+/* I. 全域與轉場動畫設定 */
+/* =================================================================== */
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+    background-color: #f4f4f9; 
+    color: #333; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    min-height: 100vh; 
+    margin: 0; 
+    padding: 20px; 
+    box-sizing: border-box;
+    
+    /* ▼▼▼ 新增的動畫屬性 ▼▼▼ */
+    opacity: 1; /* 初始狀態為完全可見 */
+    animation: fadeInAnimation 0.5s ease-in-out forwards;
+}
+
+/* ▼▼▼ 新增的淡入動畫定義 ▼▼▼ */
+@keyframes fadeInAnimation {
+    from {
+        opacity: 0;
+        transform: translateY(10px); /* 從下方輕微滑入，增加質感 */
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =================================================================== */
+/* II. 首頁與元件樣式 */
+/* =================================================================== */
+/* ▼▼▼ START: 已為 container 新增 position: relative ▼▼▼ */
+.container { 
+    background-color: #fff; 
+    padding: 30px 40px; 
+    border-radius: 12px; 
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08); 
+    width: 100%; 
+    max-width: 950px; 
+    text-align: center; 
+    position: relative; /* 新增此行，為子元素定位做準備 */
+}
+/* ▲▲▲ END: 已為 container 新增 position: relative ▲▲▲ */
+
 #welcome-section { display: flex; justify-content: center; align-items: center; min-height: 250px; }
 .welcome-buttons-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
 .welcome-button { background-color: #0056b3; color: white; font-size: 1.5em; font-weight: bold; padding: 20px 40px; border: none; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; }
@@ -12,11 +58,59 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helv
 input[type="date"], input[type="number"], input[type="text"], input[type="tel"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
 .main-calculate-button { width: 100%; padding: 15px; background-color: #007bff; color: #fff; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; }
 .main-calculate-button:hover { background-color: #0056b3; }
-.back-to-welcome-button { display: block; width: auto; position: absolute; top: 20px; left: 25px; background: none; border: none; color: #007bff; font-size: 16px; cursor: pointer; padding: 5px; text-align: left; }
-.back-to-welcome-button:hover { text-decoration: underline; }
 
-/* --- 保險計算機專用 --- */
-#insurance-calculator-section { position: relative; max-width: 600px; }
+/* ▼▼▼ START: 更新後的返回按鈕樣式 ▼▼▼ */
+.back-to-welcome-button,
+.back-to-landing-button {
+    display: inline-flex; /* 使用 flexbox 以對齊箭頭與文字 */
+    align-items: center;
+    background-color: #f8f9fa; /* 淺灰色背景 */
+    color: #495057; /* 深灰色文字 */
+    font-size: 16px;
+    font-weight: 600; /* 字體加粗 */
+    text-decoration: none; /* 移除 a 標籤的底線 */
+    border: 1px solid #dee2e6; /* 淺色邊框 */
+    border-radius: 50px; /* 膠囊形狀的圓角 */
+    padding: 10px 18px; /* 調整內邊距 */
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.07); /* 加上細緻的陰影 */
+    transition: all 0.2s ease-out; /* 平滑的過渡動畫 */
+    width: auto;
+    text-align: left;
+}
+
+.back-to-welcome-button:hover,
+.back-to-landing-button:hover {
+    transform: translateY(-2px); /* 滑鼠懸停時向上移動 */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* 陰影加深 */
+    background-color: #e9ecef; /* 背景色變深 */
+    text-decoration: none; /* 確保懸停時也沒有底線 */
+}
+
+.back-to-welcome-button:active,
+.back-to-landing-button:active {
+    transform: translateY(0); /* 點擊時壓下 */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.07); /* 恢復原始陰影 */
+}
+
+/* 針對工具頁面外部的按鈕，添加一些邊距 */
+body.tool-page-body > .back-to-landing-button {
+    margin-bottom: 20px;
+}
+
+/* ▼▼▼ 將此規則通用化，適用於所有 container 內的返回按鈕 ▼▼▼ */
+.container > .back-to-welcome-button {
+     position: absolute;
+     top: 20px;
+     left: 25px;
+}
+/* ▲▲▲ END: 更新後的返回按鈕樣式 ▲▲▲ */
+
+
+/* =================================================================== */
+/* III. 保險費計算機 */
+/* =================================================================== */
+#insurance-calculator-section { max-width: 600px; } /* 移除 position: relative 因為已加到 .container */
 .manual-date-container { display: flex; flex-grow: 1; align-items: center; gap: 5px; }
 .manual-date-container input { text-align: center; }
 .manual-date-container span { color: #aaa; font-weight: bold; }
@@ -27,20 +121,22 @@ input[type="date"], input[type="number"], input[type="text"], input[type="tel"] 
 #reset-insurance-button { position: absolute; top: 20px; right: 25px; bottom: auto; width: 40px; height: 40px; background-color: #dc3545; color: white; border: none; border-radius: 50%; font-size: 20px; line-height: 40px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; transition: all 0.3s ease; z-index: 10; }
 #reset-insurance-button:hover { background-color: #c82333; transform: scale(1.1) rotate(90deg); }
 
-/* --- 銷項發票區塊樣式 --- */
-#invoice-section { position: relative; }
+/* =================================================================== */
+/* IV. 銷項發票 */
+/* =================================================================== */
+#invoice-section { /* 移除 position: relative 因為已加到 .container */ }
 .invoice-controls { margin-bottom: 20px; text-align: left; }
 #invoice-type-select { font-size: 16px; padding: 8px; border-radius: 8px; }
 .invoice-table-container { max-height: 450px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 8px;}
-table#invoice-table-two-part, table#invoice-table-three-part { width: 100%; min-width: 800px; border-collapse: collapse; table-layout: auto; }
-#invoice-table-two-part th, #invoice-table-two-part td, #invoice-table-three-part th, #invoice-table-three-part td { border: 1px solid #ccc; padding: 2px; text-align: center; vertical-align: middle; white-space: nowrap; }
-#invoice-table-two-part th, #invoice-table-three-part th { background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 1; padding: 10px 8px; }
-#invoice-table-three-part .col-company, #invoice-table-three-part .col-item, #invoice-table-two-part .col-buyer, #invoice-table-two-part .col-item { white-space: normal; }
-#invoice-table-two-part input, #invoice-table-three-part input { width: 100%; height: 100%; box-sizing: border-box; font-size: 16px; text-align: right; border: 1px solid transparent; background-color: #f0f8ff; padding: 8px 10px; caret-color: #000; transition: background-color 0.2s, box-shadow 0.2s; }
-#invoice-table-two-part input:focus, #invoice-table-three-part input:focus { outline: none; background-color: #fff; box-shadow: inset 0 0 0 2px #007bff; }
-#invoice-table-two-part input[readonly], #invoice-table-three-part input[readonly] { background-color: transparent; border-color: transparent; box-shadow: none; color: #555; text-align: center; }
-#invoice-table-three-part .col-company input, #invoice-table-three-part .col-item input, #invoice-table-two-part .col-buyer input, #invoice-table-two-part .col-item input { text-align: left; }
-.button-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+table { width: 100%; min-width: 800px; border-collapse: collapse; table-layout: auto; }
+th, td { border: 1px solid #ccc; padding: 2px; text-align: center; vertical-align: middle; white-space: nowrap; }
+th { background-color: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 1; padding: 10px 8px; }
+td.col-company, td.col-item, td.col-buyer { white-space: normal; }
+input { width: 100%; height: 100%; box-sizing: border-box; font-size: 16px; text-align: right; border: 1px solid transparent; background-color: #f0f8ff; padding: 8px 10px; caret-color: #000; transition: background-color 0.2s, box-shadow 0.2s; }
+input:focus { outline: none; background-color: #fff; box-shadow: inset 0 0 0 2px #007bff; }
+input[readonly] { background-color: transparent; border-color: transparent; box-shadow: none; color: #555; text-align: center; }
+.col-company input, .col-item input, .col-buyer input { text-align: left; }
+.button-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
 .add-row-button, .export-button, .secondary-action-button { margin-bottom: 0; }
 .add-row-button { background-color: #28a745; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
 .add-row-button:hover { background-color: #218838; }
@@ -48,6 +144,10 @@ table#invoice-table-two-part, table#invoice-table-three-part { width: 100%; min-
 .export-button:hover { background-color: #165934; }
 .secondary-action-button { background-color: #6c757d; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
 .secondary-action-button:hover { background-color: #5a6268; }
+.secondary-action-button.delete-active { background-color: #dc3545; }
+.delete-row-btn { background: none; border: none; cursor: pointer; font-size: 1.2em; color: #dc3545; display: none; padding: 4px; }
+.delete-row-btn:hover { color: #c82333; transform: scale(1.2); }
+.col-actions { width: 50px; }
 .invoice-summary { border-top: 2px solid #007bff; padding-top: 20px; text-align: right; font-size: 18px; }
 .invoice-summary p { margin: 5px 0; }
 .invoice-summary span { font-weight: bold; min-width: 120px; display: inline-block; text-align: left;}
@@ -63,3 +163,10 @@ input[type=number] { -moz-appearance: textfield; }
 .optional-columns-controls input[type="checkbox"] { width: auto; margin-right: 5px; vertical-align: middle; }
 .col-optional { display: none; }
 table.show-date .col-date, table.show-buyer .col-buyer, table.show-item .col-item, table.show-tax-id .col-tax-id, table.show-company .col-company { display: table-cell; }
+
+/* =================================================================== */
+/* V. 動態載入動畫 (新增) */
+/* =================================================================== */
+.section-fade-in {
+    animation: fadeInAnimation 0.5s ease-in-out forwards;
+}
