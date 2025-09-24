@@ -130,7 +130,18 @@
                     }
                     finalMergedData.push(finalRow);
                 }
-                const unmatchedDataB = dataB.filter((_, index) => !usedBRowIndices.has(index)); mergeStatus.textContent = '正在產生 Excel 檔案...'; await new Promise(r => setTimeout(r, 0)); const wbMerged = XLSX.utils.book_new(); const wsMerged = XLSX.utils.json_to_sheet(finalMergedData); XLSX.utils.book_append_sheet(wbMerged, wsMerged, 'Merged Data'); XLSX.writeFile(wbMerged, 'merged_data.xlsx'); if (unmatchedDataB.length > 0) { const wbUnmatched = XLSX.utils.book_new(); const wsUnmatched = XLSX.utils.json_to_sheet(unmatchedDataB); XLSX.utils.book_append_sheet(wbUnmatched, wsUnmatched, 'Unmatched Data'); XLSX.writeFile(wbUnmatched, 'unmatched_data.xlsx'); }
+                const unmatchedDataB = dataB.filter((_, index) => !usedBRowIndices.has(index)); mergeStatus.textContent = '正在產生 Excel 檔案...'; await new Promise(r => setTimeout(r, 0)); 
+                // ▼▼▼ START: 修改後的程式碼 ▼▼▼
+                const exportOptions = { bookType: 'xlsx', bookSST: true, type: 'binary' };
+                const wbMerged = XLSX.utils.book_new(); const wsMerged = XLSX.utils.json_to_sheet(finalMergedData); XLSX.utils.book_append_sheet(wbMerged, wsMerged, 'Merged Data'); 
+                XLSX.writeFile(wbMerged, 'merged_data.xlsx', exportOptions); 
+                if (unmatchedDataB.length > 0) { 
+                    const wbUnmatched = XLSX.utils.book_new(); 
+                    const wsUnmatched = XLSX.utils.json_to_sheet(unmatchedDataB); 
+                    XLSX.utils.book_append_sheet(wbUnmatched, wsUnmatched, 'Unmatched Data'); 
+                    XLSX.writeFile(wbUnmatched, 'unmatched_data.xlsx', exportOptions); 
+                }
+                // ▲▲▲ END: 修改後的程式碼 ▲▲▲
                 mergeStatus.innerHTML = `處理完成！<b>合併後的檔案總筆數為 ${finalMergedData.length} 筆。</b><br>檔案 B 中有 ${unmatchedDataB.length} 筆資料未找到任何對應項目。`;
             }
             setupDropZone(dropZoneA, fileInputA, 'A'); setupDropZone(dropZoneB, fileInputB, 'B'); addKeyPairButton.addEventListener('click', addKeyPair); aggSelectAll.addEventListener('click', () => aggregationList.querySelectorAll('input').forEach(cb => cb.checked = true)); aggDeselectAll.addEventListener('click', () => aggregationList.querySelectorAll('input').forEach(cb => cb.checked = false)); mergeButton.addEventListener('click', async () => { mergeButton.disabled = true; mergeButton.textContent = '處理中...'; document.body.style.cursor = 'wait'; try { await performMerge(); } catch (error) { mergeStatus.textContent = `發生錯誤: ${error.message}`; } finally { mergeButton.disabled = false; mergeButton.textContent = '開始比對與合併'; document.body.style.cursor = 'default'; } });

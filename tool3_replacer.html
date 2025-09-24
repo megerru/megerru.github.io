@@ -268,10 +268,13 @@
                 }
                 
                 statusDisplay.textContent = '正在產生 Excel 檔案...';
+                // ▼▼▼ START: 修改後的程式碼 ▼▼▼
+                const exportOptions = { bookType: 'xlsx', bookSST: true, type: 'binary' };
                 const newWb = XLSX.utils.book_new();
                 const newWs = XLSX.utils.json_to_sheet(finalProcessedData);
                 XLSX.utils.book_append_sheet(newWb, newWs, 'Replaced Data');
-                XLSX.writeFile(newWb, 'replaced_data.xlsx');
+                XLSX.writeFile(newWb, 'replaced_data.xlsx', exportOptions);
+                // ▲▲▲ END: 修改後的程式碼 ▲▲▲
                 statusDisplay.innerHTML = `處理完成！共取代了 <b>${replacementsCount}</b> 個儲存格的內容。<br>已匯出為 <b>replaced_data.xlsx</b>。`;
             });
         })();

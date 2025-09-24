@@ -106,8 +106,21 @@
                 filterStatus.textContent = '正在篩選資料...'; const filteredData = []; const remainingData = [];
                 for (const row of allUploadedDataForFilter) { const cellValue = row[selectedHeader]; if (cellValue && String(cellValue).toLowerCase().includes(keyword)) { filteredData.push(row); } else { remainingData.push(row); } }
                 filterStatus.textContent = '正在產生 Excel 檔案...';
-                if (filteredData.length > 0) { const wbFiltered = XLSX.utils.book_new(); const wsFiltered = XLSX.utils.json_to_sheet(filteredData); XLSX.utils.book_append_sheet(wbFiltered, wsFiltered, 'Filtered Data'); XLSX.writeFile(wbFiltered, 'filtered_data.xlsx'); }
-                if (remainingData.length > 0) { const wbRemaining = XLSX.utils.book_new(); const wsRemaining = XLSX.utils.json_to_sheet(remainingData); XLSX.utils.book_append_sheet(wbRemaining, wsRemaining, 'Remaining Data'); XLSX.writeFile(wbRemaining, 'remaining_data.xlsx'); }
+                // ▼▼▼ START: 修改後的程式碼 ▼▼▼
+                const exportOptions = { bookType: 'xlsx', bookSST: true, type: 'binary' };
+                if (filteredData.length > 0) { 
+                    const wbFiltered = XLSX.utils.book_new(); 
+                    const wsFiltered = XLSX.utils.json_to_sheet(filteredData); 
+                    XLSX.utils.book_append_sheet(wbFiltered, wsFiltered, 'Filtered Data'); 
+                    XLSX.writeFile(wbFiltered, 'filtered_data.xlsx', exportOptions); 
+                }
+                if (remainingData.length > 0) { 
+                    const wbRemaining = XLSX.utils.book_new(); 
+                    const wsRemaining = XLSX.utils.json_to_sheet(remainingData); 
+                    XLSX.utils.book_append_sheet(wbRemaining, wsRemaining, 'Remaining Data'); 
+                    XLSX.writeFile(wbRemaining, 'remaining_data.xlsx', exportOptions); 
+                }
+                // ▲▲▲ END: 修改後的程式碼 ▲▲▲
                 filterStatus.innerHTML = `篩選完成！<br><b>符合條件的資料共 ${filteredData.length} 筆，已匯出為 filtered_data.xlsx。</b><br><b>剩餘的資料共 ${remainingData.length} 筆，已匯出為 remaining_data.xlsx。</b>`;
             });
         })();
