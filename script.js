@@ -277,6 +277,7 @@ function toggleVatEditMode() {
     updateInvoiceSummary();
 }
 
+// ▼▼▼ START: 包含優化建議的函式 ▼▼▼
 function exportToExcel() {
     if (document.activeElement) document.activeElement.blur();
     const type = invoiceTypeSelect.value;
@@ -352,8 +353,13 @@ function exportToExcel() {
     const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, '發票明細');
-    XLSX.writeFile(workbook, isTwoPart ? '二聯式銷項發票.xlsx' : '三聯式銷項發票.xlsx');
+
+    // 新增此行以確保匯出檔案的相容性
+    const exportOptions = { bookType: 'xlsx', bookSST: true, type: 'binary' };
+    
+    XLSX.writeFile(workbook, isTwoPart ? '二聯式銷項發票.xlsx' : '三聯式銷項發票.xlsx', exportOptions);
 }
+// ▲▲▲ END: 包含優化建議的函式 ▲▲▲
 
 // 修正後的 updateInvoiceSummary 函式
 function updateInvoiceSummary() {
