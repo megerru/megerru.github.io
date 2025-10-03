@@ -6,7 +6,7 @@
     <title>工具三：資料欄位取代</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* ================== CSS 隔離與覆寫 ================== */
+        /* CSS 隔離與覆寫 */
         body.tool-page-body {
             display: block;
             padding: 20px;
@@ -26,13 +26,13 @@
             font-size: 16px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            background-color: #fff; /* 確保背景不是透明的 */
+            background-color: #fff;
         }
         body.tool-page-body input[type="checkbox"] {
-            width: auto; /* 恢復 checkbox 預設大小 */
+            width: auto;
         }
 
-        /* ================== 工具頁面自身樣式 ================== */
+        /* 工具頁面自身樣式 */
         h1, h2, h3 { text-align: center; color: #333; }
         .tool-section { border: 2px solid #1d6f42; border-radius: 10px; padding: 20px; margin: 0 auto; max-width: 1000px; background-color: #fff; }
         .container { display: flex; justify-content: space-around; margin-bottom: 20px; flex-wrap: wrap; }
@@ -73,9 +73,7 @@
                 <label><input type="checkbox" id="directReplaceCheckbox"> 不須尋找，直接取代整欄內容</label>
             </div>
             <h4>設定取代規則</h4>
-            <div id="replacePairsContainer">
-                <!-- Replace pairs will be added here -->
-            </div>
+            <div id="replacePairsContainer"></div>
             <button id="addPairBtn">新增一組取代規則</button>
             <hr style="margin: 20px 0;">
             <button id="replaceButton" class="action-button">開始取代並匯出</button>
@@ -85,7 +83,41 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        // Javascript 程式碼維持不變
+        // ✨ 進度顯示函式
+        function updateProgress(current, total, message = '處理中') {
+            const percent = Math.round((current / total) * 100);
+            const replacerStatus = document.getElementById('replacerStatus');
+            
+            replacerStatus.innerHTML = `
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: ${percent}%"></div>
+                    <div class="progress-text">
+                        ${message}: ${current} / ${total} (${percent}%)
+                    </div>
+                </div>
+            `;
+        }
+        
+        function showCompleteMessage(message, details = '') {
+            const replacerStatus = document.getElementById('replacerStatus');
+            replacerStatus.innerHTML = `
+                <div class="progress-complete">
+                    ✓ ${message}
+                    ${details ? `<br><small>${details}</small>` : ''}
+                </div>
+            `;
+        }
+        
+        function showErrorMessage(message) {
+            const replacerStatus = document.getElementById('replacerStatus');
+            replacerStatus.innerHTML = `
+                <div class="progress-error">
+                    ✗ ${message}
+                </div>
+            `;
+        }
+        
+        // 主程式
         (function() {
             const dropZone = document.getElementById('dropZoneReplacer');
             const fileInput = document.getElementById('fileInputReplacer');
@@ -109,20 +141,30 @@
             async function handleFiles(files) {
                 filesNameDisplay.textContent = Array.from(files).map(f => f.name).join(', ');
                 statusDisplay.textContent = `正在讀取 ${files.length} 個檔案...`;
+                
                 const readPromises = Array.from(files).map(file => new Promise((resolve, reject) => {
                     const reader = new FileReader();
-                    reader.onload = e => { try { resolve(XLSX.read(new Uint8Array(e.target.result), { type: 'array' })); } catch(err) { reject(err); }};
+                    reader.onload = e => { 
+                        try { 
+                            resolve(XLSX.read(new Uint8Array(e.target.result), { type: 'array' })); 
+                        } catch(err) { 
+                            reject(err); 
+                        }
+                    };
                     reader.readAsArrayBuffer(file);
                 }));
 
                 try {
                     const workbooks = await Promise.all(readPromises);
                     allData = [];
+                    
                     workbooks.forEach(wb => {
                         wb.SheetNames.forEach(sheetName => {
                             const ws = wb.Sheets[sheetName];
                             const jsonData = XLSX.utils.sheet_to_json(ws, { defval: null, raw: false });
-                            allData = allData.concat(jsonData.filter(row => Object.values(row).some(val => val !== null && val !== undefined && String(val).trim() !== '')));
+                            allData = allData.concat(jsonData.filter(row => 
+                                Object.values(row).some(val => val !== null && val !== undefined && String(val).trim() !== '')
+                            ));
                         });
                     });
 
@@ -140,7 +182,7 @@
                         controls.style.display = 'none';
                     }
                 } catch (error) {
-                    statusDisplay.textContent = `讀取檔案失敗: ${error.message}`;
+                    showErrorMessage(`讀取檔案失敗: ${error.message}`);
                 }
             }
 
@@ -204,33 +246,45 @@
                 statusDisplay.textContent = '';
             });
 
-            replaceButton.addEventListener('click', () => {
+            // ✨ 加入進度顯示的取代功能
+            replaceButton.addEventListener('click', async () => {
                 const targetHeader = headerSelect.value;
                 if (!targetHeader) {
-                    statusDisplay.textContent = '錯誤：請選擇一個要處理的欄位。';
+                    showErrorMessage('錯誤：請選擇一個要處理的欄位。');
                     return;
                 }
 
-                statusDisplay.textContent = '正在處理資料...';
+                // 開始處理
+                updateProgress(0, allData.length, '正在準備處理');
+                await new Promise(r => setTimeout(r, 0));
+                
                 let replacementsCount = 0;
                 let finalProcessedData = [];
 
                 if (directReplaceCheckbox.checked) {
                     const replaceInput = document.querySelector('.replace-pair .replace-input');
                     if (!replaceInput || (replaceInput.value.trim() === '' && replaceInput.value !== '')) {
-                        statusDisplay.textContent = '錯誤：請為「直接取代」模式輸入要覆蓋的值。';
+                        showErrorMessage('錯誤：請為「直接取代」模式輸入要覆蓋的值。');
                         return;
                     }
                     const replaceValue = replaceInput.value;
 
-                    finalProcessedData = allData.map(row => {
+                    for (let i = 0; i < allData.length; i++) {
+                        const row = allData[i];
                         const newRow = { ...row };
+                        
                         if (String(newRow[targetHeader]) !== String(replaceValue)) {
                             newRow[targetHeader] = replaceValue;
                             replacementsCount++;
                         }
-                        return newRow;
-                    });
+                        finalProcessedData.push(newRow);
+                        
+                        // 每 100 筆更新一次進度
+                        if (i % 100 === 0 || i === allData.length - 1) {
+                            updateProgress(i + 1, allData.length, '直接取代中');
+                            await new Promise(r => setTimeout(r, 0));
+                        }
+                    }
 
                 } else {
                     const pairs = Array.from(document.querySelectorAll('.replace-pair')).map(pairDiv => ({
@@ -239,11 +293,12 @@
                     })).filter(p => p.find.trim() !== '');
 
                     if (pairs.length === 0) {
-                        statusDisplay.textContent = '錯誤：在非「直接取代」模式下，請至少設定一組有效的尋找-取代規則。';
+                        showErrorMessage('錯誤：在非「直接取代」模式下，請至少設定一組有效的尋找-取代規則。');
                         return;
                     }
 
-                    finalProcessedData = allData.map(row => {
+                    for (let i = 0; i < allData.length; i++) {
+                        const row = allData[i];
                         const newRow = { ...row };
                         let cellValue = newRow[targetHeader];
 
@@ -263,19 +318,30 @@
                                 replacementsCount++;
                             }
                         }
-                        return newRow;
-                    });
+                        finalProcessedData.push(newRow);
+                        
+                        // 每 100 筆更新一次進度
+                        if (i % 100 === 0 || i === allData.length - 1) {
+                            updateProgress(i + 1, allData.length, '尋找並取代中');
+                            await new Promise(r => setTimeout(r, 0));
+                        }
+                    }
                 }
                 
-                statusDisplay.textContent = '正在產生 Excel 檔案...';
-                // ▼▼▼ START: 修改後的程式碼 ▼▼▼
+                // 產生檔案
+                updateProgress(allData.length, allData.length, '正在產生 Excel 檔案');
+                await new Promise(r => setTimeout(r, 100));
+                
                 const exportOptions = { bookType: 'xlsx', bookSST: true, type: 'binary' };
                 const newWb = XLSX.utils.book_new();
                 const newWs = XLSX.utils.json_to_sheet(finalProcessedData);
                 XLSX.utils.book_append_sheet(newWb, newWs, 'Replaced Data');
                 XLSX.writeFile(newWb, 'replaced_data.xlsx', exportOptions);
-                // ▲▲▲ END: 修改後的程式碼 ▲▲▲
-                statusDisplay.innerHTML = `處理完成！共取代了 <b>${replacementsCount}</b> 個儲存格的內容。<br>已匯出為 <b>replaced_data.xlsx</b>。`;
+                
+                showCompleteMessage(
+                    '處理完成！',
+                    `共取代了 ${replacementsCount} 個儲存格的內容。<br>已匯出為 replaced_data.xlsx。`
+                );
             });
         })();
     </script>

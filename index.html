@@ -16,16 +16,21 @@
             <button class="welcome-button" onclick="showInsuranceCalculator()">保險費計算</button>
             <button class="welcome-button secondary" onclick="showInvoiceCalculator()">銷項發票</button>
             <button class="welcome-button" onclick="window.location.href='data_processing_landing.html'" style="background-color: #1d6f42;">資料處理</button>
+            <button class="welcome-button" onclick="window.location.href='report_landing.html'" style="background-color: #6f1d42;">報表產出</button>
         </div>
     </div>
 
-    <!-- 年度保險費計算機 (已更新) -->
+<!-- 年度保險費計算機 (已更新) -->
     <div id="insurance-calculator-section" class="container hidden">
         <button class="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
-        <h1>年度保險費分攤計算機</h1>
+        <h1 id="insurance-title">年度保險費分攤計算機</h1>
+        <div class="insurance-toggle-container">
+            <button class="insurance-toggle-button active" onclick="switchToAnnualInsurance()">保險費計算</button>
+            <button class="insurance-toggle-button" onclick="switchToLaborInsurance()">勞健保計算</button>
+        </div>
         <button id="reset-insurance-button" onclick="resetInsuranceForm()">↺</button>
         <div class="form-group">
-            <label for="startDateManualYear">保險起始日期 (民國年/月/日)：</label>
+            <label for="startDateManualYear">保險起始日期 (民國年/月/日):</label>
             <div class="manual-date-container">
                 <input type="tel" id="startDateManualYear" placeholder="113" maxlength="3" onkeyup="autoTab(this, 'startDateManualMonth')">
                 <span>/</span>
@@ -33,11 +38,10 @@
                 <span>/</span>
                 <input type="tel" id="startDateManualDay" placeholder="30" maxlength="2" onkeyup="autoTab(this, 'endDateManualYear')">
             </div>
-            <!-- 隱藏的 input 用於儲存轉換後的西元年日期 -->
             <input type="date" id="startDate" style="display: none;">
         </div>
         <div class="form-group">
-            <label for="endDateManualYear">保險結束日期 (民國年/月/日)：</label>
+            <label for="endDateManualYear">保險結束日期 (民國年/月/日):</label>
             <div class="manual-date-container">
                 <input type="tel" id="endDateManualYear" placeholder="114" maxlength="3" onkeyup="autoTab(this, 'endDateManualMonth')">
                 <span>/</span>
@@ -45,18 +49,42 @@
                 <span>/</span>
                 <input type="tel" id="endDateManualDay" placeholder="23" maxlength="2" onkeyup="autoTab(this, 'totalPremium')">
             </div>
-            <!-- 隱藏的 input 用於儲存轉換後的西元年日期 -->
             <input type="date" id="endDate" style="display: none;">
         </div>
         <div class="form-group">
-            <label for="totalPremium">總保費：</label>
-            <input type="number" id="totalPremium" placeholder="例如：36500">
+            <label for="totalPremium">總保費:</label>
+            <input type="number" id="totalPremium" placeholder="例如:36500">
         </div>
         <button class="main-calculate-button" onclick="calculatePremium()">計算費用</button>
         <div id="result" class="result-hidden">
             <h2>計算結果</h2>
             <p id="periodSummary"></p>
             <div class="result-split" id="result-container"></div>
+        </div>
+        
+        <!-- 勞健保計算機 -->
+        <div id="labor-insurance-section" class="hidden">
+            <div class="form-group">
+                <label for="laborInsuranceTotal">勞保總金額:</label>
+                <input type="number" id="laborInsuranceTotal" placeholder="請輸入金額" oninput="calculateLaborInsurance()">
+            </div>
+            <div class="form-group">
+                <label for="healthInsuranceTotal">健保總金額:</label>
+                <input type="number" id="healthInsuranceTotal" placeholder="請輸入金額" oninput="calculateLaborInsurance()">
+            </div>
+            <div id="labor-insurance-result" class="result-visible">
+                <h2>計算結果</h2>
+                <div class="result-split">
+                    <div>
+                        <h3>勞保金額</h3>
+                        <p id="laborResult">0</p>
+                    </div>
+                    <div>
+                        <h3>健保金額</h3>
+                        <p id="healthResult">0</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -116,7 +144,7 @@
         <div class="button-container">
             <button class="add-row-button" onclick="addInvoiceRow()">+ 新增一列</button>
             <button class="export-button" id="export-excel-button" onclick="exportToExcel()">匯出 Excel</button>
-                          <button class="secondary-action-button" id="toggle-vat-edit-button" onclick="toggleVatEditMode()">修改營業稅</button>
+            <button class="secondary-action-button" id="toggle-vat-edit-button" onclick="toggleVatEditMode()">修改營業稅</button>
         </div>
         <div id="invoice-summary-two-part" class="invoice-summary">
             <p>共 <span id="invoice-count-two">0</span> 筆資料</p>

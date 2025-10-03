@@ -5,16 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>工具一：資料合併與比對</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js">
     <style>
-        /* ================== CSS 隔離與覆寫 ================== */
+        /* 只保留工具專屬的樣式，進度條樣式已移到 style.css */
         body.tool-page-body {
-            /* 繼承 style.css 的字體和背景，但重置 display 屬性以確保佈局正常 */
             display: block;
-            padding: 20px; /* 恢復頁面邊距 */
+            padding: 20px;
         }
 
-        /* 覆寫 style.css 中的 .container 樣式，讓此頁面的 container 恢復原本的佈局功能 */
         body.tool-page-body .container {
             max-width: none;
             width: auto;
@@ -24,17 +21,15 @@
             text-align: left;
         }
 
-        /* 覆寫 input/select 的全域樣式 */
         body.tool-page-body input,
         body.tool-page-body select {
-            width: auto; /* 恢復自動寬度 */
+            width: auto;
             padding: 8px;
             font-size: 14px;
             border: 1px solid #ccc;
             border-radius: 5px;
         }
         
-        /* ================== 工具頁面自身樣式 ================== */
         h1, h2, h3 { text-align: center; color: #333; }
         h3 { font-weight: normal; color: #555; }
         .tool-section { border: 2px solid #007BFF; border-radius: 10px; padding: 20px; margin: 0 auto; max-width: 1000px; background-color: #fff; }
@@ -68,7 +63,7 @@
 <body class="tool-page-body">
     <a href="data_processing_landing.html" class="back-to-landing-button">← 返回工具箱</a>
     <div class="tool-section">
-        <h2>工具一：AB檔案比對與合併</h2>
+        <h2>工具一:AB檔案比對與合併</h2>
         <div class="container">
             <div class="file-container">
                 <div class="drop-zone" id="dropZoneA"><p>將檔案 A 拖曳至此</p><p class="file-list-display" id="fileAName"></p><input type="file" id="fileInputA" style="display: none;"></div>
@@ -97,54 +92,393 @@
         </div>
         <div class="results"><p id="mergeStatus"></p></div>
     </div>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
     <script>
-        // Javascript 程式碼維持不變
-        function normalizeValue(value, type) { if (value === null || typeof value === 'undefined' || String(value).trim() === '') return ''; const strValue = String(value); switch (type) { case 'number': const numStr = strValue.replace(/[^\d.-]/g, ''); const num = parseFloat(numStr); return isNaN(num) ? '' : num.toFixed(6); case 'date-time': case 'date': const isDateTime = (type === 'date-time'); const format = isDateTime ? 'YYYY-MM-DD HH:mm:ss' : 'YYYY-MM-DD'; if (value instanceof Date || (typeof value === 'number' && value > 1)) { const date = (value instanceof Date) ? value : new Date(Math.round((value - 25569) * 86400 * 1000)); return dayjs(date).format(format); } const minguoParts = strValue.match(/\d+/g); if (minguoParts && minguoParts.length >= 3) { let year = parseInt(minguoParts[0], 10); if (year < 200) { year += 1911; } const dateString = `${year}-${minguoParts[1]}-${minguoParts[2]}` + (minguoParts.length > 3 ? ` ${minguoParts.slice(3).join(':')}` : ''); const parsedDate = dayjs(dateString); if (parsedDate.isValid()) return parsedDate.format(format); } const dateObj = dayjs(strValue); return dateObj.isValid() ? dateObj.format(format) : strValue; case 'text-case-sensitive': return strValue.trim(); case 'text': default: return strValue.trim().toLowerCase(); } }
-        function isValidRow(row) { if (!row || Object.keys(row).length === 0) return false; return Object.values(row).some(val => val !== null && val !== undefined && String(val).trim() !== ''); }
-        function readSheetData(worksheet) { if (!worksheet || !worksheet['!ref']) return []; const range = XLSX.utils.decode_range(worksheet['!ref']); const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null, raw: false, range: range }); return jsonData.filter(isValidRow); }
+        // 工具函式
+        function normalizeValue(value, type) { 
+            if (value === null || typeof value === 'undefined' || String(value).trim() === '') return ''; 
+            const strValue = String(value); 
+            switch (type) { 
+                case 'number': 
+                    const numStr = strValue.replace(/[^\d.-]/g, ''); 
+                    const num = parseFloat(numStr); 
+                    return isNaN(num) ? '' : num.toFixed(6); 
+                case 'date-time': 
+                case 'date': 
+                    const isDateTime = (type === 'date-time'); 
+                    const format = isDateTime ? 'YYYY-MM-DD HH:mm:ss' : 'YYYY-MM-DD'; 
+                    if (value instanceof Date || (typeof value === 'number' && value > 1)) { 
+                        const date = (value instanceof Date) ? value : new Date(Math.round((value - 25569) * 86400 * 1000)); 
+                        return dayjs(date).format(format); 
+                    } 
+                    const minguoParts = strValue.match(/\d+/g); 
+                    if (minguoParts && minguoParts.length >= 3) { 
+                        let year = parseInt(minguoParts[0], 10); 
+                        if (year < 200) { year += 1911; } 
+                        const dateString = `${year}-${minguoParts[1]}-${minguoParts[2]}` + (minguoParts.length > 3 ? ` ${minguoParts.slice(3).join(':')}` : ''); 
+                        const parsedDate = dayjs(dateString); 
+                        if (parsedDate.isValid()) return parsedDate.format(format); 
+                    } 
+                    const dateObj = dayjs(strValue); 
+                    return dateObj.isValid() ? dateObj.format(format) : strValue; 
+                case 'text-case-sensitive': 
+                    return strValue.trim(); 
+                case 'text': 
+                default: 
+                    return strValue.trim().toLowerCase(); 
+            } 
+        }
+        
+        function isValidRow(row) { 
+            if (!row || Object.keys(row).length === 0) return false; 
+            return Object.values(row).some(val => val !== null && val !== undefined && String(val).trim() !== ''); 
+        }
+        
+        function readSheetData(worksheet) { 
+            if (!worksheet || !worksheet['!ref']) return []; 
+            const range = XLSX.utils.decode_range(worksheet['!ref']); 
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null, raw: false, range: range }); 
+            return jsonData.filter(isValidRow); 
+        }
+        
+        // ✨ 進度顯示函式（使用 style.css 的樣式）
+        function updateProgress(current, total, message = '處理中') {
+            const percent = Math.round((current / total) * 100);
+            const mergeStatus = document.getElementById('mergeStatus');
+            
+            mergeStatus.innerHTML = `
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: ${percent}%"></div>
+                    <div class="progress-text">
+                        ${message}: ${current} / ${total} (${percent}%)
+                    </div>
+                </div>
+            `;
+        }
+        
+        function showCompleteMessage(message, details = '') {
+            const mergeStatus = document.getElementById('mergeStatus');
+            mergeStatus.innerHTML = `
+                <div class="progress-complete">
+                    ✓ ${message}
+                    ${details ? `<br><small>${details}</small>` : ''}
+                </div>
+            `;
+        }
+        
+        function showErrorMessage(message) {
+            const mergeStatus = document.getElementById('mergeStatus');
+            mergeStatus.innerHTML = `
+                <div class="progress-error">
+                    ✗ ${message}
+                </div>
+            `;
+        }
+        
+        // 主程式
         (function() {
-            const dropZoneA = document.getElementById('dropZoneA'), dropZoneB = document.getElementById('dropZoneB'); const fileInputA = document.getElementById('fileInputA'), fileInputB = document.getElementById('fileInputB'); const fileAName = document.getElementById('fileAName'), fileBName = document.getElementById('fileBName'); const sheetListA = document.getElementById('sheetListA'), sheetListB = document.getElementById('sheetListB'); const keyPairsContainer = document.getElementById('keyPairsContainer'); const addKeyPairButton = document.getElementById('addKeyPairButton'); const keepBKeyCheckbox = document.getElementById('keepBKeyCheckbox'); const mergeButton = document.getElementById('mergeButton'); const mergeStatus = document.getElementById('mergeStatus'); const aggregationSection = document.getElementById('aggregationSection'); const aggregationList = document.getElementById('aggregationList'); const aggSelectAll = document.getElementById('aggSelectAll'); const aggDeselectAll = document.getElementById('aggDeselectAll'); let dataA = null, dataB = null, headersA = [], headersB = [], workbookA = null, workbooksB = [];
-            function setupDropZone(dropZone, fileInput, dataTarget) { const fileNameElement = (dataTarget === 'A') ? fileAName : fileBName; dropZone.addEventListener('click', () => fileInput.click()); ['dragover', 'dragenter'].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.add('hover'); })); ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.remove('hover'); })); dropZone.addEventListener('drop', (e) => { if (e.dataTransfer.files.length > 0) { fileInput.files = e.dataTransfer.files; handleFiles(fileInput.files, fileNameElement, dataTarget); } }); fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFiles(e.target.files, fileNameElement, dataTarget); }); }
-            async function handleFiles(files, fileNameElement, dataTarget) { fileNameElement.textContent = Array.from(files).map(f => f.name).join(', '); mergeStatus.textContent = `正在讀取 ${files.length} 個檔案...`; const readPromises = Array.from(files).map(file => new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = e => { try { resolve({ name: file.name, workbook: XLSX.read(new Uint8Array(e.target.result), { type: 'array' }) }); } catch(err) { reject(err); }}; reader.readAsArrayBuffer(file); })); try { const results = await Promise.all(readPromises); if (dataTarget === 'A') { workbookA = results[0].workbook; displaySheetList([results[0]], sheetListA, 'A'); } else { workbooksB = results; displaySheetList(workbooksB, sheetListB, 'B'); } if (workbookA && workbooksB.length > 0) { mergeButton.disabled = false; addKeyPairButton.style.display = 'inline-block'; if (!keyPairsContainer.hasChildNodes()) addKeyPair(); mergeStatus.textContent = '所有檔案讀取完畢，請選擇工作表並設定比對條件。'; } } catch (error) { mergeStatus.textContent = `讀取檔案失敗: ${error.message}`; } }
-            function displaySheetList(workbookObjs, container, dataTarget) { container.innerHTML = ''; container.style.display = 'block'; workbookObjs.forEach(wbObj => { const header = document.createElement('h4'); header.textContent = wbObj.name; container.appendChild(header); wbObj.workbook.SheetNames.forEach((sheetName, index) => { const label = document.createElement('label'); const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.value = sheetName; checkbox.checked = (index === 0); checkbox.dataset.filename = wbObj.name; checkbox.onchange = () => updateDataAndHeaders(dataTarget); label.appendChild(checkbox); label.appendChild(document.createTextNode(` ${sheetName}`)); container.appendChild(label); }); }); updateDataAndHeaders(dataTarget); }
-            function getCombinedDataFromSelectedSheets(workbookObjs, sheetContainer) { let combinedData = []; const checkedBoxes = sheetContainer.querySelectorAll('input:checked'); checkedBoxes.forEach(cb => { const fileName = cb.dataset.filename; const sheetName = cb.value; const wbObj = workbookObjs.find(w => w.name === fileName); if(wbObj) { const worksheet = wbObj.workbook.Sheets[sheetName]; combinedData = combinedData.concat(readSheetData(worksheet)); } }); return combinedData; }
-            function updateDataAndHeaders(dataTarget) { if (dataTarget === 'A' && workbookA) { dataA = getCombinedDataFromSelectedSheets([{name: fileAName.textContent, workbook: workbookA}], sheetListA); headersA = dataA.length > 0 ? Object.keys(dataA[0]) : []; } else if (dataTarget === 'B' && workbooksB.length > 0) { dataB = getCombinedDataFromSelectedSheets(workbooksB, sheetListB); headersB = dataB.length > 0 ? Object.keys(dataB[0]) : []; updateAggregationList(); } repopulateAllHeaderDropdowns(); }
-            function updateAggregationList() { aggregationSection.style.display = headersB.length > 0 ? 'block' : 'none'; aggregationList.innerHTML = ''; headersB.forEach(header => { const label = document.createElement('label'); const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.value = header; checkbox.checked = true; label.appendChild(checkbox); label.appendChild(document.createTextNode(` ${header}`)); aggregationList.appendChild(label); }); }
-            function repopulateAllHeaderDropdowns() { document.querySelectorAll('.headerA-select').forEach(sel => { const currentVal = sel.value; sel.innerHTML = headersA.map(h => `<option value="${h}" ${h === currentVal ? 'selected' : ''}>${h}</option>`).join(''); }); document.querySelectorAll('.headerB-select').forEach(sel => { const currentVal = sel.value; sel.innerHTML = headersB.map(h => `<option value="${h}" ${h === currentVal ? 'selected' : ''}>${h}</option>`).join(''); }); }
-            function addKeyPair() { const pairCount = keyPairsContainer.childElementCount; const pairDiv = document.createElement('div'); pairDiv.className = 'key-pair'; const label = `比對條件 #${pairCount + 1}`; pairDiv.innerHTML = `<span class="key-pair-label">${label}</span><span>A:</span><select class="headerA-select"></select><span>B:</span><select class="headerB-select"></select><span>方式:</span><select class="compare-type-select"><option value="text-case-sensitive">文字 (區分大小寫)</option><option value="text">文字 (忽略大小寫)</option><option value="number">數字 (適用金額)</option><option value="date-time">日期+時間 (秒)</option><option value="date">日期 (忽略時間)</option></select>`; populateSelect(pairDiv.querySelector('.headerA-select'), headersA); populateSelect(pairDiv.querySelector('.headerB-select'), headersB); const removeBtn = document.createElement('button'); removeBtn.className = 'remove-btn'; removeBtn.textContent = '−'; removeBtn.onclick = () => { pairDiv.remove(); updateKeyPairLabels(); }; pairDiv.appendChild(removeBtn); keyPairsContainer.appendChild(pairDiv); }
-            function populateSelect(select, headers) { select.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join(''); }
-            function updateKeyPairLabels() { Array.from(keyPairsContainer.children).forEach((pairDiv, index) => { pairDiv.querySelector('.key-pair-label').textContent = `比對條件 #${index + 1}`; }); }
+            const dropZoneA = document.getElementById('dropZoneA'), dropZoneB = document.getElementById('dropZoneB'); 
+            const fileInputA = document.getElementById('fileInputA'), fileInputB = document.getElementById('fileInputB'); 
+            const fileAName = document.getElementById('fileAName'), fileBName = document.getElementById('fileBName'); 
+            const sheetListA = document.getElementById('sheetListA'), sheetListB = document.getElementById('sheetListB'); 
+            const keyPairsContainer = document.getElementById('keyPairsContainer'); 
+            const addKeyPairButton = document.getElementById('addKeyPairButton'); 
+            const keepBKeyCheckbox = document.getElementById('keepBKeyCheckbox'); 
+            const mergeButton = document.getElementById('mergeButton'); 
+            const mergeStatus = document.getElementById('mergeStatus'); 
+            const aggregationSection = document.getElementById('aggregationSection'); 
+            const aggregationList = document.getElementById('aggregationList'); 
+            const aggSelectAll = document.getElementById('aggSelectAll'); 
+            const aggDeselectAll = document.getElementById('aggDeselectAll'); 
+            
+            let dataA = null, dataB = null, headersA = [], headersB = [], workbookA = null, workbooksB = [];
+            
+            function setupDropZone(dropZone, fileInput, dataTarget) { 
+                const fileNameElement = (dataTarget === 'A') ? fileAName : fileBName; 
+                dropZone.addEventListener('click', () => fileInput.click()); 
+                ['dragover', 'dragenter'].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.add('hover'); })); 
+                ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.remove('hover'); })); 
+                dropZone.addEventListener('drop', (e) => { if (e.dataTransfer.files.length > 0) { fileInput.files = e.dataTransfer.files; handleFiles(fileInput.files, fileNameElement, dataTarget); } }); 
+                fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFiles(e.target.files, fileNameElement, dataTarget); }); 
+            }
+            
+            async function handleFiles(files, fileNameElement, dataTarget) { 
+                fileNameElement.textContent = Array.from(files).map(f => f.name).join(', '); 
+                mergeStatus.textContent = `正在讀取 ${files.length} 個檔案...`; 
+                
+                const readPromises = Array.from(files).map(file => new Promise((resolve, reject) => { 
+                    const reader = new FileReader(); 
+                    reader.onload = e => { 
+                        try { 
+                            resolve({ name: file.name, workbook: XLSX.read(new Uint8Array(e.target.result), { type: 'array' }) }); 
+                        } catch(err) { 
+                            reject(err); 
+                        }
+                    }; 
+                    reader.readAsArrayBuffer(file); 
+                })); 
+                
+                try { 
+                    const results = await Promise.all(readPromises); 
+                    if (dataTarget === 'A') { 
+                        workbookA = results[0].workbook; 
+                        displaySheetList([results[0]], sheetListA, 'A'); 
+                    } else { 
+                        workbooksB = results; 
+                        displaySheetList(workbooksB, sheetListB, 'B'); 
+                    } 
+                    
+                    if (workbookA && workbooksB.length > 0) { 
+                        mergeButton.disabled = false; 
+                        addKeyPairButton.style.display = 'inline-block'; 
+                        if (!keyPairsContainer.hasChildNodes()) addKeyPair(); 
+                        mergeStatus.textContent = '所有檔案讀取完畢,請選擇工作表並設定比對條件。'; 
+                    } 
+                } catch (error) { 
+                    showErrorMessage(`讀取檔案失敗: ${error.message}`);
+                } 
+            }
+            
+            function displaySheetList(workbookObjs, container, dataTarget) { 
+                container.innerHTML = ''; 
+                container.style.display = 'block'; 
+                workbookObjs.forEach(wbObj => { 
+                    const header = document.createElement('h4'); 
+                    header.textContent = wbObj.name; 
+                    container.appendChild(header); 
+                    wbObj.workbook.SheetNames.forEach((sheetName, index) => { 
+                        const label = document.createElement('label'); 
+                        const checkbox = document.createElement('input'); 
+                        checkbox.type = 'checkbox'; 
+                        checkbox.value = sheetName; 
+                        checkbox.checked = (index === 0); 
+                        checkbox.dataset.filename = wbObj.name; 
+                        checkbox.onchange = () => updateDataAndHeaders(dataTarget); 
+                        label.appendChild(checkbox); 
+                        label.appendChild(document.createTextNode(` ${sheetName}`)); 
+                        container.appendChild(label); 
+                    }); 
+                }); 
+                updateDataAndHeaders(dataTarget); 
+            }
+            
+            function getCombinedDataFromSelectedSheets(workbookObjs, sheetContainer) { 
+                let combinedData = []; 
+                const checkedBoxes = sheetContainer.querySelectorAll('input:checked'); 
+                checkedBoxes.forEach(cb => { 
+                    const fileName = cb.dataset.filename; 
+                    const sheetName = cb.value; 
+                    const wbObj = workbookObjs.find(w => w.name === fileName); 
+                    if(wbObj) { 
+                        const worksheet = wbObj.workbook.Sheets[sheetName]; 
+                        combinedData = combinedData.concat(readSheetData(worksheet)); 
+                    } 
+                }); 
+                return combinedData; 
+            }
+            
+            function updateDataAndHeaders(dataTarget) { 
+                if (dataTarget === 'A' && workbookA) { 
+                    dataA = getCombinedDataFromSelectedSheets([{name: fileAName.textContent, workbook: workbookA}], sheetListA); 
+                    headersA = dataA.length > 0 ? Object.keys(dataA[0]) : []; 
+                } else if (dataTarget === 'B' && workbooksB.length > 0) { 
+                    dataB = getCombinedDataFromSelectedSheets(workbooksB, sheetListB); 
+                    headersB = dataB.length > 0 ? Object.keys(dataB[0]) : []; 
+                    updateAggregationList(); 
+                } 
+                repopulateAllHeaderDropdowns(); 
+            }
+            
+            function updateAggregationList() { 
+                aggregationSection.style.display = headersB.length > 0 ? 'block' : 'none'; 
+                aggregationList.innerHTML = ''; 
+                headersB.forEach(header => { 
+                    const label = document.createElement('label'); 
+                    const checkbox = document.createElement('input'); 
+                    checkbox.type = 'checkbox'; 
+                    checkbox.value = header; 
+                    checkbox.checked = true; 
+                    label.appendChild(checkbox); 
+                    label.appendChild(document.createTextNode(` ${header}`)); 
+                    aggregationList.appendChild(label); 
+                }); 
+            }
+            
+            function repopulateAllHeaderDropdowns() { 
+                document.querySelectorAll('.headerA-select').forEach(sel => { 
+                    const currentVal = sel.value; 
+                    sel.innerHTML = headersA.map(h => `<option value="${h}" ${h === currentVal ? 'selected' : ''}>${h}</option>`).join(''); 
+                }); 
+                document.querySelectorAll('.headerB-select').forEach(sel => { 
+                    const currentVal = sel.value; 
+                    sel.innerHTML = headersB.map(h => `<option value="${h}" ${h === currentVal ? 'selected' : ''}>${h}</option>`).join(''); 
+                }); 
+            }
+            
+            function addKeyPair() { 
+                const pairCount = keyPairsContainer.childElementCount; 
+                const pairDiv = document.createElement('div'); 
+                pairDiv.className = 'key-pair'; 
+                const label = `比對條件 #${pairCount + 1}`; 
+                pairDiv.innerHTML = `<span class="key-pair-label">${label}</span><span>A:</span><select class="headerA-select"></select><span>B:</span><select class="headerB-select"></select><span>方式:</span><select class="compare-type-select"><option value="text-case-sensitive">文字 (區分大小寫)</option><option value="text">文字 (忽略大小寫)</option><option value="number">數字 (適用金額)</option><option value="date-time">日期+時間 (秒)</option><option value="date">日期 (忽略時間)</option></select>`; 
+                populateSelect(pairDiv.querySelector('.headerA-select'), headersA); 
+                populateSelect(pairDiv.querySelector('.headerB-select'), headersB); 
+                const removeBtn = document.createElement('button'); 
+                removeBtn.className = 'remove-btn'; 
+                removeBtn.textContent = '−'; 
+                removeBtn.onclick = () => { pairDiv.remove(); updateKeyPairLabels(); }; 
+                pairDiv.appendChild(removeBtn); 
+                keyPairsContainer.appendChild(pairDiv); 
+            }
+            
+            function populateSelect(select, headers) { 
+                select.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join(''); 
+            }
+            
+            function updateKeyPairLabels() { 
+                Array.from(keyPairsContainer.children).forEach((pairDiv, index) => { 
+                    pairDiv.querySelector('.key-pair-label').textContent = `比對條件 #${index + 1}`; 
+                }); 
+            }
+            
+            // ✨ 包含進度顯示的 performMerge 函式
             async function performMerge() {
-                if (!dataA || !dataB) return; const keyPairs = Array.from(document.querySelectorAll('.key-pair')).map(p => ({ keyA: p.querySelector('.headerA-select').value, keyB: p.querySelector('.headerB-select').value, type: p.querySelector('.compare-type-select').value, })); if (keyPairs.length === 0) { mergeStatus.textContent = '請至少設定一組比對條件。'; return; }
-                const aggregationHeaders = new Set(Array.from(aggregationList.querySelectorAll('input:checked')).map(cb => cb.value)); mergeStatus.textContent = '正在進行「一對多聚合」比對與合併...'; await new Promise(r => setTimeout(r, 0)); const usedBRowIndices = new Set(); const finalMergedData = [];
-                for (const rowA of dataA) {
-                    const matchingRowsB = dataB.filter((rowB) => keyPairs.every(pair => normalizeValue(rowA[pair.keyA], pair.type) !== '' && normalizeValue(rowA[pair.keyA], pair.type) === normalizeValue(rowB[pair.keyB], pair.type)));
-                    let finalRow = { ...rowA };
-                    if (matchingRowsB.length > 0) {
-                        let dataToMerge; if (matchingRowsB.length === 1) { dataToMerge = { ...matchingRowsB[0] }; } else { dataToMerge = {}; const allBHeaders = new Set(); matchingRowsB.forEach(row => Object.keys(row).forEach(key => allBHeaders.add(key))); allBHeaders.forEach(header => { if (aggregationHeaders.has(header)) { const values = matchingRowsB.map(row => row[header]).filter(v => v !== null && v !== undefined); const uniqueValues = [...new Set(values)]; if(uniqueValues.length > 0) dataToMerge[header] = uniqueValues.join('、'); } else { dataToMerge[header] = matchingRowsB[0][header]; } }); }
-                        dataB.forEach((rowB, index) => { if (matchingRowsB.includes(rowB)) usedBRowIndices.add(index); });
-                        const headersASet = new Set(Object.keys(rowA)); const keysBSet = new Set(keyPairs.map(p => p.keyB));
-                        for (const headerB in dataToMerge) { if (!keepBKeyCheckbox.checked && keysBSet.has(headerB)) continue; let newHeader = headerB; if (headersASet.has(headerB)) newHeader = `${headerB}_B`; finalRow[newHeader] = dataToMerge[headerB]; }
-                    }
-                    finalMergedData.push(finalRow);
+                if (!dataA || !dataB) return; 
+                
+                const keyPairs = Array.from(document.querySelectorAll('.key-pair')).map(p => ({ 
+                    keyA: p.querySelector('.headerA-select').value, 
+                    keyB: p.querySelector('.headerB-select').value, 
+                    type: p.querySelector('.compare-type-select').value, 
+                })); 
+                
+                if (keyPairs.length === 0) { 
+                    showErrorMessage('請至少設定一組比對條件。');
+                    return; 
                 }
-                const unmatchedDataB = dataB.filter((_, index) => !usedBRowIndices.has(index)); mergeStatus.textContent = '正在產生 Excel 檔案...'; await new Promise(r => setTimeout(r, 0)); 
-                // ▼▼▼ START: 修改後的程式碼 ▼▼▼
+                
+                const aggregationHeaders = new Set(Array.from(aggregationList.querySelectorAll('input:checked')).map(cb => cb.value)); 
+                
+                // 開始處理
+                updateProgress(0, dataA.length, '正在建立索引');
+                await new Promise(r => setTimeout(r, 0));
+                
+                // 建立索引
+                const dataBIndex = new Map();
+                for (let i = 0; i < dataB.length; i++) {
+                    const rowB = dataB[i];
+                    const key = keyPairs.map(pair => normalizeValue(rowB[pair.keyB], pair.type)).join('|');
+                    if (!dataBIndex.has(key)) {
+                        dataBIndex.set(key, []);
+                    }
+                    dataBIndex.get(key).push(rowB);
+                    
+                    if (i % 100 === 0) {
+                        updateProgress(i, dataB.length, '建立索引中');
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+                }
+                
+                const usedBRowIndices = new Set(); 
+                const finalMergedData = [];
+                
+                // 處理資料
+                for (let rowIndex = 0; rowIndex < dataA.length; rowIndex++) {
+                    const rowA = dataA[rowIndex];
+                    const lookupKey = keyPairs.map(pair => normalizeValue(rowA[pair.keyA], pair.type)).join('|');
+                    const matchingRowsB = dataBIndex.get(lookupKey) || [];
+                    
+                    let finalRow = { ...rowA };
+                    
+                    if (matchingRowsB.length > 0) {
+                        let dataToMerge; 
+                        if (matchingRowsB.length === 1) { 
+                            dataToMerge = { ...matchingRowsB[0] }; 
+                        } else { 
+                            dataToMerge = {}; 
+                            const allBHeaders = new Set(); 
+                            matchingRowsB.forEach(row => Object.keys(row).forEach(key => allBHeaders.add(key))); 
+                            allBHeaders.forEach(header => { 
+                                if (aggregationHeaders.has(header)) { 
+                                    const values = matchingRowsB.map(row => row[header]).filter(v => v !== null && v !== undefined); 
+                                    const uniqueValues = [...new Set(values)]; 
+                                    if(uniqueValues.length > 0) dataToMerge[header] = uniqueValues.join('、'); 
+                                } else { 
+                                    dataToMerge[header] = matchingRowsB[0][header]; 
+                                } 
+                            }); 
+                        }
+                        
+                        dataB.forEach((rowB, index) => { 
+                            if (matchingRowsB.includes(rowB)) usedBRowIndices.add(index); 
+                        });
+                        
+                        const headersASet = new Set(Object.keys(rowA)); 
+                        const keysBSet = new Set(keyPairs.map(p => p.keyB));
+                        
+                        for (const headerB in dataToMerge) { 
+                            if (!keepBKeyCheckbox.checked && keysBSet.has(headerB)) continue; 
+                            let newHeader = headerB; 
+                            if (headersASet.has(headerB)) newHeader = `${headerB}_B`; 
+                            finalRow[newHeader] = dataToMerge[headerB]; 
+                        }
+                    }
+                    
+                    finalMergedData.push(finalRow);
+                    
+                    // 更新進度
+                    if (rowIndex % 50 === 0 || rowIndex === dataA.length - 1) {
+                        updateProgress(rowIndex + 1, dataA.length, '資料比對與合併中');
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+                }
+                
+                const unmatchedDataB = dataB.filter((_, index) => !usedBRowIndices.has(index)); 
+                
+                // 產生檔案
+                updateProgress(dataA.length, dataA.length, '正在產生 Excel 檔案');
+                await new Promise(r => setTimeout(r, 100));
+                
                 const exportOptions = { bookType: 'xlsx', bookSST: true, type: 'binary' };
-                const wbMerged = XLSX.utils.book_new(); const wsMerged = XLSX.utils.json_to_sheet(finalMergedData); XLSX.utils.book_append_sheet(wbMerged, wsMerged, 'Merged Data'); 
+                const wbMerged = XLSX.utils.book_new(); 
+                const wsMerged = XLSX.utils.json_to_sheet(finalMergedData); 
+                XLSX.utils.book_append_sheet(wbMerged, wsMerged, 'Merged Data'); 
                 XLSX.writeFile(wbMerged, 'merged_data.xlsx', exportOptions); 
+                
                 if (unmatchedDataB.length > 0) { 
                     const wbUnmatched = XLSX.utils.book_new(); 
                     const wsUnmatched = XLSX.utils.json_to_sheet(unmatchedDataB); 
                     XLSX.utils.book_append_sheet(wbUnmatched, wsUnmatched, 'Unmatched Data'); 
                     XLSX.writeFile(wbUnmatched, 'unmatched_data.xlsx', exportOptions); 
                 }
-                // ▲▲▲ END: 修改後的程式碼 ▲▲▲
-                mergeStatus.innerHTML = `處理完成！<b>合併後的檔案總筆數為 ${finalMergedData.length} 筆。</b><br>檔案 B 中有 ${unmatchedDataB.length} 筆資料未找到任何對應項目。`;
+                
+                showCompleteMessage(
+                    '處理完成！',
+                    `合併後的檔案總筆數為 ${finalMergedData.length} 筆。<br>檔案 B 中有 ${unmatchedDataB.length} 筆資料未找到任何對應項目。`
+                );
             }
-            setupDropZone(dropZoneA, fileInputA, 'A'); setupDropZone(dropZoneB, fileInputB, 'B'); addKeyPairButton.addEventListener('click', addKeyPair); aggSelectAll.addEventListener('click', () => aggregationList.querySelectorAll('input').forEach(cb => cb.checked = true)); aggDeselectAll.addEventListener('click', () => aggregationList.querySelectorAll('input').forEach(cb => cb.checked = false)); mergeButton.addEventListener('click', async () => { mergeButton.disabled = true; mergeButton.textContent = '處理中...'; document.body.style.cursor = 'wait'; try { await performMerge(); } catch (error) { mergeStatus.textContent = `發生錯誤: ${error.message}`; } finally { mergeButton.disabled = false; mergeButton.textContent = '開始比對與合併'; document.body.style.cursor = 'default'; } });
+            
+            setupDropZone(dropZoneA, fileInputA, 'A'); 
+            setupDropZone(dropZoneB, fileInputB, 'B'); 
+            addKeyPairButton.addEventListener('click', addKeyPair); 
+            aggSelectAll.addEventListener('click', () => aggregationList.querySelectorAll('input').forEach(cb => cb.checked = true)); 
+            aggDeselectAll.addEventListener('click', () => aggregationList.querySelectorAll('input').forEach(cb => cb.checked = false)); 
+            
+            mergeButton.addEventListener('click', async () => { 
+                mergeButton.disabled = true; 
+                mergeButton.textContent = '處理中...'; 
+                document.body.style.cursor = 'wait'; 
+                try { 
+                    await performMerge(); 
+                } catch (error) { 
+                    showErrorMessage(`發生錯誤: ${error.message}`);
+                } finally { 
+                    mergeButton.disabled = false; 
+                    mergeButton.textContent = '開始比對與合併'; 
+                    document.body.style.cursor = 'default'; 
+                } 
+            });
         })();
     </script>
 </body>

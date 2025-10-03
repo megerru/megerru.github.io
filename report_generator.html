@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>年度報告產生器</title>
+    <style>
+        /* ===== 頁面淡入動畫 ===== */
+        body {
+            opacity: 0;
+            animation: pageTransition 0.5s ease-in-out forwards;
+        }
+        
+        @keyframes pageTransition {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* ===== 表格與控制區塊動畫 ===== */
+        th.drop-target-left { border-left: 3px solid #007bff !important; }
+        th.drop-target-right { border-right: 3px solid #007bff !important; }
+        body.edit-mode [data-editable="true"] { background-color: #fef9e7; }
+        body.edit-mode [data-editable="true"]:focus { background-color: #eaf2f8; outline: 1px solid #007bff; }
+        .controls button.edit-active { background-color: #198754; border-color: #146c43; }
+        body.arrange-mode .draggable, body.arrange-mode .draggable-header { cursor: grab; }
+        .controls button.arrange-active { background-color: #ffc107; border-color: #e0a800; }
+        .dragging-col { cursor: grabbing; }
+        
+        body { 
+            background-color:#f0f0f0; 
+            font-family:'DFKai-SB','標楷體','BiauKai',serif; 
+            display:flex; 
+            flex-direction:column; 
+            align-items:center;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .back-button-container { width: 100%; max-width: 210mm; padding: 10px 0; margin: 0 auto; }
+        .back-to-report-landing { display: inline-flex; align-items: center; background-color: #f8f9fa; color: #495057; font-size: 16px; font-weight: 600; text-decoration: none; border: 1px solid #dee2e6; border-radius: 50px; padding: 10px 18px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.07); transition: all 0.2s ease-out; }
+        .back-to-report-landing:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); background-color: #e9ecef; text-decoration: none; }
+        .back-to-report-landing:active { transform: translateY(0); box-shadow: 0 2px 4px rgba(0,0,0,0.07); }
+        
+        .controls { margin:20px; padding:10px; background:white; border-radius:5px; box-shadow:0 0 10px rgba(0,0,0,.1); display:flex; flex-direction:column; gap:10px; }
+        .controls .top-row { display:flex; justify-content:center; width:100%; }
+        .controls .bottom-row { display:flex; justify-content:center; flex-wrap:wrap; }
+        .controls button, .controls a.button { padding:10px 20px; font-size:16px; cursor:pointer; border:1px solid #ccc; border-radius:5px; background-color:#007bff; color:white; margin:0 10px; transition:background-color .2s; font-family:'DFKai-SB','標楷體','BiauKai',serif; text-decoration:none; display:inline-block; }
+        .controls a.button:hover, .controls button:hover { background-color:#0056b3; }
+        .controls button[style*="background-color: #17a2b8"]:hover { background-color:#117a8b !important; }
+        .controls button.delete-active { background-color:#dc3545; border-color:#c82333; }
+        
+        .page { width:210mm; min-height:297mm; padding:12mm; margin:10px auto; border:1px #D3D3D3 solid; background:white; box-shadow:0 0 5px rgba(0,0,0,.1); box-sizing:border-box; font-size:11pt; }
+        .header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:15px; border-bottom:2px solid black; padding-bottom:8px; }
+        .firm-name { font-size:16pt; font-weight:bold; }
+        .report-title { font-size:20pt; font-weight:bold; }
+        .info { font-size:12pt; line-height:1.5; }
+        .info p { margin:4px 0; }
+        
+        table { width:100%; border-collapse:collapse; margin-top:10px; table-layout:auto; font-size:11pt; }
+        th, td { border:1px solid black; padding:3px; text-align:center; word-wrap:break-word; position:relative; }
+        th { background-color:#f2f2f2; }
+        .checkbox-cell { text-align:left; padding-left:10px; }
+        .checkbox-container { display:inline-block; position:relative; padding-left:20px; margin-right:5px; cursor:pointer; user-select:none; }
+        .checkbox-container input { opacity:0; }
+        .checkmark { position:absolute; top:0; left:0; height:14px; width:14px; background-color:white; border:1px solid #000; }
+        .checkbox-container input:checked~.checkmark { background-color:black; }
+        
+        .dragging-row, .dragging-col { opacity:.5; }
+        .dragging-row { background:#c8ebfb; cursor:grabbing; }
+        .dragging-col { background:#d4edda; }
+        body.delete-mode .draggable-header { cursor:crosshair; background-color:#fff0f0; border:2px dashed #dc3545; }
+        body.delete-mode .draggable-header:hover { background-color:#ffe0e0; }
+        body.delete-mode .draggable[data-user-added="true"] { cursor:crosshair; background-color:#fff0f0; }
+        body.delete-mode .draggable[data-user-added="true"]:hover { background-color:#ffe0e0; }
+        
+        .reminders { margin-top:15px; padding:8px; border:1px solid #333; font-weight:normal; }
+        .reminders ul { list-style:none; padding-left:0; margin:0; }
+        .reminders li { padding:3px 0; font-size:10pt; }
+        .status-description, .signature, .footer { margin-top:15px; font-weight:normal; }
+        .status-description div[data-editable=true] { border:1px solid #333; padding:6px; min-height:30px; }
+        .signature div { height:60px; border:1px solid #333; }
+        .footer { display:flex; justify-content:space-between; align-items:center; position:relative; }
+        .footer .center-text { position:absolute; left:50%; transform:translateX(-50%); }
+        [data-editable="true"] { font-family:'DFKai-SB','標楷體','BiauKai',serif; }
+        input, textarea, [contenteditable="true"] { font-family:'DFKai-SB','標楷體','BiauKai',serif; }
+
+        @media print {
+            body { background-color: white; margin: 0; padding: 0; }
+            .controls, .back-button-container { display: none; }
+            .page { margin: 0; border: none; box-shadow: none; width: 210mm; height: 297mm; padding: 12mm; box-sizing: border-box; page-break-after: avoid; overflow: hidden; position: relative; }
+            .header { transform-origin: top left; margin-bottom: 10px; border-bottom: 2px solid black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .firm-name { font-size: 16pt !important; }
+            .report-title { font-size: 20pt !important; }
+            .scalable-content { transform-origin: top left; width: 100%; }
+            [data-editable=true] { background-color: transparent; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            table { font-size: 9pt; border-collapse: collapse !important; border: 1px solid #000 !important; width: 100% !important; }
+            table * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            thead, tbody, tfoot, tr { border: 1px solid #000 !important; }
+            th, td { border: 1px solid #000 !important; padding: 3px !important; }
+            th { background-color: #f2f2f2 !important; }
+            #history-table, #main-table { border: 1px solid #000 !important; }
+            #history-table th, #history-table td, #main-table th, #main-table td { border: 1px solid #000 !important; }
+            .reminders { border: 1px solid #333 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .status-description div[data-editable=true] { border: 1px solid #333 !important; }
+            .signature div { border: 1px solid #333 !important; }
+            .checkmark { border: 1px solid black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .info { font-size: 9pt; }
+            .reminders, .status-description, .signature, .footer { font-size: 9pt; }
+            .reminders li { padding: 2px 0; }
+        }
+        @page { size: A4; margin: 0; }
+    </style>
+</head>
+<body>
+    <div class="back-button-container">
+        <a href="report_landing.html" class="back-to-report-landing">← 返回報表產出</a>
+    </div>
+
+    <div class="controls">
+        <div class="top-row">
+            <a href="https://service.mof.gov.tw/public/Data/statistic/std/zhtw/search.html" target="_blank" class="button">前往稅務行業標準分類暨同業利潤標準查詢系統</a>
+        </div>
+        <div class="bottom-row">
+            <button onclick="window.print()">儲存為 PDF / 列印</button>
+            <button onclick="exportToWord()" style="background-color: #17a2b8; border-color: #117a8b;">匯出 Word</button>
+            <button id="toggle-edit-mode" onclick="toggleEditMode()">編輯內文</button>
+            <button id="toggle-arrange-mode" onclick="toggleArrangeMode()">移動欄位位置</button>
+            <button onclick="addRow()">新增項目</button>
+            <button onclick="addColumn()">新增欄位</button>
+            <button id="toggle-delete-mode" onclick="toggleDeleteMode()">刪除欄位/項目</button>
+        </div>
+    </div>
+
+    <div class="page">
+        <div class="header">
+            <div class="firm-name" data-editable="true">世昕會計師事務所</div>
+            <div class="report-title" data-editable="true">114年度期中報告[所得額]</div>
+        </div>
+        
+        <div class="scalable-content">
+            <div class="info">
+                <p>客戶編號與名稱：<span data-editable="true">CL0039 詠德水電工程有限公司</span></p>
+                <p>行業代號：<span data-editable="true">4331-11水電工程→書審[7%] 所得額[8%] 同業利潤[9%] 成本逕決標準[19%]</span></p>
+                <p>聯絡人：<span data-editable="true">林小姐</span> 電話：<span data-editable="true">2656-1983</span> 傳真(信箱)：<span data-editable="true">04-26561994</span></p>
+            </div>
+            
+            <p style="margin-top: 10px; margin-bottom: 5px;">歷年營所稅申報紀錄：</p>
+            
+            <table id="history-table">
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">年度</th>
+                        <th style="width: 15%;">申報方式</th>
+                        <th style="width: 15%;">淨利率</th>
+                        <th style="width: 25%;">營所稅額</th>
+                        <th style="width: 15%;">核定</th>
+                        <th style="width: 20%;">說明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>113</td>
+                        <td data-editable="true">所得額</td>
+                        <td data-editable="true">7.57%</td>
+                        <td data-editable="true">$1,577,367</td>
+                        <td class="checkbox-cell">
+                            <label class="checkbox-container">YES<input type="checkbox"><span class="checkmark"></span></label>
+                            <label class="checkbox-container">NO<input type="checkbox"><span class="checkmark"></span></label>
+                        </td>
+                        <td data-editable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>112</td>
+                        <td data-editable="true">所得額</td>
+                        <td data-editable="true">7.76%</td>
+                        <td data-editable="true">$1,905,938</td>
+                        <td class="checkbox-cell">
+                            <label class="checkbox-container">YES<input type="checkbox"><span class="checkmark"></span></label>
+                            <label class="checkbox-container">NO<input type="checkbox"><span class="checkmark"></span></label>
+                        </td>
+                        <td data-editable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>111</td>
+                        <td data-editable="true">逕決</td>
+                        <td data-editable="true">6.08%</td>
+                        <td data-editable="true">$1,531,403</td>
+                        <td class="checkbox-cell">
+                            <label class="checkbox-container">YES<input type="checkbox"><span class="checkmark"></span></label>
+                            <label class="checkbox-container">NO<input type="checkbox"><span class="checkmark"></span></label>
+                        </td>
+                        <td data-editable="true"></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <table id="main-table">
+                <thead>
+                    <tr id="main-table-header-row">
+                        <th data-editable="true" style="width: 25%;">項目</th>
+                        <th class="draggable-header" data-editable="true" style="width: 18%;">1-6 月帳載數</th>
+                        <th class="draggable-header" data-editable="true" style="width: 18%;">114 年預估值</th>
+                        <th class="draggable-header" data-editable="true" style="width: 18%;">113 年申報數</th>
+                        <th class="draggable-header" data-editable="true" style="width: 21%;">備註</th>
+                    </tr>
+                </thead>
+                <tbody id="main-table-body">
+                    <tr class="draggable"><td><span data-editable="true">營業收入</span></td><td data-editable="true">49,141,049</td><td data-editable="true">98,300,000</td><td data-editable="true">104,080,182</td><td data-editable="true"></td></tr>
+                    <tr class="draggable"><td><span data-editable="true">營業成本</span></td><td data-editable="true">34,428,137</td><td data-editable="true">77,657,000</td><td data-editable="true">82,305,003</td><td data-editable="true"></td></tr>
+                    <tr class="draggable"><td><span data-editable="true">毛利</span></td><td data-editable="true">14,712,912</td><td data-editable="true">20,643,000</td><td data-editable="true">21,775,179</td><td data-editable="true">-4323萬</td></tr>
+                    <tr class="draggable"><td><span data-editable="true">毛利率=</span></td><td data-editable="true">29.94%</td><td data-editable="true">21%</td><td data-editable="true">20.92%</td><td data-editable="true"></td></tr>
+                    <tr class="draggable"><td><span data-editable="true">營業費用: 一般</span></td><td data-editable="true">2,865,940</td><td data-editable="true"></td><td data-editable="true">6,894,071</td><td data-editable="true"></td></tr>
+                    <tr class="draggable"><td><span data-editable="true">營業費用: 折舊</span></td><td data-editable="true">283,014</td><td data-editable="true"></td><td data-editable="true">654,304</td><td data-editable="true"></td></tr>
+                    <tr class="draggable"><td><span data-editable="true">營業費用: 薪資</span></td><td data-editable="true">1,330,920</td><td data-editable="true"></td><td data-editable="true">2,661,840</td><td data-editable="true"></td></tr>
+                    <tr class="draggable"><td><span data-editable="true">營業費用: 其他</span></td><td data-editable="true">1,283,893</td><td data-editable="true"></td><td data-editable="true">3,238,549</td><td data-editable="true">-722萬</td></tr>
+                    <tr class="draggable"><td><span data-editable="true">(±)非營業收支</span></td><td data-editable="true">+16056</td><td data-editable="true">+32112</td><td data-editable="true">+101526</td><td data-editable="true"></td></tr>
+                    <tr class="draggable"><td><span data-editable="true"></span></td><td data-editable="true">-407358</td><td data-editable="true">-635938</td><td data-editable="true">-541105</td><td data-editable="true"></td></tr>
+                    <tr class="draggable"><td><span data-editable="true">淨利</span></td><td data-editable="true">8,557,843</td><td data-editable="true">7,260,174</td><td data-editable="true">7,886,836</td><td data-editable="true"></td></tr>
+                    <tr class="draggable"><td><span data-editable="true">淨利率=</span></td><td data-editable="true">17.40%</td><td data-editable="true">7.39%</td><td data-editable="true">7.57%</td><td data-editable="true"></td></tr>
+                    <tr class="draggable"><td><span data-editable="true">預估營所稅額 20%</span></td><td data-editable="true"></td><td data-editable="true">$1,452,035</td><td data-editable="true"></td><td data-editable="true"></td></tr>
+                </tbody>
+            </table>
+            
+            <div class="reminders">
+                提醒與建議：
+                <ul>
+                    <li data-editable="true">★ 以上114年數據採所得額方式申報，全年尚缺憑證總額約 5,045 萬元。</li>
+                    <li data-editable="true">★ [公司] 全年營業額 9,830 萬元，若不補足所缺憑證，調帳時需補稅 196,599 元。</li>
+                    <li data-editable="true">□ 貴公司營業稅申報之進銷項金額差異達Δ萬元，請特別注意憑證之取存，以免受罰。</li>
+                </ul>
+            </div>
+            
+            <div class="status-description">
+                狀況說明：
+                <div data-editable="true">因應洗錢防制法請檢視資金往來並保存相關文件，以免相關單位通報異常。若為漏進漏銷將會有罰則產生，請注意自身相關權益以免受罰。</div>
+            </div>
+            
+            <div class="signature">
+                <p>客戶意見與簽認：</p>
+                <div style="border: 1px solid #333; margin-top: 10px;"></div>
+            </div>
+            
+            <div class="footer">
+                <span>覆核：</span>
+                <span class="center-text">記帳員：</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===================================================================
+        // ✨ 匯出 Word 功能（優化版面）
+        // ===================================================================
+        function exportToWord() {
+            try {
+                const pageClone = document.querySelector('.page').cloneNode(true);
+                
+                pageClone.querySelectorAll('[contenteditable="true"]').forEach(el => {
+                    el.removeAttribute('contenteditable');
+                    el.removeAttribute('data-editable');
+                });
+                
+                pageClone.querySelectorAll('.checkbox-container').forEach(container => {
+                    const checkbox = container.querySelector('input[type="checkbox"]');
+                    const label = container.childNodes[0].textContent;
+                    const isChecked = checkbox.checked;
+                    const symbol = isChecked ? '☑' : '☐';
+                    container.innerHTML = `${symbol} ${label}`;
+                });
+                
+                const header = pageClone.querySelector('.header');
+                if (header) {
+                    const firmName = header.querySelector('.firm-name')?.textContent || '';
+                    const reportTitle = header.querySelector('.report-title')?.textContent || '';
+                    header.innerHTML = `
+                        <table style="width:100%; border:none; border-bottom:2px solid black; margin-bottom:5px;">
+                            <tr>
+                                <td style="border:none; text-align:left; font-size:14pt; font-weight:bold; padding:3px 0;">${firmName}</td>
+                                <td style="border:none; text-align:right; font-size:16pt; font-weight:bold; padding:3px 0;">${reportTitle}</td>
+                            </tr>
+                        </table>
+                    `;
+                }
+                
+                const htmlContent = `
+                    <html xmlns:o='urn:schemas-microsoft-com:office:office' 
+                          xmlns:w='urn:schemas-microsoft-com:office:word' 
+                          xmlns='http://www.w3.org/TR/REC-html40'>
+                    <head>
+                        <meta charset='utf-8'>
+                        <title>年度報告</title>
+                        <!--[if gte mso 9]>
+                        <xml>
+                            <w:WordDocument>
+                                <w:View>Print</w:View>
+                                <w:Zoom>100</w:Zoom>
+                                <w:DoNotOptimizeForBrowser/>
+                            </w:WordDocument>
+                        </xml>
+                        <![endif]-->
+                        <style>
+                            @page { size: 21cm 29.7cm; margin: 1.5cm; }
+                            * { margin: 0; padding: 0; box-sizing: border-box; }
+                            body { font-family: '標楷體', 'DFKai-SB', '新細明體', serif; font-size: 9pt; line-height: 1.3; }
+                            .header { margin-bottom: 8px; page-break-after: avoid; }
+                            .info p { margin: 2px 0; font-size: 9pt; line-height: 1.3; }
+                            p { margin: 3px 0; font-size: 9pt; }
+                            table { width: 100%; border-collapse: collapse; margin: 5px 0; font-size: 8pt; }
+                            th, td { border: 1px solid black; padding: 2px 3px; text-align: center; line-height: 1.2; }
+                            th { background-color: #f2f2f2; font-weight: bold; font-size: 8pt; }
+                            .checkbox-cell { text-align: left; padding-left: 5px; font-size: 8pt; }
+                            .reminders { margin-top: 8px; padding: 5px; border: 1px solid #333; font-size: 8pt; }
+                            .reminders ul { list-style: none; padding-left: 0; margin: 2px 0; }
+                            .reminders li { padding: 1px 0; font-size: 8pt; line-height: 1.3; }
+                            .status-description { margin-top: 8px; }
+                            .status-description div { border: 1px solid #333; padding: 5px; min-height: 25px; font-size: 8pt; line-height: 1.3; }
+                            .signature { margin-top: 8px; }
+                            .signature p { margin-bottom: 2px; font-size: 9pt; }
+                            .signature div { height: 40px; border: 1px solid #333; margin-top: 3px; }
+                            .footer { margin-top: 8px; font-size: 9pt; }
+                        </style>
+                    </head>
+                    <body>${pageClone.innerHTML}</body>
+                    </html>
+                `;
+                
+                const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
+                const reportTitle = document.querySelector('.report-title').textContent.trim();
+                const fileName = `${reportTitle}.doc`;
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                
+                alert('✓ Word 檔案已下載！\n\n提示：開啟後如提示「檔案格式不符」，請點擊「是」繼續開啟。');
+            } catch (error) {
+                console.error('匯出 Word 時發生錯誤:', error);
+                alert('匯出失敗：' + error.message);
+            }
+        }
+
+        // ===================================================================
+        // 頁面功能
+        // ===================================================================
+        let isDeleteMode = false, isEditMode = false, isArrangeMode = false;
+        const deleteModeButton = document.getElementById('toggle-delete-mode');
+        const editModeButton = document.getElementById('toggle-edit-mode');
+        const arrangeModeButton = document.getElementById('toggle-arrange-mode');
+        const mainTableHeaderRow = document.getElementById('main-table-header-row');
+        const mainTableBody = document.getElementById('main-table-body');
+        let draggedColumn = null;
+
+        function updatePageMode() {
+            document.body.classList.toggle('delete-mode', isDeleteMode);
+            document.body.classList.toggle('edit-mode', isEditMode);
+            document.body.classList.toggle('arrange-mode', isArrangeMode);
+            deleteModeButton.classList.toggle('delete-active', isDeleteMode);
+            editModeButton.classList.toggle('edit-active', isEditMode);
+            arrangeModeButton.classList.toggle('arrange-active', isArrangeMode);
+            document.querySelectorAll('[data-editable="true"]').forEach(el => { el.contentEditable = isEditMode; });
+            document.querySelectorAll('.draggable, .draggable-header').forEach(el => { el.draggable = isArrangeMode; });
+        }
+
+        function toggleEditMode() { isEditMode = !isEditMode; if (isEditMode) { isDeleteMode = false; isArrangeMode = false; } updatePageMode(); }
+        function toggleDeleteMode() { isDeleteMode = !isDeleteMode; if (isDeleteMode) { isEditMode = false; isArrangeMode = false; } updatePageMode(); }
+        function toggleArrangeMode() { isArrangeMode = !isArrangeMode; if (isArrangeMode) { isEditMode = false; isDeleteMode = false; } updatePageMode(); }
+
+        function addRow() {
+            const headerCells = mainTableHeaderRow.cells.length;
+            const newRow = document.createElement("tr");
+            newRow.className = "draggable";
+            newRow.dataset.userAdded = "true";
+            let cellHTML = `<td><span data-editable="true">新項目</span></td>`;
+            for (let i = 1; i < headerCells; i++) { cellHTML += '<td data-editable="true"></td>'; }
+            newRow.innerHTML = cellHTML;
+            mainTableBody.appendChild(newRow);
+            addRowDragEvents(newRow);
+            addRowClickEvent(newRow);
+            updatePageMode();
+        }
+
+        function addRowClickEvent(row) {
+            row.addEventListener("click", function(e) {
+                if (isDeleteMode && this.dataset.userAdded === "true") {
+                    if (confirm("確定要刪除此項目嗎？")) { this.remove(); }
+                }
+            });
+        }
+
+        function addColumn() {
+            const mainTable = document.getElementById("main-table");
+            const newHeader = document.createElement("th");
+            newHeader.className = "draggable-header";
+            newHeader.dataset.editable = "true";
+            newHeader.dataset.userAdded = "true";
+            newHeader.innerText = "新欄位";
+            newHeader.style.width = "18%";
+            mainTableHeaderRow.appendChild(newHeader);
+            mainTable.querySelectorAll("tbody tr").forEach(row => {
+                const newCell = document.createElement("td");
+                newCell.dataset.editable = "true";
+                row.appendChild(newCell);
+            });
+            initializeAllHeaderEvents();
+            updatePageMode();
+        }
+
+        function performColumnDeletion(columnIndex) {
+            const headerCell = mainTableHeaderRow.cells[columnIndex];
+            if (headerCell && headerCell.dataset.userAdded === "true") {
+                document.querySelectorAll("#main-table tr").forEach(row => {
+                    if (row.cells[columnIndex]) { row.deleteCell(columnIndex); }
+                });
+            } else {
+                alert("只能刪除您新增的欄位！");
+            }
+        }
+
+        function handleColumnClick(event) {
+            if (isDeleteMode) {
+                event.preventDefault();
+                performColumnDeletion(event.currentTarget.cellIndex);
+                toggleDeleteMode();
+            }
+        }
+
+        function addRowDragEvents(row) {
+            row.addEventListener("dragstart", () => setTimeout(() => row.classList.add("dragging-row"), 0));
+            row.addEventListener("dragend", () => row.classList.remove("dragging-row"));
+        }
+
+        mainTableBody.addEventListener("dragover", e => {
+            if (!isArrangeMode) return;
+            e.preventDefault();
+            const afterElement = getDragAfterElement(mainTableBody, e.clientY);
+            const draggingRow = document.querySelector(".dragging-row");
+            if (draggingRow) {
+                if (afterElement == null) {
+                    mainTableBody.appendChild(draggingRow);
+                } else {
+                    mainTableBody.insertBefore(draggingRow, afterElement);
+                }
+            }
+        });
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll("tr:not(.dragging-row)")];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function clearDropIndicators() {
+            document.querySelectorAll('.draggable-header').forEach(th => {
+                th.classList.remove('drop-target-left', 'drop-target-right');
+            });
+        }
+
+        function handleDragStart(e) {
+            if (!isArrangeMode) {
+                e.preventDefault();
+                return;
+            }
+            draggedColumn = e.target;
+            setTimeout(() => draggedColumn.classList.add("dragging-col"), 0);
+        }
+
+        function handleDragEnd() {
+            if (draggedColumn) {
+                draggedColumn.classList.remove("dragging-col");
+            }
+            draggedColumn = null;
+            clearDropIndicators();
+        }
+
+        function handleDragOver(e) {
+            if (!isArrangeMode) return;
+            e.preventDefault();
+            const targetHeader = e.target.closest('th.draggable-header');
+            if (!targetHeader || !draggedColumn || targetHeader === draggedColumn) {
+                clearDropIndicators();
+                return;
+            }
+            clearDropIndicators();
+            const rect = targetHeader.getBoundingClientRect();
+            const midpoint = rect.left + rect.width / 2;
+            if (e.clientX < midpoint) {
+                targetHeader.classList.add('drop-target-left');
+            } else {
+                targetHeader.classList.add('drop-target-right');
+            }
+        }
+
+        function handleDrop(e) {
+            if (!isArrangeMode) return;
+            e.preventDefault();
+            if (!draggedColumn) return;
+            const targetHeader = e.target.closest('th.draggable-header');
+            if (!targetHeader || targetHeader === draggedColumn) {
+                handleDragEnd();
+                return;
+            }
+            const fromIndex = draggedColumn.cellIndex;
+            let toIndex = targetHeader.cellIndex;
+            const rect = targetHeader.getBoundingClientRect();
+            const midpoint = rect.left + rect.width / 2;
+            if (e.clientX > midpoint) {
+                toIndex++;
+            }
+            if (fromIndex < toIndex) {
+                toIndex--;
+            }
+            moveColumn(fromIndex, toIndex);
+            handleDragEnd();
+        }
+
+        function moveColumn(fromIndex, toIndex) {
+            const table = document.getElementById("main-table");
+            for (const row of table.rows) {
+                const cell = row.cells[fromIndex];
+                if (cell) {
+                    row.insertBefore(cell, row.cells[toIndex] || null);
+                }
+            }
+        }
+
+        function initializeAllHeaderEvents() {
+            document.querySelectorAll(".draggable-header").forEach(header => {
+                header.removeEventListener("click", handleColumnClick);
+                header.removeEventListener("dragstart", handleDragStart);
+                header.removeEventListener("dragend", handleDragEnd);
+                header.addEventListener("click", handleColumnClick);
+                header.addEventListener("dragstart", handleDragStart);
+                header.addEventListener("dragend", handleDragEnd);
+            });
+            mainTableHeaderRow.removeEventListener("dragover", handleDragOver);
+            mainTableHeaderRow.removeEventListener("drop", handleDrop);
+            mainTableHeaderRow.addEventListener("dragover", handleDragOver);
+            mainTableHeaderRow.addEventListener("drop", handleDrop);
+        }
+
+        window.addEventListener('beforeprint', () => {
+            const page = document.querySelector('.page');
+            const scalableContent = document.querySelector('.scalable-content');
+            const header = document.querySelector('.header');
+            if (!page || !scalableContent || !header) return;
+            const pageHeightMM = 297;
+            const paddingMM = 12;
+            const availableHeightMM = pageHeightMM - (paddingMM * 2);
+            const availableHeightPx = availableHeightMM * 3.7795;
+            const headerHeight = header.offsetHeight;
+            const contentHeight = scalableContent.scrollHeight;
+            const availableForContent = availableHeightPx - headerHeight;
+            if (contentHeight > availableForContent) {
+                const scale = availableForContent / contentHeight;
+                scalableContent.style.transform = `scale(${scale})`;
+                scalableContent.style.transformOrigin = 'top left';
+                scalableContent.style.height = `${contentHeight}px`;
+                scalableContent.style.width = `${100 / scale}%`;
+            }
+        });
+
+        window.addEventListener('afterprint', () => {
+            const scalableContent = document.querySelector('.scalable-content');
+            if (scalableContent) {
+                scalableContent.style.transform = '';
+                scalableContent.style.height = '';
+                scalableContent.style.width = '';
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll("#main-table-body tr").forEach(row => {
+                row.classList.add("draggable");
+                addRowDragEvents(row);
+            });
+            initializeAllHeaderEvents();
+            updatePageMode();
+        });
+    </script>
+</body>
+</html>

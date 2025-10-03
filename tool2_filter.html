@@ -6,7 +6,7 @@
     <title>工具二：資料抽取</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* ================== CSS 隔離與覆寫 ================== */
+        /* CSS 隔離與覆寫 */
         body.tool-page-body {
             display: block;
             padding: 20px;
@@ -28,7 +28,7 @@
             border-radius: 5px;
         }
 
-        /* ================== 工具頁面自身樣式 ================== */
+        /* 工具頁面自身樣式 */
         h1, h2, h3 { text-align: center; color: #333; }
         h3 { font-weight: normal; color: #555; }
         .tool-section { border: 2px solid #007BFF; border-radius: 10px; padding: 20px; margin: 0 auto; max-width: 1000px; background-color: #fff; }
@@ -70,58 +70,212 @@
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        // Javascript 程式碼維持不變
-        function isValidRow(row) { if (!row || Object.keys(row).length === 0) return false; return Object.values(row).some(val => val !== null && val !== undefined && String(val).trim() !== ''); }
-        function readSheetData(worksheet) { if (!worksheet || !worksheet['!ref']) return []; const range = XLSX.utils.decode_range(worksheet['!ref']); const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null, raw: false, range: range }); return jsonData.filter(isValidRow); }
+        // 工具函式
+        function isValidRow(row) { 
+            if (!row || Object.keys(row).length === 0) return false; 
+            return Object.values(row).some(val => val !== null && val !== undefined && String(val).trim() !== ''); 
+        }
+        
+        function readSheetData(worksheet) { 
+            if (!worksheet || !worksheet['!ref']) return []; 
+            const range = XLSX.utils.decode_range(worksheet['!ref']); 
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null, raw: false, range: range }); 
+            return jsonData.filter(isValidRow); 
+        }
+        
+        // ✨ 進度顯示函式
+        function updateProgress(current, total, message = '處理中') {
+            const percent = Math.round((current / total) * 100);
+            const filterStatus = document.getElementById('filterStatus');
+            
+            filterStatus.innerHTML = `
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: ${percent}%"></div>
+                    <div class="progress-text">
+                        ${message}: ${current} / ${total} (${percent}%)
+                    </div>
+                </div>
+            `;
+        }
+        
+        function showCompleteMessage(message, details = '') {
+            const filterStatus = document.getElementById('filterStatus');
+            filterStatus.innerHTML = `
+                <div class="progress-complete">
+                    ✓ ${message}
+                    ${details ? `<br><small>${details}</small>` : ''}
+                </div>
+            `;
+        }
+        
+        function showErrorMessage(message) {
+            const filterStatus = document.getElementById('filterStatus');
+            filterStatus.innerHTML = `
+                <div class="progress-error">
+                    ✗ ${message}
+                </div>
+            `;
+        }
+        
+        // 主程式
         (function() {
-            const dropZoneFilter = document.getElementById('dropZoneFilter'); const fileInputFilter = document.getElementById('fileInputFilter'); const filterFilesName = document.getElementById('filterFilesName'); const sheetListFilter = document.getElementById('sheetListFilter'); const keywordInput = document.getElementById('keywordInput'); const headerSelectFilter = document.getElementById('headerSelectFilter'); const filterButton = document.getElementById('filterButton'); const filterStatus = document.getElementById('filterStatus'); let allUploadedDataForFilter = []; let workbooksFilter = [];
+            const dropZoneFilter = document.getElementById('dropZoneFilter'); 
+            const fileInputFilter = document.getElementById('fileInputFilter'); 
+            const filterFilesName = document.getElementById('filterFilesName'); 
+            const sheetListFilter = document.getElementById('sheetListFilter'); 
+            const keywordInput = document.getElementById('keywordInput'); 
+            const headerSelectFilter = document.getElementById('headerSelectFilter'); 
+            const filterButton = document.getElementById('filterButton'); 
+            const filterStatus = document.getElementById('filterStatus'); 
+            
+            let allUploadedDataForFilter = []; 
+            let workbooksFilter = [];
+            
             dropZoneFilter.addEventListener('click', () => fileInputFilter.click());
             ['dragover', 'dragenter'].forEach(ev => dropZoneFilter.addEventListener(ev, (e) => { e.preventDefault(); dropZoneFilter.classList.add('hover'); }));
             ['dragleave', 'drop'].forEach(ev => dropZoneFilter.addEventListener(ev, (e) => { e.preventDefault(); dropZoneFilter.classList.remove('hover'); }));
             dropZoneFilter.addEventListener('drop', (e) => { if (e.dataTransfer.files.length > 0) { fileInputFilter.files = e.dataTransfer.files; handleFilterFiles(e.dataTransfer.files); } });
             fileInputFilter.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFilterFiles(e.target.files); });
+            
             async function handleFilterFiles(files) {
-                filterFilesName.textContent = Array.from(files).map(f => f.name).join(', '); filterStatus.textContent = `正在讀取 ${files.length} 個檔案...`;
-                const readPromises = Array.from(files).map(file => new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = e => { try { resolve({ name: file.name, workbook: XLSX.read(new Uint8Array(e.target.result), { type: 'array' }) }); } catch(err) { reject(err); }}; reader.readAsArrayBuffer(file); }));
-                try { workbooksFilter = await Promise.all(readPromises); displaySheetListForFilter(); } catch(error) { filterStatus.textContent = `讀取檔案失敗: ${error.message}`; }
+                filterFilesName.textContent = Array.from(files).map(f => f.name).join(', '); 
+                filterStatus.textContent = `正在讀取 ${files.length} 個檔案...`;
+                
+                const readPromises = Array.from(files).map(file => new Promise((resolve, reject) => { 
+                    const reader = new FileReader(); 
+                    reader.onload = e => { 
+                        try { 
+                            resolve({ name: file.name, workbook: XLSX.read(new Uint8Array(e.target.result), { type: 'array' }) }); 
+                        } catch(err) { 
+                            reject(err); 
+                        }
+                    }; 
+                    reader.readAsArrayBuffer(file); 
+                }));
+                
+                try { 
+                    workbooksFilter = await Promise.all(readPromises); 
+                    displaySheetListForFilter(); 
+                } catch(error) { 
+                    showErrorMessage(`讀取檔案失敗: ${error.message}`);
+                }
             }
+            
             function displaySheetListForFilter() {
-                sheetListFilter.innerHTML = ''; sheetListFilter.style.display = 'block';
+                sheetListFilter.innerHTML = ''; 
+                sheetListFilter.style.display = 'block';
+                
                 workbooksFilter.forEach(wbObj => {
-                    const header = document.createElement('h4'); header.textContent = wbObj.name; sheetListFilter.appendChild(header);
+                    const header = document.createElement('h4'); 
+                    header.textContent = wbObj.name; 
+                    sheetListFilter.appendChild(header);
+                    
                     wbObj.workbook.SheetNames.forEach((sheetName, index) => {
-                        const label = document.createElement('label'); const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.value = sheetName; checkbox.checked = (index === 0); checkbox.dataset.filename = wbObj.name; checkbox.onchange = updateDataForFilter; label.appendChild(checkbox); label.appendChild(document.createTextNode(` ${sheetName}`)); sheetListFilter.appendChild(label);
+                        const label = document.createElement('label'); 
+                        const checkbox = document.createElement('input'); 
+                        checkbox.type = 'checkbox'; 
+                        checkbox.value = sheetName; 
+                        checkbox.checked = (index === 0); 
+                        checkbox.dataset.filename = wbObj.name; 
+                        checkbox.onchange = updateDataForFilter; 
+                        label.appendChild(checkbox); 
+                        label.appendChild(document.createTextNode(` ${sheetName}`)); 
+                        sheetListFilter.appendChild(label);
                     });
                 });
+                
                 updateDataForFilter();
             }
+            
             function updateDataForFilter() {
-                let combinedData = []; const checkedBoxes = sheetListFilter.querySelectorAll('input:checked');
-                checkedBoxes.forEach(cb => { const fileName = cb.dataset.filename; const sheetName = cb.value; const wbObj = workbooksFilter.find(w => w.name === fileName); if(wbObj) { const worksheet = wbObj.workbook.Sheets[sheetName]; combinedData = combinedData.concat(readSheetData(worksheet)); } });
+                let combinedData = []; 
+                const checkedBoxes = sheetListFilter.querySelectorAll('input:checked');
+                
+                checkedBoxes.forEach(cb => { 
+                    const fileName = cb.dataset.filename; 
+                    const sheetName = cb.value; 
+                    const wbObj = workbooksFilter.find(w => w.name === fileName); 
+                    if(wbObj) { 
+                        const worksheet = wbObj.workbook.Sheets[sheetName]; 
+                        combinedData = combinedData.concat(readSheetData(worksheet)); 
+                    } 
+                });
+                
                 allUploadedDataForFilter = combinedData;
-                if (allUploadedDataForFilter.length > 0) { const headers = Object.keys(allUploadedDataForFilter[0]); headerSelectFilter.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join(''); filterButton.disabled = false; filterStatus.textContent = `資料淨化完成！共讀取 ${allUploadedDataForFilter.length} 筆有效資料，請輸入關鍵字篩選。`; } else { filterButton.disabled = true; filterStatus.textContent = '請至少選擇一個包含資料的工作表。'; }
+                
+                if (allUploadedDataForFilter.length > 0) { 
+                    const headers = Object.keys(allUploadedDataForFilter[0]); 
+                    headerSelectFilter.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join(''); 
+                    filterButton.disabled = false; 
+                    filterStatus.textContent = `資料淨化完成！共讀取 ${allUploadedDataForFilter.length} 筆有效資料，請輸入關鍵字篩選。`; 
+                } else { 
+                    filterButton.disabled = true; 
+                    filterStatus.textContent = '請至少選擇一個包含資料的工作表。'; 
+                }
             }
-            filterButton.addEventListener('click', () => {
-                const keyword = keywordInput.value.trim().toLowerCase(); const selectedHeader = headerSelectFilter.value; if (!keyword) { filterStatus.textContent = '錯誤：請輸入要篩選的關鍵字。'; return; } if (!selectedHeader) { filterStatus.textContent = '錯誤：請選擇要篩選的標題欄位。'; return; }
-                filterStatus.textContent = '正在篩選資料...'; const filteredData = []; const remainingData = [];
-                for (const row of allUploadedDataForFilter) { const cellValue = row[selectedHeader]; if (cellValue && String(cellValue).toLowerCase().includes(keyword)) { filteredData.push(row); } else { remainingData.push(row); } }
-                filterStatus.textContent = '正在產生 Excel 檔案...';
-                // ▼▼▼ START: 修改後的程式碼 ▼▼▼
+            
+            // ✨ 加入進度顯示的篩選功能
+            filterButton.addEventListener('click', async () => {
+                const keyword = keywordInput.value.trim().toLowerCase(); 
+                const selectedHeader = headerSelectFilter.value; 
+                
+                if (!keyword) { 
+                    showErrorMessage('錯誤：請輸入要篩選的關鍵字。');
+                    return; 
+                } 
+                if (!selectedHeader) { 
+                    showErrorMessage('錯誤：請選擇要篩選的標題欄位。');
+                    return; 
+                }
+                
+                // 開始處理
+                updateProgress(0, allUploadedDataForFilter.length, '正在篩選資料');
+                await new Promise(r => setTimeout(r, 0));
+                
+                const filteredData = []; 
+                const remainingData = [];
+                
+                for (let i = 0; i < allUploadedDataForFilter.length; i++) {
+                    const row = allUploadedDataForFilter[i];
+                    const cellValue = row[selectedHeader]; 
+                    
+                    if (cellValue && String(cellValue).toLowerCase().includes(keyword)) { 
+                        filteredData.push(row); 
+                    } else { 
+                        remainingData.push(row); 
+                    }
+                    
+                    // 每 100 筆更新一次進度
+                    if (i % 100 === 0 || i === allUploadedDataForFilter.length - 1) {
+                        updateProgress(i + 1, allUploadedDataForFilter.length, '篩選中');
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+                }
+                
+                // 產生檔案
+                updateProgress(allUploadedDataForFilter.length, allUploadedDataForFilter.length, '正在產生 Excel 檔案');
+                await new Promise(r => setTimeout(r, 100));
+                
                 const exportOptions = { bookType: 'xlsx', bookSST: true, type: 'binary' };
+                
                 if (filteredData.length > 0) { 
                     const wbFiltered = XLSX.utils.book_new(); 
                     const wsFiltered = XLSX.utils.json_to_sheet(filteredData); 
                     XLSX.utils.book_append_sheet(wbFiltered, wsFiltered, 'Filtered Data'); 
                     XLSX.writeFile(wbFiltered, 'filtered_data.xlsx', exportOptions); 
                 }
+                
                 if (remainingData.length > 0) { 
                     const wbRemaining = XLSX.utils.book_new(); 
                     const wsRemaining = XLSX.utils.json_to_sheet(remainingData); 
                     XLSX.utils.book_append_sheet(wbRemaining, wsRemaining, 'Remaining Data'); 
                     XLSX.writeFile(wbRemaining, 'remaining_data.xlsx', exportOptions); 
                 }
-                // ▲▲▲ END: 修改後的程式碼 ▲▲▲
-                filterStatus.innerHTML = `篩選完成！<br><b>符合條件的資料共 ${filteredData.length} 筆，已匯出為 filtered_data.xlsx。</b><br><b>剩餘的資料共 ${remainingData.length} 筆，已匯出為 remaining_data.xlsx。</b>`;
+                
+                showCompleteMessage(
+                    '篩選完成！',
+                    `符合條件的資料共 ${filteredData.length} 筆，已匯出為 filtered_data.xlsx。<br>剩餘的資料共 ${remainingData.length} 筆，已匯出為 remaining_data.xlsx。`
+                );
             });
         })();
     </script>
