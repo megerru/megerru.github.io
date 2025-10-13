@@ -159,6 +159,14 @@
             border-radius: 4px;
             color: #c0392b;
         }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            color: #856404;
+        }
         .hidden {
             display: none;
         }
@@ -292,7 +300,7 @@
     <div class="container">
         <div class="header">
             <h1>💱 匯率查詢換算系統</h1>
-            <p>台灣銀行 × 第一銀行 歷史匯率查詢</p>
+            <p>台灣銀行 × 第一銀行 歷史牌告匯率</p>
         </div>
 
         <div class="content">
@@ -326,6 +334,7 @@
             </div>
 
             <div id="error" class="error hidden"></div>
+            <div id="warning" class="warning hidden"></div>
 
             <div id="result-container" class="hidden">
                 <h2 id="result-title"></h2>
@@ -410,10 +419,59 @@
         function clearDisplay() {
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('error').classList.add('hidden');
+            document.getElementById('warning').classList.add('hidden');
             document.getElementById('result-container').classList.add('hidden');
             document.querySelector('#rate-table thead').innerHTML = '';
             document.querySelector('#rate-table tbody').innerHTML = '';
             currentRatesData = null;
+        }
+
+        // 多個CORS代理備援
+        const CORS_PROXIES = [
+            (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+            (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        ];
+
+        async function fetchWithProxy(url, retryCount = 0) {
+            if (retryCount >= CORS_PROXIES.length) {
+                throw new Error('所有代理服務均無法連線,請稍後再試');
+            }
+
+            try {
+                const proxyUrl = CORS_PROXIES[retryCount](url);
+                console.log(`嘗試使用代理 ${retryCount + 1}:`, proxyUrl);
+                
+                const response = await fetch(proxyUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    },
+                    signal: AbortSignal.timeout(10000) // 10秒超時
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                // 處理不同代理的回應格式
+                let htmlContent;
+                const contentType = response.headers.get('content-type');
+                
+                if (contentType && contentType.includes('application/json')) {
+                    const json = await response.json();
+                    htmlContent = json.contents || json;
+                } else {
+                    htmlContent = await response.text();
+                }
+                
+                return htmlContent;
+            } catch (error) {
+                console.error(`代理 ${retryCount + 1} 失敗:`, error);
+                
+                // 嘗試下一個代理
+                return fetchWithProxy(url, retryCount + 1);
+            }
         }
 
         async function fetchRates(bank, date) {
@@ -442,7 +500,16 @@
 
             } catch (error) {
                 console.error('查詢錯誤:', error);
-                showError(`查詢失敗:${error.message}`);
+                
+                let errorMessage = '查詢失敗:';
+                if (error.message.includes('代理服務')) {
+                    errorMessage += '<br>• 無法連線到銀行網站<br>• 請檢查網路連線<br>• 或稍後再試';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                showError(errorMessage);
+                showWarning('提示:如果持續無法查詢,建議直接前往銀行官網查看牌告匯率');
             } finally {
                 loadingDiv.classList.add('hidden');
                 btn.disabled = false;
@@ -476,6 +543,12 @@
             const errorDiv = document.getElementById('error');
             errorDiv.innerHTML = message;
             errorDiv.classList.remove('hidden');
+        }
+
+        function showWarning(message) {
+            const warningDiv = document.getElementById('warning');
+            warningDiv.innerHTML = message;
+            warningDiv.classList.remove('hidden');
         }
 
         // ============ 計算機功能 ============
@@ -544,16 +617,10 @@
 
         async function fetchBOTRates(date) {
             const targetUrl = `https://rate.bot.com.tw/xrt/history/${date}`;
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-            
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error('網路連線錯誤');
-
-            const data = await response.json();
-            if (!data.contents) throw new Error('無法取得資料');
+            const htmlContent = await fetchWithProxy(targetUrl);
 
             const parser = new DOMParser();
-            const doc = parser.parseFromString(data.contents, 'text/html');
+            const doc = parser.parseFromString(htmlContent, 'text/html');
             const table = doc.querySelector('table.table-hover');
             
             if (!table) return null;
@@ -588,16 +655,10 @@
         async function fetchFirstBankRates(date) {
             const urlDate = date.replace(/-/g, '');
             const targetUrl = `https://www.firstbank.com.tw/sites/fcb/ForExgRateHis?searchDate=${urlDate}&setLang=2`;
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-            
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error('網路連線錯誤');
-
-            const data = await response.json();
-            if (!data.contents) throw new Error('無法取得資料');
+            const htmlContent = await fetchWithProxy(targetUrl);
 
             const parser = new DOMParser();
-            const doc = parser.parseFromString(data.contents, 'text/html');
+            const doc = parser.parseFromString(htmlContent, 'text/html');
             const table = doc.querySelector('div.table-wrapper table');
             
             if (!table) return null;
