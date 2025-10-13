@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>exchange rate</title>
+    <title>excehage rate</title>
     
     <style>
         * {
@@ -251,10 +251,9 @@
             margin-bottom: 8px;
         }
         .calc-result-value {
-            font-size: 36px;
+            font-size: 32px;
             font-weight: 700;
             color: #27ae60;
-            font-family: 'Courier New', monospace;
         }
         .rate-info {
             margin-top: 10px;
@@ -293,14 +292,14 @@
     <div class="container">
         <div class="header">
             <h1>💱 台灣銀行匯率查詢</h1>
-            <p>輸入台幣 → 自動換算外幣金額</p>
+            <p>輸入外幣 → 自動計算台幣金額</p>
         </div>
 
         <div class="content">
             <div class="info-box">
                 <p><strong>使用說明:</strong></p>
                 <p>• 日期格式:民國年月日共7位數字,例如:114年7月14日 → <strong>1140714</strong></p>
-                <p>• 查詢成功後，輸入台幣金額即可自動換算成外幣</p>
+                <p>• 查詢成功後，輸入外幣金額即可自動計算需付台幣</p>
             </div>
 
             <div class="controls">
@@ -332,7 +331,7 @@
                 <div class="calculator-section">
                     <div class="calculator-title">
                         💳 刷卡消費計算機
-                        <span style="font-size: 14px; font-weight: 400; color: #7f8c8d;">(輸入台幣金額，自動算出外幣)</span>
+                        <span style="font-size: 14px; font-weight: 400; color: #7f8c8d;">(自動使用即期賣出匯率)</span>
                     </div>
                     <div class="calculator-grid">
                         <div class="calc-input-group">
@@ -342,13 +341,13 @@
                             </select>
                         </div>
                         <div class="calc-input-group">
-                            <label for="calc-amount">台幣金額 (NT$)</label>
-                            <input type="number" id="calc-amount" placeholder="例如:3000" min="0" step="1">
+                            <label for="calc-amount">刷卡金額 (外幣)</label>
+                            <input type="number" id="calc-amount" placeholder="例如:100.50" min="0" step="0.01">
                         </div>
                         <div class="calc-result">
-                            <div class="calc-result-label">需要刷卡的外幣金額</div>
-                            <div class="calc-result-value" id="calc-result">-- 請選擇幣別 --</div>
-                            <div class="rate-info" id="rate-info">請選擇幣別並輸入台幣金額</div>
+                            <div class="calc-result-label">需付台幣金額</div>
+                            <div class="calc-result-value" id="calc-result">NT$ 0</div>
+                            <div class="rate-info" id="rate-info">請選擇幣別並輸入外幣金額</div>
                         </div>
                     </div>
                 </div>
@@ -571,25 +570,25 @@
             });
 
             document.getElementById('calc-amount').value = '';
-            document.getElementById('calc-result').textContent = '-- 請選擇幣別 --';
-            document.getElementById('rate-info').textContent = '請選擇幣別並輸入台幣金額';
+            document.getElementById('calc-result').textContent = 'NT$ 0';
+            document.getElementById('rate-info').textContent = '請選擇幣別並輸入外幣金額';
         }
 
         function calculateExchange() {
             if (!currentRatesData) return;
 
             const currency = document.getElementById('calc-currency').value;
-            const twdAmount = parseFloat(document.getElementById('calc-amount').value);
+            const foreignAmount = parseFloat(document.getElementById('calc-amount').value);
 
             if (!currency) {
-                document.getElementById('calc-result').textContent = '-- 請選擇幣別 --';
-                document.getElementById('rate-info').textContent = '請選擇幣別並輸入台幣金額';
+                document.getElementById('calc-result').textContent = 'NT$ 0';
+                document.getElementById('rate-info').textContent = '請選擇幣別並輸入外幣金額';
                 return;
             }
 
-            if (!twdAmount || twdAmount <= 0) {
-                document.getElementById('calc-result').textContent = '-- 請輸入金額 --';
-                document.getElementById('rate-info').textContent = '請輸入要刷卡的台幣金額';
+            if (!foreignAmount || foreignAmount <= 0) {
+                document.getElementById('calc-result').textContent = 'NT$ 0';
+                document.getElementById('rate-info').textContent = '請輸入刷卡的外幣金額';
                 return;
             }
 
@@ -600,13 +599,13 @@
             const rate = parseFloat(rateRow[4]);
 
             if (rate && !isNaN(rate)) {
-                // 反向計算: 台幣金額 ÷ 匯率 = 外幣金額
-                const foreignAmount = twdAmount / rate;
+                // 計算: 外幣金額 × 匯率 = 台幣金額
+                const twdAmount = foreignAmount * rate;
                 
                 document.getElementById('calc-result').textContent = 
-                    `${currency} ${foreignAmount.toFixed(2)}`;
+                    `NT$ ${twdAmount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
                 document.getElementById('rate-info').textContent = 
-                    `NT$ ${twdAmount.toLocaleString()} ÷ ${rate} (即期賣出) = ${currency} ${foreignAmount.toFixed(2)}`;
+                    `${currency} ${foreignAmount.toFixed(2)} × ${rate} (即期賣出) = NT$ ${twdAmount.toFixed(0)}`;
             }
         }
 
