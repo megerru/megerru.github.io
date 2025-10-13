@@ -616,7 +616,7 @@
         // ============ 銀行API實作 ============
 
         async function fetchBOTRates(date) {
-            const targetUrl = `https://rate.bot.com.tw/xrt/history/${date}`;
+            const targetUrl = `https://rate.bot.com.tw/xrt/all/${date}`;
             const htmlContent = await fetchWithProxy(targetUrl);
 
             const parser = new DOMParser();
