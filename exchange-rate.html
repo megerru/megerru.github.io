@@ -428,9 +428,9 @@
 
         // 多個CORS代理備援
         const CORS_PROXIES = [
-            (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
             (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-            (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+            (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            (url) => `https://cors-anywhere.herokuapp.com/${url}`,
         ];
 
         async function fetchWithProxy(url, retryCount = 0) {
@@ -440,34 +440,42 @@
 
             try {
                 const proxyUrl = CORS_PROXIES[retryCount](url);
-                console.log(`嘗試使用代理 ${retryCount + 1}:`, proxyUrl);
+                console.log(`嘗試使用代理 ${retryCount + 1}/${CORS_PROXIES.length}:`, proxyUrl);
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超時
                 
                 const response = await fetch(proxyUrl, {
                     method: 'GET',
                     headers: {
                         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                     },
-                    signal: AbortSignal.timeout(10000) // 10秒超時
+                    signal: controller.signal
                 });
                 
+                clearTimeout(timeoutId);
+                
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
-                // 處理不同代理的回應格式
-                let htmlContent;
-                const contentType = response.headers.get('content-type');
+                const htmlContent = await response.text();
+                console.log(`代理 ${retryCount + 1} 成功取得資料，長度: ${htmlContent.length}`);
                 
-                if (contentType && contentType.includes('application/json')) {
-                    const json = await response.json();
-                    htmlContent = json.contents || json;
-                } else {
-                    htmlContent = await response.text();
+                // 檢查是否真的是HTML內容
+                if (!htmlContent.includes('<table') && !htmlContent.includes('<TABLE')) {
+                    throw new Error('回傳內容不包含表格');
                 }
                 
                 return htmlContent;
+                
             } catch (error) {
-                console.error(`代理 ${retryCount + 1} 失敗:`, error);
+                console.error(`代理 ${retryCount + 1} 失敗:`, error.message);
+                
+                // 如果是超時或網路錯誤，嘗試下一個代理
+                if (error.name === 'AbortError') {
+                    console.log('請求超時，嘗試下一個代理...');
+                }
                 
                 // 嘗試下一個代理
                 return fetchWithProxy(url, retryCount + 1);
@@ -617,32 +625,69 @@
 
         async function fetchBOTRates(date) {
             const targetUrl = `https://rate.bot.com.tw/xrt/all/${date}`;
+            console.log('台灣銀行目標URL:', targetUrl);
+            
             const htmlContent = await fetchWithProxy(targetUrl);
+            console.log('HTML內容長度:', htmlContent.length);
 
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, 'text/html');
-            const table = doc.querySelector('table.table-hover');
             
-            if (!table) return null;
+            // 嘗試多種選擇器
+            let table = doc.querySelector('table.table-striped') || 
+                       doc.querySelector('table.table') || 
+                       doc.querySelector('table');
+            
+            console.log('找到表格:', !!table);
+            
+            if (!table) {
+                console.error('無法找到表格元素');
+                return null;
+            }
 
             const rows = table.querySelectorAll('tbody tr');
+            console.log('表格列數:', rows.length);
+            
             const rates = [];
             
-            rows.forEach(row => {
+            rows.forEach((row, index) => {
                 const cells = row.querySelectorAll('td');
                 if (cells.length >= 5) {
-                    const match = cells[0].textContent.match(/\((\w{3})\)/);
+                    // 嘗試從第一個儲存格提取幣別代碼
+                    const firstCellText = cells[0].textContent.trim();
+                    console.log(`第${index}列第一個儲存格:`, firstCellText);
+                    
+                    // 匹配括號內的三字母代碼，例如 (USD), (JPY)
+                    const match = firstCellText.match(/\(([A-Z]{3})\)/);
+                    
                     if (match) {
-                        rates.push([
-                            match[1],
-                            cells[1].textContent.trim(),
-                            cells[2].textContent.trim(),
-                            cells[3].textContent.trim(),
-                            cells[4].textContent.trim()
-                        ]);
+                        const currencyCode = match[1];
+                        const cashBuy = cells[1].textContent.trim();
+                        const cashSell = cells[2].textContent.trim();
+                        const spotBuy = cells[3].textContent.trim();
+                        const spotSell = cells[4].textContent.trim();
+                        
+                        // 確保數值欄位不是空的或"-"
+                        if (spotSell && spotSell !== '-' && !isNaN(parseFloat(spotSell))) {
+                            rates.push([
+                                currencyCode,
+                                cashBuy,
+                                cashSell,
+                                spotBuy,
+                                spotSell
+                            ]);
+                            console.log(`成功解析: ${currencyCode} - 即期賣出: ${spotSell}`);
+                        }
                     }
                 }
             });
+
+            console.log('總共解析到匯率數:', rates.length);
+
+            if (rates.length === 0) {
+                console.error('未能解析到任何有效匯率');
+                return null;
+            }
 
             return {
                 bankName: '台灣銀行',
@@ -655,31 +700,66 @@
         async function fetchFirstBankRates(date) {
             const urlDate = date.replace(/-/g, '');
             const targetUrl = `https://www.firstbank.com.tw/sites/fcb/ForExgRateHis?searchDate=${urlDate}&setLang=2`;
+            console.log('第一銀行目標URL:', targetUrl);
+            
             const htmlContent = await fetchWithProxy(targetUrl);
+            console.log('HTML內容長度:', htmlContent.length);
 
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, 'text/html');
-            const table = doc.querySelector('div.table-wrapper table');
             
-            if (!table) return null;
+            // 嘗試多種選擇器
+            let table = doc.querySelector('div.table-wrapper table') || 
+                       doc.querySelector('table.table') || 
+                       doc.querySelector('table');
+            
+            console.log('找到表格:', !!table);
+            
+            if (!table) {
+                console.error('無法找到表格元素');
+                return null;
+            }
 
             const rows = table.querySelectorAll('tbody tr');
+            console.log('表格列數:', rows.length);
+            
             const rates = [];
             
-            rows.forEach(row => {
+            rows.forEach((row, index) => {
                 const cells = row.querySelectorAll('td');
                 if (cells.length >= 5) {
-                    const match = cells[0].textContent.trim().match(/(\w{3})/);
+                    const firstCellText = cells[0].textContent.trim();
+                    console.log(`第${index}列第一個儲存格:`, firstCellText);
+                    
+                    // 第一銀行的格式可能是 "美金 USD" 或直接 "USD"
+                    const match = firstCellText.match(/([A-Z]{3})/);
+                    
                     if (match) {
-                        rates.push([
-                            match[0],
-                            cells[2].textContent.trim(),
-                            cells[3].textContent.trim(),
-                            cells[4].textContent.trim()
-                        ]);
+                        const currencyCode = match[1];
+                        const spotBuy = cells[2].textContent.trim();
+                        const spotSell = cells[3].textContent.trim();
+                        const cashBuy = cells[4].textContent.trim();
+                        
+                        // 確保數值欄位不是空的或"-"
+                        if (spotSell && spotSell !== '-' && !isNaN(parseFloat(spotSell))) {
+                            rates.push([
+                                currencyCode,
+                                spotBuy,
+                                spotSell,
+                                cashBuy
+                            ]);
+                            console.log(`成功解析: ${currencyCode} - 即期賣出: ${spotSell}`);
+                        }
                     }
                 }
             });
+
+            console.log('總共解析到匯率數:', rates.length);
+
+            if (rates.length === 0) {
+                console.error('未能解析到任何有效匯率');
+                return null;
+            }
 
             return {
                 bankName: '第一銀行',
