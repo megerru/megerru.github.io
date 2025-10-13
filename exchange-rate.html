@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>匯率換算 - Exchange Rate Calculator</title>
+    <title>台灣銀行匯率查詢</title>
     
     <style>
         * {
@@ -19,7 +19,7 @@
             padding: 20px;
         }
         
-        /* 返回按鈕樣式 (與其他頁面一致) */
+        /* 返回按鈕樣式 */
         .back-button-container {
             max-width: 1100px;
             margin: 0 auto 20px;
@@ -91,14 +91,14 @@
             margin-bottom: 8px;
             color: #555;
         }
-        select, input[type="text"] {
+        input[type="text"] {
             padding: 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 15px;
             transition: border-color 0.3s;
         }
-        select:focus, input[type="text"]:focus {
+        input[type="text"]:focus {
             outline: none;
             border-color: #3498db;
         }
@@ -159,19 +159,43 @@
             border-radius: 4px;
             color: #c0392b;
         }
-        .warning {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            color: #856404;
-        }
         .hidden {
             display: none;
         }
         #result-container {
             margin-top: 30px;
+        }
+        #result-title {
+            font-size: 20px;
+            color: #2c3e50;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th {
+            background-color: #34495e;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 14px;
+        }
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        td:first-child {
+            font-weight: 600;
+            color: #2c3e50;
         }
         
         /* 計算機樣式 */
@@ -193,7 +217,7 @@
         }
         .calculator-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
         .calc-input-group {
@@ -250,6 +274,12 @@
             .header h1 {
                 font-size: 24px;
             }
+            table {
+                font-size: 13px;
+            }
+            th, td {
+                padding: 8px;
+            }
         }
     </style>
 </head>
@@ -262,21 +292,20 @@
     <div class="container">
         <div class="header">
             <h1>💱 台灣銀行匯率查詢</h1>
-            <p>歷史牌告匯率快速查詢</p>
+            <p>歷史牌告匯率自動查詢 + 計算機</p>
         </div>
 
         <div class="content">
             <div class="info-box">
                 <p><strong>使用說明:</strong></p>
-                <p>• 日期格式:民國年月日共7位數字,例如:114年6月3日 → <strong>1140603</strong></p>
-                <p>• 由於銀行網站有防護機制，本系統將直接開啟銀行官網供您查詢</p>
-                <p>• 查詢後請回到本頁使用匯率計算機</p>
+                <p>• 日期格式:民國年月日共7位數字,例如:114年7月14日 → <strong>1140714</strong></p>
+                <p>• 查詢成功後可直接使用下方計算機換算金額</p>
             </div>
 
             <div class="controls">
                 <div class="form-group">
                     <label for="date-input">民國日期(7位數字)</label>
-                    <input type="text" id="date-input" placeholder="例如:1140603" maxlength="7">
+                    <input type="text" id="date-input" placeholder="例如:1140714" maxlength="7">
                 </div>
                 <div class="form-group">
                     <label>&nbsp;</label>
@@ -290,25 +319,26 @@
             </div>
 
             <div id="error" class="error hidden"></div>
-            <div id="warning" class="warning hidden"></div>
 
             <div id="result-container" class="hidden">
+                <h2 id="result-title"></h2>
+                <table id="rate-table">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+
                 <!-- 刷卡消費計算機 -->
                 <div class="calculator-section">
                     <div class="calculator-title">
                         💳 刷卡消費計算機
-                        <span style="font-size: 14px; font-weight: 400; color: #7f8c8d;">(計算客人實際花費的台幣金額)</span>
+                        <span style="font-size: 14px; font-weight: 400; color: #7f8c8d;">(自動使用即期賣出匯率)</span>
                     </div>
                     <div class="calculator-grid">
                         <div class="calc-input-group">
                             <label for="calc-currency">刷卡幣別</label>
                             <select id="calc-currency">
-                                <option value="">-- 請選擇幣別 --</option>
+                                <option value="">-- 請選擇 --</option>
                             </select>
-                        </div>
-                        <div class="calc-input-group">
-                            <label for="calc-rate">即期賣出匯率</label>
-                            <input type="number" id="calc-rate" placeholder="從銀行網站查到的匯率" min="0" step="0.0001">
                         </div>
                         <div class="calc-input-group">
                             <label for="calc-amount">刷卡金額(外幣)</label>
@@ -317,7 +347,7 @@
                         <div class="calc-result">
                             <div class="calc-result-label">客人實際花費</div>
                             <div class="calc-result-value" id="calc-result">NT$ 0</div>
-                            <div class="rate-info" id="rate-info">請填寫完整資訊後計算</div>
+                            <div class="rate-info" id="rate-info">請選擇幣別並輸入刷卡金額</div>
                         </div>
                     </div>
                 </div>
@@ -326,15 +356,16 @@
     </div>
 
     <script>
+        let currentRatesData = null;
+
         document.getElementById('query-btn').addEventListener('click', handleQuery);
         document.getElementById('date-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleQuery();
         });
 
         // 計算機事件監聽
-        document.getElementById('calc-amount').addEventListener('input', calculateManualExchange);
-        document.getElementById('calc-rate').addEventListener('input', calculateManualExchange);
-        document.getElementById('calc-currency').addEventListener('change', calculateManualExchange);
+        document.getElementById('calc-amount').addEventListener('input', calculateExchange);
+        document.getElementById('calc-currency').addEventListener('change', calculateExchange);
 
         function handleQuery() {
             const dateInput = document.getElementById('date-input').value.trim();
@@ -342,7 +373,7 @@
             clearDisplay();
 
             if (!/^\d{7}$/.test(dateInput)) {
-                showError('日期格式錯誤!請輸入7位數字,例如:1140603');
+                showError('日期格式錯誤!請輸入7位數字,例如:1140714');
                 return;
             }
 
@@ -365,47 +396,157 @@
                 return;
             }
 
-            // 直接開啟台灣銀行網站
-            openBankWebsite(formattedDate, dateInput);
+            fetchRates(formattedDate);
         }
 
         function clearDisplay() {
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('error').classList.add('hidden');
-            document.getElementById('warning').classList.add('hidden');
-            document.getElementById('result-container').classList.remove('hidden');
+            document.getElementById('result-container').classList.add('hidden');
+            document.querySelector('#rate-table thead').innerHTML = '';
+            document.querySelector('#rate-table tbody').innerHTML = '';
+            currentRatesData = null;
         }
 
-        function openBankWebsite(gregorianDate, rocDate) {
-            // 台灣銀行
-            const bankUrl = `https://rate.bot.com.tw/xrt/all/${gregorianDate}`;
+        async function fetchRates(date) {
+            const loadingDiv = document.getElementById('loading');
+            const btn = document.getElementById('query-btn');
             
-            // 在新視窗開啟
-            window.open(bankUrl, '_blank');
-            
-            // 顯示說明訊息
-            showInfo(`
-                <strong>已開啟台灣銀行官網 (${rocDate.substring(0,3)}年${rocDate.substring(3,5)}月${rocDate.substring(5,7)}日)</strong><br><br>
-                請在新視窗中查看匯率，然後回到本頁使用計算機。<br><br>
-                <div style="background-color: #fff; padding: 15px; border-radius: 8px; margin-top: 15px; border: 2px solid #3498db;">
-                    <strong style="color: #2c3e50; font-size: 16px;">💡 快速使用指南：</strong>
-                    <ol style="text-align: left; margin-top: 10px; padding-left: 20px; color: #555;">
-                        <li>在銀行網站找到您需要的幣別和匯率</li>
-                        <li>記下「即期賣出」匯率 (刷卡消費用)</li>
-                        <li>回到本頁下方的計算機</li>
-                        <li>選擇幣別並輸入金額即可計算</li>
-                    </ol>
-                </div>
-            `);
-            
-            // 顯示計算機
-            initManualCalculator();
+            loadingDiv.classList.remove('hidden');
+            btn.disabled = true;
+
+            try {
+                const ratesData = await fetchBOTRates(date);
+                
+                if (ratesData && ratesData.rates && ratesData.rates.length > 0) {
+                    currentRatesData = ratesData;
+                    displayRates(ratesData);
+                    initCalculator(ratesData);
+                } else {
+                    showError(`查無 ${date} 的匯率資料,可能原因:<br>• 該日為假日或銀行非營業日<br>• 銀行尚未公布該日匯率<br>• 日期超出可查詢範圍`);
+                }
+
+            } catch (error) {
+                console.error('查詢錯誤:', error);
+                showError(`查詢失敗: ${error.message}<br><br>可能原因:<br>• 網路連線問題<br>• 代理服務暫時無法使用<br>• 請稍後再試`);
+            } finally {
+                loadingDiv.classList.add('hidden');
+                btn.disabled = false;
+            }
         }
 
-        function showInfo(message) {
-            const warningDiv = document.getElementById('warning');
-            warningDiv.innerHTML = message;
-            warningDiv.classList.remove('hidden');
+        async function fetchBOTRates(date) {
+            const targetUrl = `https://rate.bot.com.tw/xrt/all/${date}`;
+            
+            // 嘗試多個代理服務
+            const proxies = [
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+                `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+                `https://thingproxy.freeboard.io/fetch/${targetUrl}`
+            ];
+
+            let lastError = null;
+
+            for (let i = 0; i < proxies.length; i++) {
+                try {
+                    console.log(`嘗試代理 ${i + 1}/${proxies.length}`);
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+                    
+                    const response = await fetch(proxies[i], {
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const htmlContent = await response.text();
+                    
+                    // 解析HTML
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlContent, 'text/html');
+                    
+                    // 尋找表格
+                    const table = doc.querySelector('table.table') || 
+                                 doc.querySelector('table');
+                    
+                    if (!table) {
+                        throw new Error('找不到匯率表格');
+                    }
+
+                    const rows = table.querySelectorAll('tbody tr');
+                    const rates = [];
+                    
+                    rows.forEach(row => {
+                        const cells = row.querySelectorAll('td');
+                        if (cells.length >= 5) {
+                            const firstCell = cells[0].textContent.trim();
+                            const match = firstCell.match(/\(([A-Z]{3})\)/);
+                            
+                            if (match) {
+                                const currency = match[1];
+                                const cashBuy = cells[1].textContent.trim();
+                                const cashSell = cells[2].textContent.trim();
+                                const spotBuy = cells[3].textContent.trim();
+                                const spotSell = cells[4].textContent.trim();
+                                
+                                if (spotSell && spotSell !== '-') {
+                                    rates.push([currency, cashBuy, cashSell, spotBuy, spotSell]);
+                                }
+                            }
+                        }
+                    });
+
+                    if (rates.length > 0) {
+                        console.log(`成功! 找到 ${rates.length} 種貨幣`);
+                        return {
+                            bankName: '台灣銀行',
+                            date: date,
+                            headers: ['幣別', '現金買入', '現金賣出', '即期買入', '即期賣出'],
+                            rates: rates
+                        };
+                    }
+                    
+                    throw new Error('未找到有效匯率資料');
+                    
+                } catch (error) {
+                    console.error(`代理 ${i + 1} 失敗:`, error.message);
+                    lastError = error;
+                    
+                    if (i < proxies.length - 1) {
+                        continue; // 嘗試下一個代理
+                    }
+                }
+            }
+            
+            throw new Error(lastError?.message || '所有代理服務均無法連線');
+        }
+
+        function displayRates({ bankName, date, headers, rates }) {
+            const thead = document.querySelector('#rate-table thead');
+            const tbody = document.querySelector('#rate-table tbody');
+            const title = document.getElementById('result-title');
+            const container = document.getElementById('result-container');
+
+            let headerHtml = '<tr>';
+            headers.forEach(h => headerHtml += `<th>${h}</th>`);
+            headerHtml += '</tr>';
+            thead.innerHTML = headerHtml;
+
+            let bodyHtml = '';
+            rates.forEach(rate => {
+                bodyHtml += '<tr>';
+                rate.forEach(cell => bodyHtml += `<td>${cell}</td>`);
+                bodyHtml += '</tr>';
+            });
+            tbody.innerHTML = bodyHtml;
+
+            title.textContent = `${bankName} - ${date} 牌告匯率`;
+            container.classList.remove('hidden');
         }
 
         function showError(message) {
@@ -414,57 +555,51 @@
             errorDiv.classList.remove('hidden');
         }
 
-        function showWarning(message) {
-            const warningDiv = document.getElementById('warning');
-            warningDiv.innerHTML = message;
-            warningDiv.classList.remove('hidden');
-        }
+        // ============ 計算機功能 ============
 
-        // ============ 手動計算機功能 ============
-
-        function initManualCalculator() {
+        function initCalculator(ratesData) {
             const currencySelect = document.getElementById('calc-currency');
             
-            // 填入常用幣別
-            const commonCurrencies = [
-                'USD', 'HKD', 'GBP', 'AUD', 'CAD', 'SGD', 'CHF', 'JPY',
-                'ZAR', 'SEK', 'NZD', 'THB', 'PHP', 'IDR', 'EUR', 'KRW',
-                'VND', 'MYR', 'CNY'
-            ];
+            currencySelect.innerHTML = '<option value="">-- 請選擇 --</option>';
             
-            currencySelect.innerHTML = '<option value="">-- 請選擇幣別 --</option>';
-            commonCurrencies.forEach(currency => {
+            ratesData.rates.forEach(rate => {
                 const option = document.createElement('option');
-                option.value = currency;
-                option.textContent = currency;
+                option.value = rate[0];
+                option.textContent = rate[0];
                 currencySelect.appendChild(option);
             });
 
-            // 重置輸入
             document.getElementById('calc-amount').value = '';
-            document.getElementById('calc-rate').value = '';
             document.getElementById('calc-result').textContent = 'NT$ 0';
-            document.getElementById('rate-info').textContent = '請填寫完整資訊後計算';
+            document.getElementById('rate-info').textContent = '請選擇幣別並輸入刷卡金額';
         }
 
-        function calculateManualExchange() {
+        function calculateExchange() {
+            if (!currentRatesData) return;
+
             const currency = document.getElementById('calc-currency').value;
             const amount = parseFloat(document.getElementById('calc-amount').value);
-            const rate = parseFloat(document.getElementById('calc-rate').value);
 
-            if (!currency || !amount || !rate || amount <= 0 || rate <= 0) {
+            if (!currency || !amount || amount <= 0) {
                 document.getElementById('calc-result').textContent = 'NT$ 0';
-                document.getElementById('rate-info').textContent = '請填寫完整資訊後計算';
+                document.getElementById('rate-info').textContent = '請選擇幣別並輸入刷卡金額';
                 return;
             }
 
-            // 外幣金額 × 匯率 = 台幣金額
-            const result = amount * rate;
-            
-            document.getElementById('calc-result').textContent = 
-                `NT$ ${result.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-            document.getElementById('rate-info').textContent = 
-                `${currency} ${amount.toFixed(2)} × ${rate} = NT$ ${result.toFixed(2)}`;
+            const rateRow = currentRatesData.rates.find(rate => rate[0] === currency);
+            if (!rateRow) return;
+
+            // 使用即期賣出匯率 (第5欄, index 4)
+            const rate = parseFloat(rateRow[4]);
+
+            if (rate && !isNaN(rate)) {
+                const result = amount * rate;
+                
+                document.getElementById('calc-result').textContent = 
+                    `NT$ ${result.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+                document.getElementById('rate-info').textContent = 
+                    `${currency} ${amount.toFixed(2)} × ${rate} (即期賣出) = NT$ ${result.toFixed(2)}`;
+            }
         }
 
     </script>
