@@ -15,8 +15,9 @@
         <div class="welcome-buttons-container">
             <button class="welcome-button" onclick="showInsuranceCalculator()">保險費計算</button>
             <button class="welcome-button secondary" onclick="showInvoiceCalculator()">銷項發票</button>
-            <button class="welcome-button" onclick="window.location.href='data_processing_landing.html'" style="background-color: #1d6f42;">資料處理</button>
-            <button class="welcome-button" onclick="window.location.href='report_landing.html'" style="background-color: #6f1d42;">報表產出</button>
+            <button class="welcome-button" onclick="navigateTo('exchange-rate.html')" style="background-color: #3498db;">匯率換算</button>
+            <button class="welcome-button" onclick="navigateTo('data_processing_landing.html')" style="background-color: #1d6f42;">資料處理</button>
+            <button class="welcome-button" onclick="navigateTo('report_landing.html')" style="background-color: #6f1d42;">報表產出</button>
         </div>
     </div>
 
@@ -162,5 +163,23 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="script.js"></script>
+    
+    <script>
+        // 優化的導航函數
+        function navigateTo(url) {
+            requestAnimationFrame(() => {
+                window.location.href = url;
+            });
+        }
+        
+        // 頁面載入優化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                document.body.classList.add('with-animation');
+            });
+        } else {
+            document.body.classList.add('with-animation');
+        }
+    </script>
 </body>
 </html>

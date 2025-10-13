@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>匯率換算 - Exchange Rate Calculator</title>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        /* 返回按鈕樣式 (與其他頁面一致) */
+        .back-button-container {
+            max-width: 1100px;
+            margin: 0 auto 20px;
+        }
+        .back-to-welcome-button {
+            display: inline-flex;
+            align-items: center;
+            background-color: #f8f9fa;
+            color: #495057;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid #dee2e6;
+            border-radius: 50px;
+            padding: 10px 18px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.07);
+            transition: all 0.2s ease-out;
+        }
+        .back-to-welcome-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background-color: #e9ecef;
+            text-decoration: none;
+        }
+        .back-to-welcome-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.07);
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background-color: #2c3e50;
+            color: #fff;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 14px;
+            color: #bdc3c7;
+        }
+        .content {
+            padding: 30px;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        select, input[type="text"] {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+        select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        button {
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            align-self: flex-end;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .info-box {
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .info-box p {
+            font-size: 14px;
+            color: #555;
+            margin: 5px 0;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            background-color: #fee;
+            border-left: 4px solid #e74c3c;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            color: #c0392b;
+        }
+        .hidden {
+            display: none;
+        }
+        #result-container {
+            margin-top: 30px;
+        }
+        #result-title {
+            font-size: 20px;
+            color: #2c3e50;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th {
+            background-color: #34495e;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 14px;
+        }
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        td:first-child {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        /* 計算機樣式 */
+        .calculator-section {
+            margin-top: 30px;
+            padding: 25px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #3498db;
+        }
+        .calculator-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .calc-input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .calc-input-group label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        .calc-input-group input,
+        .calc-input-group select {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 15px;
+        }
+        .calc-result {
+            grid-column: 1 / -1;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 6px;
+            text-align: center;
+            border: 2px solid #27ae60;
+        }
+        .calc-result-label {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+        }
+        .calc-result-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #27ae60;
+        }
+        .rate-info {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            .calculator-grid {
+                grid-template-columns: 1fr;
+            }
+            button {
+                align-self: stretch;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+            table {
+                font-size: 13px;
+            }
+            th, td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 返回按鈕 -->
+    <div class="back-button-container">
+        <a href="index.html" class="back-to-welcome-button">← 返回首頁</a>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>💱 匯率查詢換算系統</h1>
+            <p>台灣銀行 × 第一銀行 歷史匯率查詢</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <p><strong>使用說明:</strong></p>
+                <p>• 日期格式:民國年月日共7位數字,例如:114年6月3日 → <strong>1140603</strong></p>
+                <p>• 查詢成功後可使用匯率計算機進行換算</p>
+            </div>
+
+            <div class="controls">
+                <div class="form-group">
+                    <label for="bank-select">選擇銀行</label>
+                    <select id="bank-select">
+                        <option value="BOT">台灣銀行</option>
+                        <option value="FIRST">第一銀行</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="date-input">民國日期(7位數字)</label>
+                    <input type="text" id="date-input" placeholder="例如:1140603" maxlength="7">
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button id="query-btn">查詢匯率</button>
+                </div>
+            </div>
+
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>正在載入資料,請稍候...</p>
+            </div>
+
+            <div id="error" class="error hidden"></div>
+
+            <div id="result-container" class="hidden">
+                <h2 id="result-title"></h2>
+                <table id="rate-table">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+
+                <!-- 刷卡消費計算機 -->
+                <div class="calculator-section">
+                    <div class="calculator-title">
+                        💳 刷卡消費計算機
+                        <span style="font-size: 14px; font-weight: 400; color: #7f8c8d;">(計算客人實際花費的台幣金額)</span>
+                    </div>
+                    <div class="calculator-grid">
+                        <div class="calc-input-group">
+                            <label for="calc-currency">刷卡幣別</label>
+                            <select id="calc-currency">
+                                <option value="">-- 請選擇 --</option>
+                            </select>
+                        </div>
+                        <div class="calc-input-group">
+                            <label for="calc-amount">刷卡金額(外幣)</label>
+                            <input type="number" id="calc-amount" placeholder="例如:100.50" min="0" step="0.01">
+                        </div>
+                        <div class="calc-result">
+                            <div class="calc-result-label">客人實際花費</div>
+                            <div class="calc-result-value" id="calc-result">NT$ 0</div>
+                            <div class="rate-info" id="rate-info">請選擇幣別並輸入刷卡金額</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRatesData = null;
+
+        document.getElementById('query-btn').addEventListener('click', handleQuery);
+        document.getElementById('date-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleQuery();
+        });
+
+        // 計算機事件監聽
+        document.getElementById('calc-amount').addEventListener('input', calculateExchange);
+        document.getElementById('calc-currency').addEventListener('change', calculateExchange);
+
+        function handleQuery() {
+            const bank = document.getElementById('bank-select').value;
+            const dateInput = document.getElementById('date-input').value.trim();
+            
+            clearDisplay();
+
+            if (!/^\d{7}$/.test(dateInput)) {
+                showError('日期格式錯誤!請輸入7位數字,例如:1140603');
+                return;
+            }
+
+            const rocYear = parseInt(dateInput.substring(0, 3), 10);
+            const month = dateInput.substring(3, 5);
+            const day = dateInput.substring(5, 7);
+            const gregorianYear = rocYear + 1911;
+            const formattedDate = `${gregorianYear}-${month}-${day}`;
+            
+            const dateObj = new Date(formattedDate);
+            if (dateObj.getFullYear() !== gregorianYear || 
+                (dateObj.getMonth() + 1) !== parseInt(month, 10) || 
+                dateObj.getDate() !== parseInt(day, 10)) {
+                showError('日期無效!請檢查年月日是否正確。');
+                return;
+            }
+
+            if (dateObj > new Date()) {
+                showError('不能查詢未來日期的匯率!');
+                return;
+            }
+
+            fetchRates(bank, formattedDate);
+        }
+
+        function clearDisplay() {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error').classList.add('hidden');
+            document.getElementById('result-container').classList.add('hidden');
+            document.querySelector('#rate-table thead').innerHTML = '';
+            document.querySelector('#rate-table tbody').innerHTML = '';
+            currentRatesData = null;
+        }
+
+        async function fetchRates(bank, date) {
+            const loadingDiv = document.getElementById('loading');
+            const btn = document.getElementById('query-btn');
+            
+            loadingDiv.classList.remove('hidden');
+            btn.disabled = true;
+
+            try {
+                let ratesData;
+                
+                if (bank === 'BOT') {
+                    ratesData = await fetchBOTRates(date);
+                } else if (bank === 'FIRST') {
+                    ratesData = await fetchFirstBankRates(date);
+                }
+                
+                if (ratesData && ratesData.rates && ratesData.rates.length > 0) {
+                    currentRatesData = ratesData;
+                    displayRates(ratesData);
+                    initCalculator(ratesData);
+                } else {
+                    showError(`查無 ${date} 的匯率資料,可能原因:<br>• 該日為假日或銀行非營業日<br>• 銀行尚未公布該日匯率<br>• 日期超出可查詢範圍`);
+                }
+
+            } catch (error) {
+                console.error('查詢錯誤:', error);
+                showError(`查詢失敗:${error.message}`);
+            } finally {
+                loadingDiv.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+
+        function displayRates({ bankName, date, headers, rates }) {
+            const thead = document.querySelector('#rate-table thead');
+            const tbody = document.querySelector('#rate-table tbody');
+            const title = document.getElementById('result-title');
+            const container = document.getElementById('result-container');
+
+            let headerHtml = '<tr>';
+            headers.forEach(h => headerHtml += `<th>${h}</th>`);
+            headerHtml += '</tr>';
+            thead.innerHTML = headerHtml;
+
+            let bodyHtml = '';
+            rates.forEach(rate => {
+                bodyHtml += '<tr>';
+                rate.forEach(cell => bodyHtml += `<td>${cell}</td>`);
+                bodyHtml += '</tr>';
+            });
+            tbody.innerHTML = bodyHtml;
+
+            title.textContent = `${bankName} - ${date} 牌告匯率`;
+            container.classList.remove('hidden');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.innerHTML = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        // ============ 計算機功能 ============
+
+        function initCalculator(ratesData) {
+            const currencySelect = document.getElementById('calc-currency');
+            
+            // 清空並重新填入幣別選項
+            currencySelect.innerHTML = '<option value="">-- 請選擇 --</option>';
+            
+            // 填入幣別選項
+            ratesData.rates.forEach(rate => {
+                const option = document.createElement('option');
+                option.value = rate[0]; // 幣別代碼
+                option.textContent = rate[0];
+                currencySelect.appendChild(option);
+            });
+
+            // 重置輸入
+            document.getElementById('calc-amount').value = '';
+            document.getElementById('calc-result').textContent = 'NT$ 0';
+            document.getElementById('rate-info').textContent = '請選擇幣別並輸入刷卡金額';
+        }
+
+        function calculateExchange() {
+            if (!currentRatesData) return;
+
+            const currency = document.getElementById('calc-currency').value;
+            const amount = parseFloat(document.getElementById('calc-amount').value);
+
+            if (!currency || !amount || amount <= 0) {
+                document.getElementById('calc-result').textContent = 'NT$ 0';
+                document.getElementById('rate-info').textContent = '請選擇幣別並輸入刷卡金額';
+                return;
+            }
+
+            // 找出對應幣別的匯率
+            const rateRow = currentRatesData.rates.find(rate => rate[0] === currency);
+            if (!rateRow) return;
+
+            let rate, result, rateType;
+
+            // 刷卡消費使用「即期賣出匯率」(銀行賣給客人外幣的價格)
+            if (currentRatesData.headers.length === 5) {
+                // 台灣銀行:[幣別, 現金買入, 現金賣出, 即期買入, 即期賣出]
+                rate = parseFloat(rateRow[4]); // 即期賣出
+                rateType = '即期賣出匯率';
+            } else {
+                // 第一銀行:[幣別, 即期買入, 即期賣出, 現金買入]
+                rate = parseFloat(rateRow[2]); // 即期賣出
+                rateType = '即期賣出匯率';
+            }
+
+            if (rate && !isNaN(rate)) {
+                // 外幣金額 × 賣出匯率 = 台幣金額
+                result = amount * rate;
+                
+                document.getElementById('calc-result').textContent = 
+                    `NT$ ${result.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+                document.getElementById('rate-info').textContent = 
+                    `${currency} ${amount.toFixed(2)} × ${rate} (${rateType}) = NT$ ${result.toFixed(2)}`;
+            }
+        }
+
+        // ============ 銀行API實作 ============
+
+        async function fetchBOTRates(date) {
+            const targetUrl = `https://rate.bot.com.tw/xrt/history/${date}`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+            
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error('網路連線錯誤');
+
+            const data = await response.json();
+            if (!data.contents) throw new Error('無法取得資料');
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data.contents, 'text/html');
+            const table = doc.querySelector('table.table-hover');
+            
+            if (!table) return null;
+
+            const rows = table.querySelectorAll('tbody tr');
+            const rates = [];
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 5) {
+                    const match = cells[0].textContent.match(/\((\w{3})\)/);
+                    if (match) {
+                        rates.push([
+                            match[1],
+                            cells[1].textContent.trim(),
+                            cells[2].textContent.trim(),
+                            cells[3].textContent.trim(),
+                            cells[4].textContent.trim()
+                        ]);
+                    }
+                }
+            });
+
+            return {
+                bankName: '台灣銀行',
+                date: date,
+                headers: ['幣別', '現金買入', '現金賣出', '即期買入', '即期賣出'],
+                rates: rates
+            };
+        }
+
+        async function fetchFirstBankRates(date) {
+            const urlDate = date.replace(/-/g, '');
+            const targetUrl = `https://www.firstbank.com.tw/sites/fcb/ForExgRateHis?searchDate=${urlDate}&setLang=2`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+            
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error('網路連線錯誤');
+
+            const data = await response.json();
+            if (!data.contents) throw new Error('無法取得資料');
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data.contents, 'text/html');
+            const table = doc.querySelector('div.table-wrapper table');
+            
+            if (!table) return null;
+
+            const rows = table.querySelectorAll('tbody tr');
+            const rates = [];
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 5) {
+                    const match = cells[0].textContent.trim().match(/(\w{3})/);
+                    if (match) {
+                        rates.push([
+                            match[0],
+                            cells[2].textContent.trim(),
+                            cells[3].textContent.trim(),
+                            cells[4].textContent.trim()
+                        ]);
+                    }
+                }
+            });
+
+            return {
+                bankName: '第一銀行',
+                date: date,
+                headers: ['幣別', '即期買入', '即期賣出', '現金買入'],
+                rates: rates
+            };
+        }
+
+    </script>
+</body>
+</html>

@@ -6,7 +6,6 @@
     <title>資料處理工具</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* 專為此頁面設計的簡單樣式 */
         .tool-selection-container {
             display: flex;
             flex-direction: column;
@@ -26,10 +25,26 @@
         <a href="index.html" class="back-to-welcome-button">← 返回首頁</a>
         <h1>資料處理工具</h1>
         <div class="tool-selection-container">
-            <button class="welcome-button tool-button" onclick="window.location.href='tool1_merger.html'">資料合併與比對</button>
-            <button class="welcome-button tool-button secondary" onclick="window.location.href='tool2_filter.html'">資料抽取</button>
-            <button class="welcome-button tool-button" onclick="window.location.href='tool3_replacer.html'" style="background-color: #1d6f42;">資料欄位取代</button>
+            <button class="welcome-button tool-button" onclick="navigateTo('tool1_merger.html')">資料合併與比對</button>
+            <button class="welcome-button tool-button secondary" onclick="navigateTo('tool2_filter.html')">資料抽取</button>
+            <button class="welcome-button tool-button" onclick="navigateTo('tool3_replacer.html')" style="background-color: #1d6f42;">資料欄位取代</button>
         </div>
     </div>
+    
+    <script>
+        function navigateTo(url) {
+            requestAnimationFrame(() => {
+                window.location.href = url;
+            });
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                document.body.classList.add('with-animation');
+            });
+        } else {
+            document.body.classList.add('with-animation');
+        }
+    </script>
 </body>
 </html>

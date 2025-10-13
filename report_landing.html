@@ -25,8 +25,24 @@
         <a href="index.html" class="back-to-welcome-button">← 返回首頁</a>
         <h1>報表產出</h1>
         <div class="tool-selection-container">
-            <button class="welcome-button tool-button" onclick="window.location.href='report_generator.html'" style="background-color: #6f1d42;">年度報告</button>
+            <button class="welcome-button tool-button" onclick="navigateTo('report_generator.html')" style="background-color: #6f1d42;">年度報告</button>
         </div>
     </div>
+    
+    <script>
+        function navigateTo(url) {
+            requestAnimationFrame(() => {
+                window.location.href = url;
+            });
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                document.body.classList.add('with-animation');
+            });
+        } else {
+            document.body.classList.add('with-animation');
+        }
+    </script>
 </body>
 </html>
