@@ -2,7 +2,7 @@
 // 全域配置文件 - 所有可配置項目集中管理
 // ===================================================================
 
-const APP_CONFIG = {
+const CONFIG = {
     // ============ 日期轉換常數 ============
     ROC_TO_AD_OFFSET: 1911,      // 民國年轉西元年的偏差值
     MIN_ROC_YEAR: 1,             // 最小民國年（民國元年）
@@ -53,16 +53,4 @@ const APP_CONFIG = {
         ROC_DATE_YEAR_LENGTH: 3,  // 民國年輸入長度
         ROC_DATE_FULL_LENGTH: 7   // 完整民國日期長度（1140629）
     }
-};
-
-// 為了向後兼容，保留原有的 CONFIG 變數
-// 未來應該逐步遷移到 APP_CONFIG
-const CONFIG = {
-    ROC_TO_AD_OFFSET: APP_CONFIG.ROC_TO_AD_OFFSET,
-    LABOR_INSURANCE_RATE: APP_CONFIG.LABOR_INSURANCE_RATE,
-    HEALTH_INSURANCE_RATE: APP_CONFIG.HEALTH_INSURANCE_RATE,
-    VAT_RATE: APP_CONFIG.VAT_RATE,
-    VAT_MULTIPLIER: APP_CONFIG.VAT_MULTIPLIER,
-    MIN_ROC_YEAR: APP_CONFIG.MIN_ROC_YEAR,
-    MAX_ROC_YEAR: APP_CONFIG.MAX_ROC_YEAR
 };

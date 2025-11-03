@@ -291,13 +291,13 @@ function showSection(targetSection, allSections) {
 
     allSections.forEach(section => {
         if (section) {
-            section.classList.add(APP_CONFIG.CSS_CLASSES.HIDDEN);
-            section.classList.remove(APP_CONFIG.CSS_CLASSES.FADE_IN);
+            section.classList.add(CONFIG.CSS_CLASSES.HIDDEN);
+            section.classList.remove(CONFIG.CSS_CLASSES.FADE_IN);
         }
     });
 
-    targetSection.classList.remove(APP_CONFIG.CSS_CLASSES.HIDDEN);
-    targetSection.classList.add(APP_CONFIG.CSS_CLASSES.FADE_IN);
+    targetSection.classList.remove(CONFIG.CSS_CLASSES.HIDDEN);
+    targetSection.classList.add(CONFIG.CSS_CLASSES.FADE_IN);
 }
 
 /**
@@ -324,7 +324,7 @@ function autoTab(currentElement, nextElementId) {
  * @returns {boolean} - 是否合法
  */
 function isValidROCYear(rocYear) {
-    return rocYear >= APP_CONFIG.MIN_ROC_YEAR && rocYear <= APP_CONFIG.MAX_ROC_YEAR;
+    return rocYear >= CONFIG.MIN_ROC_YEAR && rocYear <= CONFIG.MAX_ROC_YEAR;
 }
 
 /**
@@ -333,7 +333,7 @@ function isValidROCYear(rocYear) {
  * @returns {number} - 西元年
  */
 function rocToAD(rocYear) {
-    return rocYear + APP_CONFIG.ROC_TO_AD_OFFSET;
+    return rocYear + CONFIG.ROC_TO_AD_OFFSET;
 }
 
 /**
@@ -342,7 +342,7 @@ function rocToAD(rocYear) {
  * @returns {number} - 民國年
  */
 function adToROC(adYear) {
-    return adYear - APP_CONFIG.ROC_TO_AD_OFFSET;
+    return adYear - CONFIG.ROC_TO_AD_OFFSET;
 }
 
 /**
@@ -384,9 +384,9 @@ function dayOfYear(date) {
  * 這個函數會在背景發送請求，不影響用戶體驗
  */
 function wakeupReplitServer() {
-    if (!APP_CONFIG.API.REPLIT_WAKEUP) return;
+    if (!CONFIG.API.REPLIT_WAKEUP) return;
 
-    fetch(APP_CONFIG.API.REPLIT_WAKEUP, { mode: 'no-cors' })
+    fetch(CONFIG.API.REPLIT_WAKEUP, { mode: 'no-cors' })
         .catch(() => {
             // 靜默失敗，不影響主要功能
             console.info('Replit server wakeup request sent');
@@ -406,8 +406,8 @@ async function lookupCompanyName(taxId) {
 
     // 優先使用政府 API
     try {
-        const proxyUrl = APP_CONFIG.API.CORS_PROXY;
-        const taxApiUrl = `${APP_CONFIG.API.TAX_ID_LOOKUP}?$filter=Business_Accounting_NO eq ${taxId}`;
+        const proxyUrl = CONFIG.API.CORS_PROXY;
+        const taxApiUrl = `${CONFIG.API.TAX_ID_LOOKUP}?$filter=Business_Accounting_NO eq ${taxId}`;
         const response = await fetch(proxyUrl + encodeURIComponent(taxApiUrl));
 
         if (response.ok) {
@@ -423,7 +423,7 @@ async function lookupCompanyName(taxId) {
 
     // 備用：使用 g0v API
     try {
-        const g0vApiUrl = `${APP_CONFIG.API.G0V_COMPANY_API}${taxId}`;
+        const g0vApiUrl = `${CONFIG.API.G0V_COMPANY_API}${taxId}`;
         const response = await fetch(g0vApiUrl);
 
         if (response.ok) {
