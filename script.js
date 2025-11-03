@@ -142,89 +142,152 @@ function resetInsuranceForm() {
 }
 
 
+// ===================================================================
+// 保險費分攤計算 - 輔助函數
+// ===================================================================
+
 /**
- * 計算保險費分攤
+ * 驗證並取得保險費輸入資料
+ * @returns {{startDate: Date, endDate: Date, totalPremium: number} | null} 驗證通過的資料，或 null（驗證失敗）
+ */
+function validatePremiumInputs() {
+    updatePickerFromManual('start');
+    updatePickerFromManual('end');
+
+    const startDateString = document.getElementById('startDate').value;
+    const endDateString = document.getElementById('endDate').value;
+    const totalPremium = parseFloat(document.getElementById('totalPremium').value);
+
+    // 驗證輸入
+    if (!startDateString || !endDateString || isNaN(totalPremium) || totalPremium <= 0) {
+        alert("請確保所有欄位都已正確填寫！");
+        return null;
+    }
+
+    const startDate = new Date(startDateString);
+    const endDate = new Date(endDateString);
+
+    if (endDate <= startDate) {
+        alert("結束日期必須晚於起始日期!");
+        return null;
+    }
+
+    const totalDays = (Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()) -
+                      Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())) /
+                      (1000 * 60 * 60 * 24);
+
+    if (totalDays < 1) {
+        alert("計算出的總天數無效,期間必須至少為一天。");
+        return null;
+    }
+
+    return { startDate, endDate, totalPremium };
+}
+
+/**
+ * 計算跨年度的天數分佈
+ * @param {Date} startDate - 起始日期
+ * @param {Date} endDate - 結束日期
+ * @returns {Array} 年度資料陣列 [{minguoYear, days, daysForCalc}]
+ */
+function calculateYearlyData(startDate, endDate) {
+    const yearData = [];
+    const startYear = startDate.getFullYear();
+    const endYear = endDate.getFullYear();
+
+    // 計算總天數
+    const totalDays = (Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()) -
+                      Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())) /
+                      (1000 * 60 * 60 * 24);
+
+    if (startYear === endYear) {
+        // 同一年內
+        yearData.push({ minguoYear: adToROC(startYear), days: totalDays, daysForCalc: totalDays });
+    } else {
+        // 跨年度
+        const firstYearDays = getDaysInYear(startYear) - dayOfYear(startDate);
+        yearData.push({ minguoYear: adToROC(startYear), days: firstYearDays, daysForCalc: firstYearDays });
+
+        for (let year = startYear + 1; year < endYear; year++) {
+            const daysInYear = getDaysInYear(year);
+            yearData.push({ minguoYear: adToROC(year), days: daysInYear, daysForCalc: daysInYear });
+        }
+
+        const lastYearDays = dayOfYear(endDate);
+        yearData.push({ minguoYear: adToROC(endYear), days: lastYearDays, daysForCalc: lastYearDays });
+    }
+
+    return yearData;
+}
+
+/**
+ * 分攤保險費到各年度
+ * @param {number} totalPremium - 總保費
+ * @param {Array} yearData - 年度資料陣列
+ * @returns {Array} 保費分攤結果 [{minguoYear, premium}]
+ */
+function allocatePremium(totalPremium, yearData) {
+    let allocatedPremium = 0;
+    const premiumResults = [];
+    const calculatedTotalDays = yearData.reduce((sum, d) => sum + d.days, 0);
+
+    // 從最後一年往前計算（避免累積誤差）
+    for (let i = yearData.length - 1; i > 0; i--) {
+        const data = yearData[i];
+        const premium = Math.round(totalPremium * (data.daysForCalc / calculatedTotalDays));
+        premiumResults.push({ minguoYear: data.minguoYear, premium: premium });
+        allocatedPremium += premium;
+    }
+
+    // 第一年用扣除法（確保總和精確等於總保費）
+    premiumResults.push({
+        minguoYear: yearData[0].minguoYear,
+        premium: totalPremium - allocatedPremium
+    });
+
+    premiumResults.reverse();
+    return premiumResults;
+}
+
+/**
+ * 顯示保險費分攤結果
+ * @param {Array} yearData - 年度資料陣列
+ * @param {Array} premiumResults - 保費分攤結果
+ */
+function renderPremiumResults(yearData, premiumResults) {
+    const resultContainer = document.getElementById('result-container');
+    const periodSummary = document.getElementById('periodSummary');
+    const calculatedTotalDays = yearData.reduce((sum, d) => sum + d.days, 0);
+
+    resultContainer.innerHTML = '';
+    periodSummary.innerText = `期間總天數: ${calculatedTotalDays}天 (${yearData.map(d => `${d.minguoYear}年: ${d.days}天`).join(' / ')})`;
+
+    premiumResults.forEach(result => {
+        const resultDiv = document.createElement('div');
+        resultDiv.innerHTML = `<h3>${result.minguoYear}年應分攤保費</h3><p>NT$ ${result.premium.toLocaleString()}</p>`;
+        resultContainer.appendChild(resultDiv);
+    });
+
+    document.getElementById('result').className = 'result-visible';
+}
+
+/**
+ * 計算保險費分攤（主函數）
  */
 function calculatePremium() {
     try {
-        updatePickerFromManual('start');
-        updatePickerFromManual('end');
+        // 1. 驗證輸入
+        const inputs = validatePremiumInputs();
+        if (!inputs) return;
 
-        const startDateString = document.getElementById('startDate').value;
-        const endDateString = document.getElementById('endDate').value;
-        const totalPremium = parseFloat(document.getElementById('totalPremium').value);
+        // 2. 計算年度資料
+        const yearData = calculateYearlyData(inputs.startDate, inputs.endDate);
 
-        // 驗證輸入
-        if (!startDateString || !endDateString || isNaN(totalPremium) || totalPremium <= 0) {
-            alert("請確保所有欄位都已正確填寫！");
-            return;
-        }
+        // 3. 分攤保險費
+        const premiumResults = allocatePremium(inputs.totalPremium, yearData);
 
-        const startDate = new Date(startDateString);
-        const endDate = new Date(endDateString);
-
-        if (endDate <= startDate) {
-            alert("結束日期必須晚於起始日期!");
-            return;
-        }
-
-        const totalDays = (Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()) -
-                          Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())) /
-                          (1000 * 60 * 60 * 24);
-
-        if (totalDays < 1) {
-            alert("計算出的總天數無效,期間必須至少為一天。");
-            return;
-        }
-
-        const yearData = [];
-        const startYear = startDate.getFullYear();
-        const endYear = endDate.getFullYear();
-
-        if (startYear === endYear) {
-            yearData.push({ minguoYear: adToROC(startYear), days: totalDays, daysForCalc: totalDays });
-        } else {
-            const firstYearDays = getDaysInYear(startYear) - dayOfYear(startDate);
-            yearData.push({ minguoYear: adToROC(startYear), days: firstYearDays, daysForCalc: firstYearDays });
-
-            for (let year = startYear + 1; year < endYear; year++) {
-                const daysInYear = getDaysInYear(year);
-                yearData.push({ minguoYear: adToROC(year), days: daysInYear, daysForCalc: daysInYear });
-            }
-
-            const lastYearDays = dayOfYear(endDate);
-            yearData.push({ minguoYear: adToROC(endYear), days: lastYearDays, daysForCalc: lastYearDays });
-        }
-
-        let allocatedPremium = 0;
-        const premiumResults = [];
-        const calculatedTotalDays = yearData.reduce((sum, d) => sum + d.days, 0);
-
-        for (let i = yearData.length - 1; i > 0; i--) {
-            const data = yearData[i];
-            const premium = Math.round(totalPremium * (data.daysForCalc / calculatedTotalDays));
-            premiumResults.push({ minguoYear: data.minguoYear, premium: premium });
-            allocatedPremium += premium;
-        }
-        premiumResults.push({
-            minguoYear: yearData[0].minguoYear,
-            premium: totalPremium - allocatedPremium
-        });
-        premiumResults.reverse();
-
-        // 顯示結果
-        const resultContainer = document.getElementById('result-container');
-        const periodSummary = document.getElementById('periodSummary');
-        resultContainer.innerHTML = '';
-        periodSummary.innerText = `期間總天數: ${calculatedTotalDays}天 (${yearData.map(d => `${d.minguoYear}年: ${d.days}天`).join(' / ')})`;
-
-        premiumResults.forEach(result => {
-            const resultDiv = document.createElement('div');
-            resultDiv.innerHTML = `<h3>${result.minguoYear}年應分攤保費</h3><p>NT$ ${result.premium.toLocaleString()}</p>`;
-            resultContainer.appendChild(resultDiv);
-        });
-
-        document.getElementById('result').className = 'result-visible';
+        // 4. 顯示結果
+        renderPremiumResults(yearData, premiumResults);
     } catch (error) {
         console.error("計算過程中發生預期外的錯誤:", error);
         alert("計算失敗!請檢查輸入的日期是否有效。");
