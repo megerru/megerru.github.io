@@ -1,0 +1,518 @@
+/**
+ * 共用元件樣式
+ * 用於所有工具頁面的一致性 UI 元件
+ */
+
+/* ===================================================================
+   返回按鈕元件
+   ================================================================ */
+
+.btn-back {
+    display: inline-block;
+    width: fit-content;
+    margin-bottom: 20px;
+    padding: 10px 20px;
+    text-decoration: none;
+    color: #007BFF;
+    background-color: transparent;
+    border: 1px solid #007BFF;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-back:hover {
+    background-color: #007BFF;
+    color: white;
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.btn-back:active {
+    transform: translateY(0);
+}
+
+/* ===================================================================
+   進度條元件
+   ================================================================ */
+
+.progress-container {
+    width: 100%;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 20px 0;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.progress-bar {
+    height: 30px;
+    background: linear-gradient(90deg, #4CAF50 0%, #45a049 100%);
+    border-radius: 8px;
+    transition: width 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.progress-text {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+/* ===================================================================
+   狀態訊息元件
+   ================================================================ */
+
+.progress-complete {
+    padding: 15px 20px;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-left: 4px solid #28a745;
+    border-radius: 5px;
+    color: #155724;
+    font-size: 16px;
+    font-weight: 500;
+    margin: 20px 0;
+}
+
+.progress-complete small {
+    display: block;
+    margin-top: 8px;
+    font-size: 14px;
+    color: #155724;
+    opacity: 0.8;
+}
+
+.progress-error {
+    padding: 15px 20px;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-left: 4px solid #dc3545;
+    border-radius: 5px;
+    color: #721c24;
+    font-size: 16px;
+    font-weight: 500;
+    margin: 20px 0;
+}
+
+.progress-warning {
+    padding: 15px 20px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-left: 4px solid #ffc107;
+    border-radius: 5px;
+    color: #856404;
+    font-size: 16px;
+    font-weight: 500;
+    margin: 20px 0;
+}
+
+.progress-info {
+    padding: 15px 20px;
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    border-left: 4px solid #17a2b8;
+    border-radius: 5px;
+    color: #0c5460;
+    font-size: 16px;
+    font-weight: 500;
+    margin: 20px 0;
+}
+
+/* ===================================================================
+   拖放區域元件
+   ================================================================ */
+
+.drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    padding: 30px 20px;
+    text-align: center;
+    background-color: #fafafa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.drop-zone:hover {
+    background-color: #f0f0f0;
+    border-color: #007BFF;
+}
+
+.drop-zone.hover {
+    background-color: #e9f5ff;
+    border-color: #007BFF;
+    border-style: solid;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.2);
+}
+
+.drop-zone p {
+    margin: 5px 0;
+    color: #666;
+    font-size: 15px;
+}
+
+.drop-zone .icon {
+    font-size: 48px;
+    color: #007BFF;
+    margin-bottom: 10px;
+}
+
+/* ===================================================================
+   文件列表顯示
+   ================================================================ */
+
+.file-list-display {
+    font-weight: bold;
+    color: #007BFF;
+    margin-top: 10px;
+    font-size: 14px;
+    word-break: break-all;
+}
+
+.sheet-list {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 15px;
+    background-color: #fcfcfc;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.sheet-list h4 {
+    margin: 10px 0 8px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #007BFF;
+    color: #0056b3;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.sheet-list label {
+    display: block;
+    text-align: left;
+    margin: 8px 0;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.sheet-list label:hover {
+    background-color: #f0f0f0;
+}
+
+.sheet-list input[type="checkbox"] {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+/* ===================================================================
+   按鈕元件
+   ================================================================ */
+
+.btn {
+    padding: 12px 24px;
+    border-radius: 5px;
+    border: none;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-primary {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.btn-secondary {
+    background-color: #007BFF;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* ===================================================================
+   表格元件
+   ================================================================ */
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.data-table thead {
+    background-color: #007BFF;
+    color: white;
+}
+
+.data-table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.data-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+}
+
+.data-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ===================================================================
+   工具區域元件
+   ================================================================ */
+
+.tool-section {
+    border: 2px solid #007BFF;
+    border-radius: 10px;
+    padding: 30px;
+    margin: 0 auto;
+    max-width: 1200px;
+    background-color: #fff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tool-section h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 25px;
+    font-size: 24px;
+}
+
+.tool-section h3 {
+    text-align: center;
+    color: #555;
+    font-weight: normal;
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+
+/* ===================================================================
+   表單控制元件
+   ================================================================ */
+
+.controls {
+    border: 1px solid #ddd;
+    padding: 25px;
+    border-radius: 10px;
+    background-color: #fafafa;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.filter-controls,
+.replace-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.controls input[type="text"],
+.controls input[type="number"],
+.controls select {
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 15px;
+    min-width: 200px;
+}
+
+.controls input:focus,
+.controls select:focus {
+    outline: none;
+    border-color: #007BFF;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* ===================================================================
+   響應式設計
+   ================================================================ */
+
+@media (max-width: 768px) {
+    .tool-section {
+        padding: 20px;
+        margin: 10px;
+    }
+
+    .controls {
+        padding: 15px;
+    }
+
+    .filter-controls,
+    .replace-controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .controls input[type="text"],
+    .controls input[type="number"],
+    .controls select {
+        width: 100%;
+        min-width: auto;
+    }
+
+    .btn {
+        width: 100%;
+    }
+
+    .drop-zone {
+        padding: 20px 15px;
+        min-height: 100px;
+    }
+}
+
+/* ===================================================================
+   載入動畫
+   ================================================================ */
+
+.loading-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007BFF;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loading-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+/* ===================================================================
+   工具類
+   ================================================================ */
+
+.hidden {
+    display: none !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-left {
+    text-align: left;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.mt-1 { margin-top: 10px; }
+.mt-2 { margin-top: 20px; }
+.mt-3 { margin-top: 30px; }
+
+.mb-1 { margin-bottom: 10px; }
+.mb-2 { margin-bottom: 20px; }
+.mb-3 { margin-bottom: 30px; }
+
+.p-1 { padding: 10px; }
+.p-2 { padding: 20px; }
+.p-3 { padding: 30px; }

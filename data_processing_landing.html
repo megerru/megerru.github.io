@@ -11,12 +11,64 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 25px;
+            gap: 20px;
             min-height: 400px;
+            max-width: 700px;
+            margin: 0 auto;
         }
+
         .tool-button {
-            font-size: 1.8em;
-            padding: 25px 50px;
+            padding: 20px 30px;
+            width: 100%;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .tool-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .tool-content {
+            flex: 1;
+            text-align: left;
+        }
+
+        .tool-title {
+            font-size: 1.6em;
+            font-weight: bold;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .tool-description {
+            font-size: 0.95em;
+            opacity: 0.85;
+            font-weight: normal;
+            line-height: 1.5;
+            display: block;
+        }
+
+        .usage-hint {
+            background-color: #f8f9fa;
+            color: #495057;
+            padding: 12px 20px;
+            border-radius: 6px;
+            border-left: 4px solid #0056b3;
+            margin-bottom: 25px;
+            text-align: left;
+            font-size: 0.95em;
+        }
+
+        .usage-hint strong {
+            color: #0056b3;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -24,10 +76,32 @@
     <div class="container">
         <a href="index.html" class="back-to-welcome-button">← 返回首頁</a>
         <h1>資料處理工具</h1>
+
+        <div class="usage-hint">
+            <strong>提示：</strong>根據您的需求，選擇下方對應的工具開始處理 Excel 資料
+        </div>
+
         <div class="tool-selection-container">
-            <button class="welcome-button tool-button" onclick="navigateTo('tool1_merger.html')">資料合併與比對</button>
-            <button class="welcome-button tool-button secondary" onclick="navigateTo('tool2_filter.html')">資料抽取</button>
-            <button class="welcome-button tool-button" onclick="navigateTo('tool3_replacer.html')" style="background-color: #1d6f42;">資料欄位取代</button>
+            <button class="welcome-button tool-button" onclick="navigateTo('tool1_merger.html')">
+                <div class="tool-content">
+                    <span class="tool-title">資料合併與比對</span>
+                    <span class="tool-description">合併多個 Excel 檔案，自動標示差異項目</span>
+                </div>
+            </button>
+
+            <button class="welcome-button tool-button secondary" onclick="navigateTo('tool2_filter.html')">
+                <div class="tool-content">
+                    <span class="tool-title">資料抽取</span>
+                    <span class="tool-description">從大型表格中篩選出符合條件的特定資料</span>
+                </div>
+            </button>
+
+            <button class="welcome-button tool-button" onclick="navigateTo('tool3_replacer.html')" style="background-color: #1d6f42;">
+                <div class="tool-content">
+                    <span class="tool-title">資料欄位取代</span>
+                    <span class="tool-description">批次修改表格中的欄位內容或格式</span>
+                </div>
+            </button>
         </div>
     </div>
     
