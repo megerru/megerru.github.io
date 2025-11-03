@@ -156,22 +156,13 @@
         function testConfigConstants() {
             const results = [];
 
-            // 測試 CONFIG 是否存在（向後兼容）
+            // 測試 CONFIG 是否存在
             assert(
                 'CONFIG 物件存在',
                 typeof CONFIG !== 'undefined',
                 'defined',
                 typeof CONFIG,
                 'typeof CONFIG'
-            );
-
-            // 測試 APP_CONFIG 是否存在
-            assert(
-                'APP_CONFIG 物件存在',
-                typeof APP_CONFIG !== 'undefined',
-                'defined',
-                typeof APP_CONFIG,
-                'typeof APP_CONFIG'
             );
 
             // 測試民國年轉換偏移值
@@ -600,11 +591,11 @@
         }
 
         function getSuiteName(index) {
-            if (index < 7) return '📋 測試套件 1: 配置常數驗證';
-            if (index < 11) return '💰 測試套件 2: 勞健保計算';
-            if (index < 18) return '🧾 測試套件 3: 營業稅計算';
-            if (index < 27) return '📅 測試套件 4: 日期轉換函數';
-            if (index < 33) return '📆 測試套件 5: 閏年判斷';
+            if (index < 6) return '📋 測試套件 1: 配置常數驗證';
+            if (index < 10) return '💰 測試套件 2: 勞健保計算';
+            if (index < 17) return '🧾 測試套件 3: 營業稅計算';
+            if (index < 26) return '📅 測試套件 4: 日期轉換函數';
+            if (index < 32) return '📆 測試套件 5: 閏年判斷';
             return '🔢 測試套件 6: 保險費分攤計算';
         }
 
