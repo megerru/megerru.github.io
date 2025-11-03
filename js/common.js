@@ -30,14 +30,17 @@ function readSheetData(worksheet) {
 }
 
 /**
- * 標準化儲存格值（移除空白、統一格式）
+ * 修剪並壓縮空白字元（將多個連續空白變成單一空格）
  * @param {*} value - 儲存格值
- * @returns {string} - 標準化後的字串
+ * @returns {string} - 處理後的字串
  */
-function normalizeValue(value) {
+function trimAndCollapseWhitespace(value) {
     if (value === null || value === undefined) return '';
     return String(value).trim().replace(/\s+/g, ' ');
 }
+
+// 向後兼容：保留舊函數名稱
+const normalizeValue = trimAndCollapseWhitespace;
 
 // ===================================================================
 // UI 進度與狀態顯示函數
@@ -281,23 +284,38 @@ function sleep(ms) {
 // 頁面導航函數（用於 index.html）
 // ===================================================================
 
+// 記錄當前顯示的區塊（用於優化效能）
+let _currentVisibleSection = null;
+
 /**
  * 通用的區塊顯示函數 - 消除重複的 showWelcome/showInsurance/showInvoice 邏輯
+ * 優化：只隱藏當前顯示的區塊，不用遍歷所有區塊（O(n) → O(1)）
  * @param {HTMLElement} targetSection - 要顯示的區塊
- * @param {Array<HTMLElement>} allSections - 所有區塊的陣列
+ * @param {Array<HTMLElement>} allSections - 所有區塊的陣列（選填，用於向後兼容）
  */
 function showSection(targetSection, allSections) {
-    if (!targetSection || !allSections) return;
+    if (!targetSection) return;
 
-    allSections.forEach(section => {
-        if (section) {
-            section.classList.add(CONFIG.CSS_CLASSES.HIDDEN);
-            section.classList.remove(CONFIG.CSS_CLASSES.FADE_IN);
-        }
-    });
+    // 優化路徑：只隱藏當前顯示的區塊
+    if (_currentVisibleSection && _currentVisibleSection !== targetSection) {
+        _currentVisibleSection.classList.add(CONFIG.CSS_CLASSES.HIDDEN);
+        _currentVisibleSection.classList.remove(CONFIG.CSS_CLASSES.FADE_IN);
+    } else if (allSections) {
+        // 向後兼容路徑：如果沒有記錄當前區塊，則遍歷所有區塊
+        allSections.forEach(section => {
+            if (section && section !== targetSection) {
+                section.classList.add(CONFIG.CSS_CLASSES.HIDDEN);
+                section.classList.remove(CONFIG.CSS_CLASSES.FADE_IN);
+            }
+        });
+    }
 
+    // 顯示目標區塊
     targetSection.classList.remove(CONFIG.CSS_CLASSES.HIDDEN);
     targetSection.classList.add(CONFIG.CSS_CLASSES.FADE_IN);
+
+    // 記錄當前顯示的區塊
+    _currentVisibleSection = targetSection;
 }
 
 /**
