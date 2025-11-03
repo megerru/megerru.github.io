@@ -578,6 +578,10 @@ if (document.getElementById('invoice-section')) {
         }
     }
 
+    // 使用 debounce 優化：減少不必要的重複計算
+    // 使用者輸入"1000"會觸發4次，現在只觸發1次（300ms後）
+    const debouncedUpdateSummary = debounce(updateInvoiceSummary, 300);
+
     /**
      * 查詢統編對應的公司名稱（使用 common.js 的函數）
      * @param {string} taxId - 統一編號
@@ -649,7 +653,8 @@ if (document.getElementById('invoice-section')) {
             row.querySelector('.total-3').value = sales + tax;
         }
 
-        updateInvoiceSummary();
+        // 使用 debounce 版本：減少頻繁輸入時的重複計算
+        debouncedUpdateSummary();
         row.querySelectorAll('input[readonly]').forEach(adjustInputWidth);
     });
 
