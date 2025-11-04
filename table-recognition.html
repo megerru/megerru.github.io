@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 表格識別工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .region-box {
+            position: absolute;
+            border: 2px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            cursor: move;
+        }
+        .region-box.selected {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+        .resize-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #3b82f6;
+            border: 1px solid white;
+        }
+        .resize-handle.nw { top: -5px; left: -5px; cursor: nw-resize; }
+        .resize-handle.ne { top: -5px; right: -5px; cursor: ne-resize; }
+        .resize-handle.sw { bottom: -5px; left: -5px; cursor: sw-resize; }
+        .resize-handle.se { bottom: -5px; right: -5px; cursor: se-resize; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white border-b sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button onclick="window.location.href='index.html'" class="text-gray-600 hover:text-gray-900">
+                        ← 返回首頁
+                    </button>
+                    <h1 class="text-2xl font-bold">PDF 表格識別工具</h1>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 max-w-5xl">
+        <!-- Upload Zone -->
+        <div id="upload-zone" class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center cursor-pointer hover:border-blue-500 transition">
+            <input type="file" id="file-input" accept="application/pdf,image/png,image/jpeg,image/jpg" class="hidden">
+            <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            <h3 class="mt-4 text-xl font-semibold">上傳 PDF 或圖片</h3>
+            <p class="mt-2 text-gray-600">拖放檔案到此處，或點擊選擇檔案</p>
+            <p class="mt-2 text-sm text-gray-500">支援 PDF、PNG、JPG、JPEG（最大 50MB）</p>
+        </div>
+
+        <!-- Progress -->
+        <div id="progress-section" class="hidden mt-8">
+            <div class="bg-white rounded-lg p-6 shadow">
+                <div class="flex items-center justify-between mb-2">
+                    <span id="progress-text" class="text-sm font-medium">上傳中...</span>
+                    <span id="progress-percent" class="text-sm text-gray-600">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="progress-bar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Region Selection -->
+        <div id="region-section" class="hidden mt-8">
+            <div class="bg-white rounded-lg p-6 shadow">
+                <h2 class="text-xl font-bold mb-4">框選要識別的表格區域</h2>
+                <div class="mb-4 flex gap-2">
+                    <button onclick="addRegion()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">新增框選</button>
+                    <button onclick="confirmRegions()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">確認識別</button>
+                    <button onclick="cancelRegions()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">取消</button>
+                </div>
+                <div id="image-container" class="relative border rounded overflow-auto" style="max-height: 600px;">
+                    <!-- Images will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results-section" class="hidden mt-8 space-y-6">
+            <!-- Tables will be inserted here -->
+        </div>
+    </main>
+
+    <script>
+        const API_URL = 'https://table-recognition-api.fly.dev';
+        let sessionId = null;
+        let images = [];
+        let regions = [];
+
+        // Upload zone setup
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+
+        uploadZone.onclick = () => fileInput.click();
+        uploadZone.ondragover = (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('border-blue-500');
+        };
+        uploadZone.ondragleave = () => uploadZone.classList.remove('border-blue-500');
+        uploadZone.ondrop = (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('border-blue-500');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFileUpload(file);
+        };
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) handleFileUpload(file);
+        };
+
+        async function handleFileUpload(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            document.getElementById('upload-zone').classList.add('hidden');
+            document.getElementById('progress-section').classList.remove('hidden');
+
+            const xhr = new XMLHttpRequest();
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    document.getElementById('progress-bar').style.width = percent + '%';
+                    document.getElementById('progress-percent').textContent = percent + '%';
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    const data = JSON.parse(xhr.responseText);
+                    if (data.success) {
+                        sessionId = data.sessionId;
+                        images = data.images;
+                        showRegionSelection();
+                    }
+                }
+            };
+
+            xhr.open('POST', `${API_URL}/api/upload-preview`);
+            xhr.send(formData);
+        }
+
+        function showRegionSelection() {
+            document.getElementById('progress-section').classList.add('hidden');
+            document.getElementById('region-section').classList.remove('hidden');
+
+            const container = document.getElementById('image-container');
+            container.innerHTML = '';
+
+            images.forEach((img, index) => {
+                const imgEl = document.createElement('img');
+                imgEl.src = `${API_URL}${img.url}`;
+                imgEl.className = 'max-w-full';
+                imgEl.dataset.pageIndex = index;
+                container.appendChild(imgEl);
+            });
+        }
+
+        function addRegion() {
+            // Simplified region selection - in production, implement drag-to-draw
+            const pageIndex = 0;
+            const region = { pageIndex, x: 50, y: 50, width: 200, height: 200 };
+            regions.push(region);
+            alert('請在生產環境中實作拖曳框選功能');
+        }
+
+        async function confirmRegions() {
+            if (regions.length === 0) {
+                alert('請至少框選一個區域');
+                return;
+            }
+
+            document.getElementById('region-section').classList.add('hidden');
+            document.getElementById('progress-section').classList.remove('hidden');
+            document.getElementById('progress-text').textContent = '識別中...';
+
+            const response = await fetch(`${API_URL}/api/recognize-regions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId, regions })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showResults(data.tables);
+            }
+        }
+
+        function cancelRegions() {
+            document.getElementById('region-section').classList.add('hidden');
+            document.getElementById('upload-zone').classList.remove('hidden');
+            regions = [];
+        }
+
+        function showResults(tables) {
+            document.getElementById('progress-section').classList.add('hidden');
+            const resultsSection = document.getElementById('results-section');
+            resultsSection.classList.remove('hidden');
+            resultsSection.innerHTML = '';
+
+            tables.forEach((table, index) => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-lg p-6 shadow';
+                card.innerHTML = `
+                    <h3 class="text-lg font-bold mb-4">表格 ${index + 1}</h3>
+                    <div class="overflow-auto">
+                        <table class="min-w-full border-collapse border">
+                            <tbody>
+                                ${table.rows.map(row => `
+                                    <tr>
+                                        ${row.map(cell => `<td class="border px-2 py-1">${cell}</td>`).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <button onclick="exportCSV(${index})" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">匯出 CSV</button>
+                        <button onclick="copyTable(${index})" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">複製</button>
+                    </div>
+                `;
+                resultsSection.appendChild(card);
+            });
+
+            // Store tables globally
+            window.recognizedTables = tables;
+        }
+
+        function exportCSV(index) {
+            const table = window.recognizedTables[index];
+            const csv = table.rows.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `table_${index + 1}.csv`;
+            link.click();
+        }
+
+        function copyTable(index) {
+            const table = window.recognizedTables[index];
+            const text = table.rows.map(row => row.join('\t')).join('\n');
+            navigator.clipboard.writeText(text);
+            alert('已複製到剪貼簿');
+        }
+    </script>
+</body>
+</html>
