@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>calculater</title>
-    <meta property="og:title" content="calculater">
+    <title>calculator</title>
+    <meta property="og:title" content="calculator">
     <meta property="og:description" content="一個整合了多種小工具的網頁。">
     <meta property="og:url" content="https://megerru.github.io/">
     <meta property="og:type" content="website">
@@ -18,7 +18,7 @@
             <button class="welcome-button" onclick="navigateTo('exchange-rate.html')" style="background-color: #3498db;">匯率換算</button>
             <button class="welcome-button" onclick="navigateTo('data_processing_landing.html')" style="background-color: #1d6f42;">資料處理</button>
             <button class="welcome-button" onclick="navigateTo('report_landing.html')" style="background-color: #6f1d42;">報表產出</button>
-            <button class="welcome-button" onclick="navigateTo('https://2b5b8e82-ebaa-47ce-a19d-9ea694ad9054-00-1224m4kz7kkf2.sisko.replit.dev')" style="background-color: #95CACA;">表格識別</button>
+            <button class="welcome-button" onclick="window.open('https://table-recognition-api.fly.dev', '_blank')" style="background-color: #95CACA;">表格識別</button>
 
         </div>
     </div>
@@ -162,29 +162,29 @@
             <p>總計加總: <span id="total-sum-three">0</span></p>
         </div>
     </div>
-    
+
+    <!-- 外部依賴 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- 配置和工具函數（必須在 script.js 之前載入） -->
+    <script src="js/config.js"></script>
+    <script src="js/common.js"></script>
+
+    <!-- 主要業務邏輯 -->
     <script src="script.js"></script>
-    
+
     <script>
-        // 優化的導航函數
+        // 導航函數
         function navigateTo(url) {
-            requestAnimationFrame(() => {
-                window.location.href = url;
-            });
+            window.location.href = url;
         }
-        
-        // 頁面載入優化
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                document.body.classList.add('with-animation');
-            });
-        } else {
-            document.body.classList.add('with-animation');
-        }
-    </script>
-    <script>
-        fetch('https://2b5b8e82-ebaa-47ce-a19d-9ea694ad9054-00-1224m4kz7kkf2.sisko.replit.dev', {mode: 'no-cors'}).catch(() => {});
+
+        // 頁面載入動畫
+        document.body.classList.add('with-animation');
+
+        // 喚醒 Replit 服務器（防止休眠）
+        // 使用 common.js 提供的函數，配置在 config.js 中
+        wakeupReplitServer();
     </script>
 </body>
 

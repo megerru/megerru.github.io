@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>工具一：資料合併與比對</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/components.css">
     <style>
-        /* 只保留工具專屬的樣式，進度條樣式已移到 style.css */
+        /* 頁面特定樣式覆寫 */
         body.tool-page-body {
             display: block;
             padding: 20px;
@@ -29,19 +30,9 @@
             border: 1px solid #ccc;
             border-radius: 5px;
         }
-        
-        h1, h2, h3 { text-align: center; color: #333; }
-        h3 { font-weight: normal; color: #555; }
-        .tool-section { border: 2px solid #007BFF; border-radius: 10px; padding: 20px; margin: 0 auto; max-width: 1000px; background-color: #fff; }
-        .container { display: flex; justify-content: space-around; margin-bottom: 20px; flex-wrap: wrap; }
+
+        /* 工具一特定樣式 */
         .file-container { width: 48%; min-width: 320px; }
-        .drop-zone { border: 2px dashed #ccc; border-radius: 10px; padding: 20px; text-align: center; background-color: #fff; cursor: pointer; transition: background-color 0.3s; }
-        .drop-zone.hover { background-color: #e9e9e9; }
-        .drop-zone p { margin: 0; color: #666; }
-        .sheet-list { border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-top: 10px; background-color: #fcfcfc; max-height: 150px; overflow-y: auto; }
-        .sheet-list h4 { margin: 10px 0 5px 0; padding-bottom: 5px; border-bottom: 1px solid #eee; color: #0056b3; }
-        .sheet-list label { display: block; text-align: left; margin: 5px 0 5px 10px; cursor: pointer; }
-        .controls { border: 1px solid #ddd; padding: 20px; border-radius: 10px; background-color: #fff; text-align: center; margin-top: 20px;}
         .key-pair { display: flex; justify-content: center; align-items: center; margin-bottom: 10px; flex-wrap: wrap; padding: 10px; border: 1px solid #eee; border-radius: 5px; }
         .key-pair-label { font-weight: bold; color: #007BFF; margin-bottom: 5px; display: block; width: 100%; }
         .key-pair > span { margin: 5px; font-size: 14px; }
@@ -49,11 +40,6 @@
         #addKeyPairButton { background-color: #007BFF; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; margin-top: 10px; }
         .options { margin-top: 20px; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; }
         .options label { margin-left: 5px; }
-        .action-button { padding: 12px 20px; margin: 10px 20px; border-radius: 5px; border: 1px solid #ccc; background-color: #4CAF50; color: white; cursor: pointer; font-size: 16px; }
-        .action-button:disabled { background-color: #ccc; cursor: not-allowed; }
-        .results { text-align: center; margin-top: 20px; font-weight: bold; }
-        .file-list-display { font-weight: bold; color: #007BFF; margin-top: 5px;}
-        .back-to-landing-button { display: block; width: fit-content; margin-bottom: 20px; text-decoration: none; color: #007BFF; font-size: 16px; }
         .aggregation-section { border-top: 1px solid #ccc; margin-top: 15px; padding-top: 15px; }
         .aggregation-controls button { margin: 0 5px 10px 5px; padding: 5px 10px; border-radius: 5px; border: 1px solid #ccc; cursor: pointer;}
         .aggregation-list { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; max-height: 120px; overflow-y: auto; padding: 10px; background-color: #fafafa; border: 1px solid #eee;}
@@ -61,7 +47,7 @@
     </style>
 </head>
 <body class="tool-page-body">
-    <a href="data_processing_landing.html" class="back-to-landing-button">← 返回工具箱</a>
+    <a href="data_processing_landing.html" class="btn-back">← 返回工具箱</a>
     <div class="tool-section">
         <h2>工具一:AB檔案比對與合併</h2>
         <div class="container">

@@ -1,0 +1,39 @@
+# 這是修復後的 script.js 頂部應該加入的常數配置
+
+在第1行之前加入：
+
+```javascript
+// ===================================================================
+// 配置常數 - 所有業務邏輯的數值都定義在這裡
+// ===================================================================
+
+const CONFIG = {
+    // 日期轉換
+    ROC_TO_AD_OFFSET: 1911,      // 民國年轉西元年的偏差值
+
+    // 勞健保計算比例
+    LABOR_INSURANCE_RATE: 0.7,   // 勞保費率 70%
+    HEALTH_INSURANCE_RATE: 0.6,  // 健保費率 60%
+
+    // 營業稅
+    VAT_RATE: 0.05,              // 營業稅率 5%
+    VAT_MULTIPLIER: 1.05,        // 含稅乘數 (1 + 5%)
+
+    // 驗證限制
+    MIN_ROC_YEAR: 1,             // 最小民國年（民國元年）
+    MAX_ROC_YEAR: 200,           // 最大民國年（西元 2111 年）
+};
+
+```
+
+然後進行以下替換：
+- 第81行: `laborTotal * 0.7` → `laborTotal * CONFIG.LABOR_INSURANCE_RATE`
+- 第82行: `healthTotal * 0.6` → `healthTotal * CONFIG.HEALTH_INSURANCE_RATE`
+- 第103行: `parseInt(year, 10) + 1911` → `parseInt(year, 10) + CONFIG.ROC_TO_AD_OFFSET`
+- 第184行: `startYear - 1911` → `startYear - CONFIG.ROC_TO_AD_OFFSET`
+- 第187行: `startYear - 1911` → `startYear - CONFIG.ROC_TO_AD_OFFSET`
+- 第190行: `year - 1911` → `year - CONFIG.ROC_TO_AD_OFFSET` (同時修復閏年bug)
+- 第194行: `endYear - 1911` → `endYear - CONFIG.ROC_TO_AD_OFFSET`
+- 第616行: `total / 1.05` → `total / CONFIG.VAT_MULTIPLIER`
+- 第629行: `sales * 0.05` → `sales * CONFIG.VAT_RATE`
+- 第483行: `"two-part" === invoiceTypeSelect.value` → `invoiceTypeSelect.value === "two-part"`

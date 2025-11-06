@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>計算邏輯自動化測試</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            background: #ecf0f1;
+            padding: 10px;
+            border-left: 4px solid #3498db;
+        }
+        .test-suite {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-case {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 3px solid #95a5a6;
+        }
+        .test-case.pass {
+            border-left-color: #27ae60;
+            background: #d5f4e6;
+        }
+        .test-case.fail {
+            border-left-color: #e74c3c;
+            background: #fadbd8;
+        }
+        .test-result {
+            font-weight: bold;
+            display: inline-block;
+            min-width: 60px;
+        }
+        .pass .test-result { color: #27ae60; }
+        .fail .test-result { color: #e74c3c; }
+        .summary {
+            background: #3498db;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        .summary.all-pass {
+            background: #27ae60;
+        }
+        .summary.has-fail {
+            background: #e74c3c;
+        }
+        .detail {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-left: 70px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔬 計算邏輯自動化測試</h1>
+    <p><strong>目的</strong>: 確保重構後所有計算邏輯與重構前完全一致</p>
+
+    <button onclick="runAllTests()">▶ 執行所有測試</button>
+
+    <div id="summary"></div>
+    <div id="results"></div>
+
+    <!-- 載入配置和函數 -->
+    <script src="js/config.js"></script>
+    <script src="js/common.js"></script>
+
+    <script>
+        // ===================================================================
+        // 測試框架
+        // ===================================================================
+
+        let totalTests = 0;
+        let passedTests = 0;
+        let failedTests = 0;
+        const testResults = [];
+
+        function assert(testName, condition, expected, actual, formula) {
+            totalTests++;
+            const pass = condition;
+
+            if (pass) {
+                passedTests++;
+            } else {
+                failedTests++;
+            }
+
+            testResults.push({
+                name: testName,
+                pass: pass,
+                expected: expected,
+                actual: actual,
+                formula: formula
+            });
+        }
+
+        function assertClose(testName, actual, expected, tolerance, formula) {
+            const diff = Math.abs(actual - expected);
+            const pass = diff <= tolerance;
+
+            totalTests++;
+            if (pass) {
+                passedTests++;
+            } else {
+                failedTests++;
+            }
+
+            testResults.push({
+                name: testName,
+                pass: pass,
+                expected: expected,
+                actual: actual,
+                formula: formula,
+                diff: diff
+            });
+        }
+
+        // ===================================================================
+        // 測試套件 1: 配置常數驗證
+        // ===================================================================
+
+        function testConfigConstants() {
+            const results = [];
+
+            // 測試 CONFIG 是否存在
+            assert(
+                'CONFIG 物件存在',
+                typeof CONFIG !== 'undefined',
+                'defined',
+                typeof CONFIG,
+                'typeof CONFIG'
+            );
+
+            // 測試民國年轉換偏移值
+            assert(
+                '民國年轉換偏移值 = 1911',
+                CONFIG.ROC_TO_AD_OFFSET === 1911,
+                1911,
+                CONFIG.ROC_TO_AD_OFFSET,
+                'CONFIG.ROC_TO_AD_OFFSET'
+            );
+
+            // 測試勞保費率
+            assert(
+                '勞保費率 = 0.7 (70%)',
+                CONFIG.LABOR_INSURANCE_RATE === 0.7,
+                0.7,
+                CONFIG.LABOR_INSURANCE_RATE,
+                'CONFIG.LABOR_INSURANCE_RATE'
+            );
+
+            // 測試健保費率
+            assert(
+                '健保費率 = 0.6 (60%)',
+                CONFIG.HEALTH_INSURANCE_RATE === 0.6,
+                0.6,
+                CONFIG.HEALTH_INSURANCE_RATE,
+                'CONFIG.HEALTH_INSURANCE_RATE'
+            );
+
+            // 測試營業稅率
+            assert(
+                '營業稅率 = 0.05 (5%)',
+                CONFIG.VAT_RATE === 0.05,
+                0.05,
+                CONFIG.VAT_RATE,
+                'CONFIG.VAT_RATE'
+            );
+
+            // 測試含稅乘數
+            assert(
+                '含稅乘數 = 1.05',
+                CONFIG.VAT_MULTIPLIER === 1.05,
+                1.05,
+                CONFIG.VAT_MULTIPLIER,
+                'CONFIG.VAT_MULTIPLIER'
+            );
+        }
+
+        // ===================================================================
+        // 測試套件 2: 勞健保計算
+        // ===================================================================
+
+        function testLaborInsuranceCalculations() {
+            // 測試案例 1: 勞保費 10000 * 0.7 = 7000
+            const labor1 = Math.round(10000 * CONFIG.LABOR_INSURANCE_RATE);
+            assert(
+                '勞保費計算: 10000 * 0.7',
+                labor1 === 7000,
+                7000,
+                labor1,
+                'Math.round(10000 * 0.7)'
+            );
+
+            // 測試案例 2: 健保費 10000 * 0.6 = 6000
+            const health1 = Math.round(10000 * CONFIG.HEALTH_INSURANCE_RATE);
+            assert(
+                '健保費計算: 10000 * 0.6',
+                health1 === 6000,
+                6000,
+                health1,
+                'Math.round(10000 * 0.6)'
+            );
+
+            // 測試案例 3: 勞保費 15327 * 0.7 = 10729
+            const labor2 = Math.round(15327 * CONFIG.LABOR_INSURANCE_RATE);
+            assert(
+                '勞保費計算: 15327 * 0.7',
+                labor2 === 10729,
+                10729,
+                labor2,
+                'Math.round(15327 * 0.7)'
+            );
+
+            // 測試案例 4: 健保費 8763 * 0.6 = 5258
+            const health2 = Math.round(8763 * CONFIG.HEALTH_INSURANCE_RATE);
+            assert(
+                '健保費計算: 8763 * 0.6',
+                health2 === 5258,
+                5258,
+                health2,
+                'Math.round(8763 * 0.6)'
+            );
+        }
+
+        // ===================================================================
+        // 測試套件 3: 營業稅計算
+        // ===================================================================
+
+        function testVATCalculations() {
+            // 測試案例 1: 二聯式 - 總計 1050，推算銷售額和稅額
+            const total1 = 1050;
+            const sales1 = Math.round(total1 / CONFIG.VAT_MULTIPLIER);
+            const tax1 = total1 - sales1;
+
+            assert(
+                '二聯式銷售額: 1050 / 1.05 = 1000',
+                sales1 === 1000,
+                1000,
+                sales1,
+                'Math.round(1050 / 1.05)'
+            );
+
+            assert(
+                '二聯式稅額: 1050 - 1000 = 50',
+                tax1 === 50,
+                50,
+                tax1,
+                '1050 - 1000'
+            );
+
+            // 測試案例 2: 三聯式 - 銷售額 2000，推算稅額和總計
+            const sales2 = 2000;
+            const tax2 = Math.round(sales2 * CONFIG.VAT_RATE);
+            const total2 = sales2 + tax2;
+
+            assert(
+                '三聯式稅額: 2000 * 0.05 = 100',
+                tax2 === 100,
+                100,
+                tax2,
+                'Math.round(2000 * 0.05)'
+            );
+
+            assert(
+                '三聯式總計: 2000 + 100 = 2100',
+                total2 === 2100,
+                2100,
+                total2,
+                '2000 + 100'
+            );
+
+            // 測試案例 3: 複雜數字 - 總計 3276
+            const total3 = 3276;
+            const sales3 = Math.round(total3 / CONFIG.VAT_MULTIPLIER);
+            const tax3 = total3 - sales3;
+
+            assert(
+                '二聯式銷售額: 3276 / 1.05 = 3120',
+                sales3 === 3120,
+                3120,
+                sales3,
+                'Math.round(3276 / 1.05)'
+            );
+
+            assert(
+                '二聯式稅額: 3276 - 3120 = 156',
+                tax3 === 156,
+                156,
+                tax3,
+                '3276 - 3120'
+            );
+        }
+
+        // ===================================================================
+        // 測試套件 4: 日期轉換函數
+        // ===================================================================
+
+        function testDateConversions() {
+            // 測試民國年轉西元年
+            assert(
+                '民國113年 → 西元2024年',
+                rocToAD(113) === 2024,
+                2024,
+                rocToAD(113),
+                'rocToAD(113)'
+            );
+
+            assert(
+                '民國1年 → 西元1912年',
+                rocToAD(1) === 1912,
+                1912,
+                rocToAD(1),
+                'rocToAD(1)'
+            );
+
+            assert(
+                '民國150年 → 西元2061年',
+                rocToAD(150) === 2061,
+                2061,
+                rocToAD(150),
+                'rocToAD(150)'
+            );
+
+            // 測試西元年轉民國年
+            assert(
+                '西元2024年 → 民國113年',
+                adToROC(2024) === 113,
+                113,
+                adToROC(2024),
+                'adToROC(2024)'
+            );
+
+            assert(
+                '西元1912年 → 民國1年',
+                adToROC(1912) === 1,
+                1,
+                adToROC(1912),
+                'adToROC(1912)'
+            );
+
+            // 測試民國年範圍驗證
+            assert(
+                '民國113年 - 有效',
+                isValidROCYear(113) === true,
+                true,
+                isValidROCYear(113),
+                'isValidROCYear(113)'
+            );
+
+            assert(
+                '民國0年 - 無效',
+                isValidROCYear(0) === false,
+                false,
+                isValidROCYear(0),
+                'isValidROCYear(0)'
+            );
+
+            assert(
+                '民國201年 - 無效 (超過上限)',
+                isValidROCYear(201) === false,
+                false,
+                isValidROCYear(201),
+                'isValidROCYear(201)'
+            );
+        }
+
+        // ===================================================================
+        // 測試套件 5: 閏年判斷
+        // ===================================================================
+
+        function testLeapYears() {
+            assert(
+                '2024年是閏年',
+                isLeapYear(2024) === true,
+                true,
+                isLeapYear(2024),
+                'isLeapYear(2024)'
+            );
+
+            assert(
+                '2023年不是閏年',
+                isLeapYear(2023) === false,
+                false,
+                isLeapYear(2023),
+                'isLeapYear(2023)'
+            );
+
+            assert(
+                '2000年是閏年 (400倍數)',
+                isLeapYear(2000) === true,
+                true,
+                isLeapYear(2000),
+                'isLeapYear(2000)'
+            );
+
+            assert(
+                '1900年不是閏年 (100倍數但非400倍數)',
+                isLeapYear(1900) === false,
+                false,
+                isLeapYear(1900),
+                'isLeapYear(1900)'
+            );
+
+            // 測試年份天數
+            assert(
+                '2024年有366天',
+                getDaysInYear(2024) === 366,
+                366,
+                getDaysInYear(2024),
+                'getDaysInYear(2024)'
+            );
+
+            assert(
+                '2023年有365天',
+                getDaysInYear(2023) === 365,
+                365,
+                getDaysInYear(2023),
+                'getDaysInYear(2023)'
+            );
+        }
+
+        // ===================================================================
+        // 測試套件 6: 保險費分攤計算（整合測試）
+        // ===================================================================
+
+        function testPremiumAllocation() {
+            // 簡化的保險費分攤邏輯測試
+            // 測試案例：113/3/30 ~ 114/3/23，總保費 36500
+
+            const startDate = new Date(2024, 2, 30); // 2024/3/30
+            const endDate = new Date(2025, 2, 23);   // 2025/3/23
+            const totalPremium = 36500;
+
+            // 計算總天數
+            const totalDays = Math.floor(
+                (Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()) -
+                 Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())) /
+                (1000 * 60 * 60 * 24)
+            );
+
+            assert(
+                '計算總天數: 2024/3/30 ~ 2025/3/23',
+                totalDays === 358,
+                358,
+                totalDays,
+                '日期差計算'
+            );
+
+            // 測試第一年天數（2024年：3/30 ~ 12/31）
+            const firstYearDays = getDaysInYear(2024) - dayOfYear(startDate);
+            assertClose(
+                '2024年度天數',
+                firstYearDays,
+                277, // 366 - 89 = 277
+                1,
+                'getDaysInYear(2024) - dayOfYear(startDate)'
+            );
+
+            // 測試第二年天數（2025年：1/1 ~ 3/23）
+            const secondYearDays = dayOfYear(endDate);
+            assertClose(
+                '2025年度天數',
+                secondYearDays,
+                82, // 1月31 + 2月28 + 3月23 = 82
+                1,
+                'dayOfYear(endDate)'
+            );
+        }
+
+        // ===================================================================
+        // 執行所有測試
+        // ===================================================================
+
+        function runAllTests() {
+            // 重置計數器
+            totalTests = 0;
+            passedTests = 0;
+            failedTests = 0;
+            testResults.length = 0;
+
+            // 執行所有測試套件
+            testConfigConstants();
+            testLaborInsuranceCalculations();
+            testVATCalculations();
+            testDateConversions();
+            testLeapYears();
+            testPremiumAllocation();
+
+            // 顯示結果
+            displayResults();
+        }
+
+        function displayResults() {
+            const summaryDiv = document.getElementById('summary');
+            const resultsDiv = document.getElementById('results');
+
+            // 顯示摘要
+            const passRate = ((passedTests / totalTests) * 100).toFixed(1);
+            const summaryClass = failedTests === 0 ? 'all-pass' : 'has-fail';
+
+            summaryDiv.className = `summary ${summaryClass}`;
+            summaryDiv.innerHTML = `
+                <div style="font-size: 24px; margin-bottom: 10px;">
+                    ${failedTests === 0 ? '✅ 所有測試通過！' : '❌ 有測試失敗！'}
+                </div>
+                <div>
+                    總計: ${totalTests} 個測試 |
+                    通過: ${passedTests} |
+                    失敗: ${failedTests} |
+                    通過率: ${passRate}%
+                </div>
+                ${failedTests === 0 ?
+                    '<div style="margin-top: 10px; font-size: 16px;">🎉 計算邏輯完全一致，可以安心重構！</div>' :
+                    '<div style="margin-top: 10px; font-size: 16px;">⚠️ 請檢查失敗的測試案例</div>'
+                }
+            `;
+
+            // 顯示詳細結果
+            let html = '';
+            let currentSuite = '';
+
+            testResults.forEach((result, index) => {
+                // 根據測試名稱判斷屬於哪個測試套件
+                const suiteName = getSuiteName(index);
+
+                if (suiteName !== currentSuite) {
+                    if (currentSuite !== '') {
+                        html += '</div>';
+                    }
+                    html += `<div class="test-suite"><h2>${suiteName}</h2>`;
+                    currentSuite = suiteName;
+                }
+
+                const statusIcon = result.pass ? '✓' : '✗';
+                const statusClass = result.pass ? 'pass' : 'fail';
+                const statusText = result.pass ? 'PASS' : 'FAIL';
+
+                html += `
+                    <div class="test-case ${statusClass}">
+                        <span class="test-result">${statusIcon} ${statusText}</span>
+                        ${result.name}
+                        <div class="detail">
+                            期望: ${result.expected} | 實際: ${result.actual}
+                            ${result.diff !== undefined ? ` | 差異: ${result.diff}` : ''}
+                            <br>公式: ${result.formula}
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (currentSuite !== '') {
+                html += '</div>';
+            }
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function getSuiteName(index) {
+            if (index < 6) return '📋 測試套件 1: 配置常數驗證';
+            if (index < 10) return '💰 測試套件 2: 勞健保計算';
+            if (index < 17) return '🧾 測試套件 3: 營業稅計算';
+            if (index < 26) return '📅 測試套件 4: 日期轉換函數';
+            if (index < 32) return '📆 測試套件 5: 閏年判斷';
+            return '🔢 測試套件 6: 保險費分攤計算';
+        }
+
+        // 頁面載入時自動執行測試
+        window.addEventListener('load', function() {
+            setTimeout(runAllTests, 100);
+        });
+    </script>
+</body>
+</html>

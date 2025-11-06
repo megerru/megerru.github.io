@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>工具三：資料欄位取代</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/components.css">
     <style>
-        /* CSS 隔離與覆寫 */
+        /* 頁面特定樣式覆寫 */
         body.tool-page-body {
             display: block;
             padding: 20px;
@@ -32,31 +33,18 @@
             width: auto;
         }
 
-        /* 工具頁面自身樣式 */
-        h1, h2, h3 { text-align: center; color: #333; }
-        .tool-section { border: 2px solid #1d6f42; border-radius: 10px; padding: 20px; margin: 0 auto; max-width: 1000px; background-color: #fff; }
-        .container { display: flex; justify-content: space-around; margin-bottom: 20px; flex-wrap: wrap; }
-        .file-container { width: 100%; }
-        .drop-zone { border: 2px dashed #ccc; border-radius: 10px; padding: 20px; text-align: center; background-color: #fff; cursor: pointer; transition: background-color 0.3s; }
-        .drop-zone.hover { background-color: #e9e9e9; }
-        .drop-zone p { margin: 0; color: #666; }
-        .file-list-display { font-weight: bold; color: #007BFF; margin-top: 5px;}
-        .controls { border: 1px solid #ddd; padding: 20px; border-radius: 10px; background-color: #fff; text-align: center; margin-top: 20px;}
-        .action-button { padding: 12px 20px; margin: 10px 20px; border-radius: 5px; border: 1px solid #ccc; background-color: #4CAF50; color: white; cursor: pointer; font-size: 16px; }
-        .action-button:disabled { background-color: #ccc; cursor: not-allowed; }
-        .results { text-align: center; margin-top: 20px; font-weight: bold; }
-        .back-to-landing-button { display: block; width: fit-content; margin-bottom: 20px; text-decoration: none; color: #007BFF; font-size: 16px; }
-        .config-section { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0; }
+        /* 工具三特定樣式 */
         .replace-pair { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .replace-pair input { flex-grow: 1; }
         .remove-pair-btn { background-color: #ff4d4d; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer; }
         #addPairBtn { background-color: #007BFF; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; margin-top: 10px; }
         .direct-replace-option { text-align: left; margin-bottom: 15px; padding-left: 10px;}
         .direct-replace-option label { cursor: pointer; }
+        .config-section { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0; }
     </style>
 </head>
 <body class="tool-page-body">
-    <a href="data_processing_landing.html" class="back-to-landing-button">← 返回工具箱</a>
+    <a href="data_processing_landing.html" class="btn-back">← 返回工具箱</a>
     <div class="tool-section">
         <h2>工具三：資料欄位取代</h2>
         <div class="container">
@@ -76,48 +64,17 @@
             <div id="replacePairsContainer"></div>
             <button id="addPairBtn">新增一組取代規則</button>
             <hr style="margin: 20px 0;">
-            <button id="replaceButton" class="action-button">開始取代並匯出</button>
+            <button id="replaceButton" class="btn btn-primary">開始取代並匯出</button>
         </div>
         <div class="results"><p id="replacerStatus"></p></div>
     </div>
 
+    <!-- 引入共用模組 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/common.js"></script>
+
     <script>
-        // ✨ 進度顯示函式
-        function updateProgress(current, total, message = '處理中') {
-            const percent = Math.round((current / total) * 100);
-            const replacerStatus = document.getElementById('replacerStatus');
-            
-            replacerStatus.innerHTML = `
-                <div class="progress-container">
-                    <div class="progress-bar" style="width: ${percent}%"></div>
-                    <div class="progress-text">
-                        ${message}: ${current} / ${total} (${percent}%)
-                    </div>
-                </div>
-            `;
-        }
-        
-        function showCompleteMessage(message, details = '') {
-            const replacerStatus = document.getElementById('replacerStatus');
-            replacerStatus.innerHTML = `
-                <div class="progress-complete">
-                    ✓ ${message}
-                    ${details ? `<br><small>${details}</small>` : ''}
-                </div>
-            `;
-        }
-        
-        function showErrorMessage(message) {
-            const replacerStatus = document.getElementById('replacerStatus');
-            replacerStatus.innerHTML = `
-                <div class="progress-error">
-                    ✗ ${message}
-                </div>
-            `;
-        }
-        
-        // 主程式
+        // 主程式邏輯
         (function() {
             const dropZone = document.getElementById('dropZoneReplacer');
             const fileInput = document.getElementById('fileInputReplacer');
@@ -132,39 +89,24 @@
 
             let allData = [];
 
-            dropZone.addEventListener('click', () => fileInput.click());
-            ['dragover', 'dragenter'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('hover'); }));
-            ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('hover'); }));
-            dropZone.addEventListener('drop', e => { if (e.dataTransfer.files.length > 0) { fileInput.files = e.dataTransfer.files; handleFiles(e.dataTransfer.files); } });
-            fileInput.addEventListener('change', e => { if (e.target.files.length > 0) handleFiles(e.target.files); });
+            // 設置拖放區域（使用共用函數）
+            setupDropZone(dropZone, fileInput, handleFiles);
 
+            // 處理文件上傳
             async function handleFiles(files) {
                 filesNameDisplay.textContent = Array.from(files).map(f => f.name).join(', ');
                 statusDisplay.textContent = `正在讀取 ${files.length} 個檔案...`;
-                
-                const readPromises = Array.from(files).map(file => new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = e => { 
-                        try { 
-                            resolve(XLSX.read(new Uint8Array(e.target.result), { type: 'array' })); 
-                        } catch(err) { 
-                            reject(err); 
-                        }
-                    };
-                    reader.readAsArrayBuffer(file);
-                }));
 
                 try {
-                    const workbooks = await Promise.all(readPromises);
+                    // 使用共用函數讀取 Excel
+                    const workbooks = await readExcelFiles(files);
                     allData = [];
-                    
-                    workbooks.forEach(wb => {
-                        wb.SheetNames.forEach(sheetName => {
-                            const ws = wb.Sheets[sheetName];
-                            const jsonData = XLSX.utils.sheet_to_json(ws, { defval: null, raw: false });
-                            allData = allData.concat(jsonData.filter(row => 
-                                Object.values(row).some(val => val !== null && val !== undefined && String(val).trim() !== '')
-                            ));
+
+                    workbooks.forEach(wbObj => {
+                        wbObj.workbook.SheetNames.forEach(sheetName => {
+                            const ws = wbObj.workbook.Sheets[sheetName];
+                            // 使用共用函數讀取工作表資料
+                            allData = allData.concat(readSheetData(ws));
                         });
                     });
 
@@ -182,7 +124,7 @@
                         controls.style.display = 'none';
                     }
                 } catch (error) {
-                    showErrorMessage(`讀取檔案失敗: ${error.message}`);
+                    showErrorMessage(`讀取檔案失敗: ${error.message}`, 'replacerStatus');
                 }
             }
 
@@ -246,17 +188,17 @@
                 statusDisplay.textContent = '';
             });
 
-            // ✨ 加入進度顯示的取代功能
+            // 取代功能（使用共用函數）
             replaceButton.addEventListener('click', async () => {
                 const targetHeader = headerSelect.value;
                 if (!targetHeader) {
-                    showErrorMessage('錯誤：請選擇一個要處理的欄位。');
+                    showErrorMessage('錯誤：請選擇一個要處理的欄位。', 'replacerStatus');
                     return;
                 }
 
-                // 開始處理
-                updateProgress(0, allData.length, '正在準備處理');
-                await new Promise(r => setTimeout(r, 0));
+                // 開始處理（使用共用進度函數）
+                updateProgress(0, allData.length, '正在準備處理', 'replacerStatus');
+                await sleep(0);
                 
                 let replacementsCount = 0;
                 let finalProcessedData = [];
@@ -264,7 +206,7 @@
                 if (directReplaceCheckbox.checked) {
                     const replaceInput = document.querySelector('.replace-pair .replace-input');
                     if (!replaceInput || (replaceInput.value.trim() === '' && replaceInput.value !== '')) {
-                        showErrorMessage('錯誤：請為「直接取代」模式輸入要覆蓋的值。');
+                        showErrorMessage('錯誤：請為「直接取代」模式輸入要覆蓋的值。', 'replacerStatus');
                         return;
                     }
                     const replaceValue = replaceInput.value;
@@ -278,11 +220,11 @@
                             replacementsCount++;
                         }
                         finalProcessedData.push(newRow);
-                        
+
                         // 每 100 筆更新一次進度
                         if (i % 100 === 0 || i === allData.length - 1) {
-                            updateProgress(i + 1, allData.length, '直接取代中');
-                            await new Promise(r => setTimeout(r, 0));
+                            updateProgress(i + 1, allData.length, '直接取代中', 'replacerStatus');
+                            await sleep(0);
                         }
                     }
 
@@ -293,7 +235,7 @@
                     })).filter(p => p.find.trim() !== '');
 
                     if (pairs.length === 0) {
-                        showErrorMessage('錯誤：在非「直接取代」模式下，請至少設定一組有效的尋找-取代規則。');
+                        showErrorMessage('錯誤：在非「直接取代」模式下，請至少設定一組有效的尋找-取代規則。', 'replacerStatus');
                         return;
                     }
 
@@ -319,28 +261,26 @@
                             }
                         }
                         finalProcessedData.push(newRow);
-                        
+
                         // 每 100 筆更新一次進度
                         if (i % 100 === 0 || i === allData.length - 1) {
-                            updateProgress(i + 1, allData.length, '尋找並取代中');
-                            await new Promise(r => setTimeout(r, 0));
+                            updateProgress(i + 1, allData.length, '尋找並取代中', 'replacerStatus');
+                            await sleep(0);
                         }
                     }
                 }
-                
-                // 產生檔案
-                updateProgress(allData.length, allData.length, '正在產生 Excel 檔案');
-                await new Promise(r => setTimeout(r, 100));
-                
-                const exportOptions = { bookType: 'xlsx', bookSST: true, type: 'binary' };
-                const newWb = XLSX.utils.book_new();
-                const newWs = XLSX.utils.json_to_sheet(finalProcessedData);
-                XLSX.utils.book_append_sheet(newWb, newWs, 'Replaced Data');
-                XLSX.writeFile(newWb, 'replaced_data.xlsx', exportOptions);
-                
+
+                // 產生檔案（使用共用函數）
+                updateProgress(allData.length, allData.length, '正在產生 Excel 檔案', 'replacerStatus');
+                await sleep(100);
+
+                exportToExcel(finalProcessedData, 'replaced_data.xlsx', 'Replaced Data');
+
+                // 顯示完成訊息（使用共用函數）
                 showCompleteMessage(
                     '處理完成！',
-                    `共取代了 ${replacementsCount} 個儲存格的內容。<br>已匯出為 replaced_data.xlsx。`
+                    `共取代了 ${replacementsCount} 個儲存格的內容。<br>已匯出為 replaced_data.xlsx。`,
+                    'replacerStatus'
                 );
             });
         })();

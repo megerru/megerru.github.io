@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>工具二：資料抽取</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/components.css">
     <style>
-        /* CSS 隔離與覆寫 */
+        /* 頁面特定樣式覆寫 */
         body.tool-page-body {
             display: block;
             padding: 20px;
@@ -19,262 +20,189 @@
             background-color: transparent;
             text-align: left;
         }
-        body.tool-page-body input,
-        body.tool-page-body select {
-            width: auto;
-            padding: 10px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        /* 工具頁面自身樣式 */
-        h1, h2, h3 { text-align: center; color: #333; }
-        h3 { font-weight: normal; color: #555; }
-        .tool-section { border: 2px solid #007BFF; border-radius: 10px; padding: 20px; margin: 0 auto; max-width: 1000px; background-color: #fff; }
-        .container { display: flex; justify-content: space-around; margin-bottom: 20px; flex-wrap: wrap; }
-        .file-container { width: 100%; }
-        .drop-zone { border: 2px dashed #ccc; border-radius: 10px; padding: 20px; text-align: center; background-color: #fff; cursor: pointer; transition: background-color 0.3s; }
-        .drop-zone.hover { background-color: #e9e9e9; }
-        .drop-zone p { margin: 0; color: #666; }
-        .sheet-list { border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-top: 10px; background-color: #fcfcfc; max-height: 150px; overflow-y: auto; }
-        .sheet-list h4 { margin: 10px 0 5px 0; padding-bottom: 5px; border-bottom: 1px solid #eee; color: #0056b3; }
-        .sheet-list label { display: block; text-align: left; margin: 5px 0 5px 10px; cursor: pointer; }
-        .controls { border: 1px solid #ddd; padding: 20px; border-radius: 10px; background-color: #fff; text-align: center; margin-top: 20px;}
-        .action-button { padding: 12px 20px; margin: 10px 20px; border-radius: 5px; border: 1px solid #ccc; background-color: #4CAF50; color: white; cursor: pointer; font-size: 16px; }
-        .action-button:disabled { background-color: #ccc; cursor: not-allowed; }
-        .results { text-align: center; margin-top: 20px; font-weight: bold; }
-        .file-list-display { font-weight: bold; color: #007BFF; margin-top: 5px;}
-        .filter-controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
-        .back-to-landing-button { display: block; width: fit-content; margin-bottom: 20px; text-decoration: none; color: #007BFF; font-size: 16px; }
     </style>
 </head>
 <body class="tool-page-body">
-    <a href="data_processing_landing.html" class="back-to-landing-button">← 返回工具箱</a>
+    <a href="data_processing_landing.html" class="btn-back">← 返回工具箱</a>
+
     <div class="tool-section">
         <h2>工具二：關鍵字篩選與資料抽取</h2>
+
         <div class="container">
-             <div class="file-container">
-                <div class="drop-zone" id="dropZoneFilter"><p>將單一或多個 Excel 檔案拖曳至此</p><p class="file-list-display" id="filterFilesName"></p><input type="file" id="fileInputFilter" multiple style="display: none;"></div>
+            <div class="file-container">
+                <div class="drop-zone" id="dropZoneFilter">
+                    <p>將單一或多個 Excel 檔案拖曳至此</p>
+                    <p class="file-list-display" id="filterFilesName"></p>
+                    <input type="file" id="fileInputFilter" multiple style="display: none;">
+                </div>
                 <div class="sheet-list" id="sheetListFilter" style="display:none;"></div>
             </div>
         </div>
+
         <div class="controls">
-             <div class="filter-controls">
+            <div class="filter-controls">
                 <input type="text" id="keywordInput" placeholder="輸入關鍵字 (例如: 油)">
                 <select id="headerSelectFilter"></select>
-                <button id="filterButton" class="action-button" disabled>開始篩選與匯出</button>
-             </div>
+                <button id="filterButton" class="btn btn-primary" disabled>開始篩選與匯出</button>
+            </div>
         </div>
-        <div class="results"><p id="filterStatus"></p></div>
+
+        <div class="results">
+            <p id="filterStatus"></p>
+        </div>
     </div>
+
+    <!-- 引入共用模組 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/common.js"></script>
+
     <script>
-        // 工具函式
-        function isValidRow(row) { 
-            if (!row || Object.keys(row).length === 0) return false; 
-            return Object.values(row).some(val => val !== null && val !== undefined && String(val).trim() !== ''); 
-        }
-        
-        function readSheetData(worksheet) { 
-            if (!worksheet || !worksheet['!ref']) return []; 
-            const range = XLSX.utils.decode_range(worksheet['!ref']); 
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null, raw: false, range: range }); 
-            return jsonData.filter(isValidRow); 
-        }
-        
-        // ✨ 進度顯示函式
-        function updateProgress(current, total, message = '處理中') {
-            const percent = Math.round((current / total) * 100);
-            const filterStatus = document.getElementById('filterStatus');
-            
-            filterStatus.innerHTML = `
-                <div class="progress-container">
-                    <div class="progress-bar" style="width: ${percent}%"></div>
-                    <div class="progress-text">
-                        ${message}: ${current} / ${total} (${percent}%)
-                    </div>
-                </div>
-            `;
-        }
-        
-        function showCompleteMessage(message, details = '') {
-            const filterStatus = document.getElementById('filterStatus');
-            filterStatus.innerHTML = `
-                <div class="progress-complete">
-                    ✓ ${message}
-                    ${details ? `<br><small>${details}</small>` : ''}
-                </div>
-            `;
-        }
-        
-        function showErrorMessage(message) {
-            const filterStatus = document.getElementById('filterStatus');
-            filterStatus.innerHTML = `
-                <div class="progress-error">
-                    ✗ ${message}
-                </div>
-            `;
-        }
-        
-        // 主程式
+        // 主程式邏輯
         (function() {
-            const dropZoneFilter = document.getElementById('dropZoneFilter'); 
-            const fileInputFilter = document.getElementById('fileInputFilter'); 
-            const filterFilesName = document.getElementById('filterFilesName'); 
-            const sheetListFilter = document.getElementById('sheetListFilter'); 
-            const keywordInput = document.getElementById('keywordInput'); 
-            const headerSelectFilter = document.getElementById('headerSelectFilter'); 
-            const filterButton = document.getElementById('filterButton'); 
-            const filterStatus = document.getElementById('filterStatus'); 
-            
-            let allUploadedDataForFilter = []; 
+            const dropZoneFilter = document.getElementById('dropZoneFilter');
+            const fileInputFilter = document.getElementById('fileInputFilter');
+            const filterFilesName = document.getElementById('filterFilesName');
+            const sheetListFilter = document.getElementById('sheetListFilter');
+            const keywordInput = document.getElementById('keywordInput');
+            const headerSelectFilter = document.getElementById('headerSelectFilter');
+            const filterButton = document.getElementById('filterButton');
+
+            let allUploadedDataForFilter = [];
             let workbooksFilter = [];
-            
-            dropZoneFilter.addEventListener('click', () => fileInputFilter.click());
-            ['dragover', 'dragenter'].forEach(ev => dropZoneFilter.addEventListener(ev, (e) => { e.preventDefault(); dropZoneFilter.classList.add('hover'); }));
-            ['dragleave', 'drop'].forEach(ev => dropZoneFilter.addEventListener(ev, (e) => { e.preventDefault(); dropZoneFilter.classList.remove('hover'); }));
-            dropZoneFilter.addEventListener('drop', (e) => { if (e.dataTransfer.files.length > 0) { fileInputFilter.files = e.dataTransfer.files; handleFilterFiles(e.dataTransfer.files); } });
-            fileInputFilter.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFilterFiles(e.target.files); });
-            
+
+            // 設置拖放區域（使用共用函數）
+            setupDropZone(dropZoneFilter, fileInputFilter, handleFilterFiles);
+
+            // 處理文件上傳
             async function handleFilterFiles(files) {
-                filterFilesName.textContent = Array.from(files).map(f => f.name).join(', '); 
-                filterStatus.textContent = `正在讀取 ${files.length} 個檔案...`;
-                
-                const readPromises = Array.from(files).map(file => new Promise((resolve, reject) => { 
-                    const reader = new FileReader(); 
-                    reader.onload = e => { 
-                        try { 
-                            resolve({ name: file.name, workbook: XLSX.read(new Uint8Array(e.target.result), { type: 'array' }) }); 
-                        } catch(err) { 
-                            reject(err); 
-                        }
-                    }; 
-                    reader.readAsArrayBuffer(file); 
-                }));
-                
-                try { 
-                    workbooksFilter = await Promise.all(readPromises); 
-                    displaySheetListForFilter(); 
-                } catch(error) { 
-                    showErrorMessage(`讀取檔案失敗: ${error.message}`);
+                filterFilesName.textContent = Array.from(files).map(f => f.name).join(', ');
+                document.getElementById('filterStatus').textContent = `正在讀取 ${files.length} 個檔案...`;
+
+                try {
+                    // 使用共用函數讀取 Excel
+                    workbooksFilter = await readExcelFiles(files);
+                    displaySheetListForFilter();
+                } catch(error) {
+                    showErrorMessage(`讀取檔案失敗: ${error.message}`, 'filterStatus');
                 }
             }
-            
+
+            // 顯示工作表列表
             function displaySheetListForFilter() {
-                sheetListFilter.innerHTML = ''; 
+                sheetListFilter.innerHTML = '';
                 sheetListFilter.style.display = 'block';
-                
+
                 workbooksFilter.forEach(wbObj => {
-                    const header = document.createElement('h4'); 
-                    header.textContent = wbObj.name; 
+                    const header = document.createElement('h4');
+                    header.textContent = wbObj.name;
                     sheetListFilter.appendChild(header);
-                    
+
                     wbObj.workbook.SheetNames.forEach((sheetName, index) => {
-                        const label = document.createElement('label'); 
-                        const checkbox = document.createElement('input'); 
-                        checkbox.type = 'checkbox'; 
-                        checkbox.value = sheetName; 
-                        checkbox.checked = (index === 0); 
-                        checkbox.dataset.filename = wbObj.name; 
-                        checkbox.onchange = updateDataForFilter; 
-                        label.appendChild(checkbox); 
-                        label.appendChild(document.createTextNode(` ${sheetName}`)); 
+                        const label = document.createElement('label');
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = sheetName;
+                        checkbox.checked = (index === 0);
+                        checkbox.dataset.filename = wbObj.name;
+                        checkbox.onchange = updateDataForFilter;
+                        label.appendChild(checkbox);
+                        label.appendChild(document.createTextNode(` ${sheetName}`));
                         sheetListFilter.appendChild(label);
                     });
                 });
-                
+
                 updateDataForFilter();
             }
-            
+
+            // 更新合併資料
             function updateDataForFilter() {
-                let combinedData = []; 
+                let combinedData = [];
                 const checkedBoxes = sheetListFilter.querySelectorAll('input:checked');
-                
-                checkedBoxes.forEach(cb => { 
-                    const fileName = cb.dataset.filename; 
-                    const sheetName = cb.value; 
-                    const wbObj = workbooksFilter.find(w => w.name === fileName); 
-                    if(wbObj) { 
-                        const worksheet = wbObj.workbook.Sheets[sheetName]; 
-                        combinedData = combinedData.concat(readSheetData(worksheet)); 
-                    } 
+
+                checkedBoxes.forEach(cb => {
+                    const fileName = cb.dataset.filename;
+                    const sheetName = cb.value;
+                    const wbObj = workbooksFilter.find(w => w.name === fileName);
+                    if(wbObj) {
+                        const worksheet = wbObj.workbook.Sheets[sheetName];
+                        // 使用共用函數讀取工作表資料
+                        combinedData = combinedData.concat(readSheetData(worksheet));
+                    }
                 });
-                
+
                 allUploadedDataForFilter = combinedData;
-                
-                if (allUploadedDataForFilter.length > 0) { 
-                    const headers = Object.keys(allUploadedDataForFilter[0]); 
-                    headerSelectFilter.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join(''); 
-                    filterButton.disabled = false; 
-                    filterStatus.textContent = `資料淨化完成！共讀取 ${allUploadedDataForFilter.length} 筆有效資料，請輸入關鍵字篩選。`; 
-                } else { 
-                    filterButton.disabled = true; 
-                    filterStatus.textContent = '請至少選擇一個包含資料的工作表。'; 
+
+                if (allUploadedDataForFilter.length > 0) {
+                    const headers = Object.keys(allUploadedDataForFilter[0]);
+                    headerSelectFilter.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
+                    filterButton.disabled = false;
+                    document.getElementById('filterStatus').textContent =
+                        `資料淨化完成！共讀取 ${allUploadedDataForFilter.length} 筆有效資料，請輸入關鍵字篩選。`;
+                } else {
+                    filterButton.disabled = true;
+                    document.getElementById('filterStatus').textContent = '請至少選擇一個包含資料的工作表。';
                 }
             }
-            
-            // ✨ 加入進度顯示的篩選功能
+
+            // 篩選並匯出
             filterButton.addEventListener('click', async () => {
-                const keyword = keywordInput.value.trim().toLowerCase(); 
-                const selectedHeader = headerSelectFilter.value; 
-                
-                if (!keyword) { 
-                    showErrorMessage('錯誤：請輸入要篩選的關鍵字。');
-                    return; 
-                } 
-                if (!selectedHeader) { 
-                    showErrorMessage('錯誤：請選擇要篩選的標題欄位。');
-                    return; 
+                const keyword = keywordInput.value.trim().toLowerCase();
+                const selectedHeader = headerSelectFilter.value;
+
+                // 驗證輸入
+                if (!keyword) {
+                    showErrorMessage('錯誤：請輸入要篩選的關鍵字。', 'filterStatus');
+                    return;
                 }
-                
-                // 開始處理
-                updateProgress(0, allUploadedDataForFilter.length, '正在篩選資料');
-                await new Promise(r => setTimeout(r, 0));
-                
-                const filteredData = []; 
+                if (!selectedHeader) {
+                    showErrorMessage('錯誤：請選擇要篩選的標題欄位。', 'filterStatus');
+                    return;
+                }
+
+                // 開始處理（使用共用進度函數）
+                updateProgress(0, allUploadedDataForFilter.length, '正在篩選資料', 'filterStatus');
+                await sleep(0);
+
+                const filteredData = [];
                 const remainingData = [];
-                
+
+                // 篩選資料
                 for (let i = 0; i < allUploadedDataForFilter.length; i++) {
                     const row = allUploadedDataForFilter[i];
-                    const cellValue = row[selectedHeader]; 
-                    
-                    if (cellValue && String(cellValue).toLowerCase().includes(keyword)) { 
-                        filteredData.push(row); 
-                    } else { 
-                        remainingData.push(row); 
+                    const cellValue = row[selectedHeader];
+
+                    if (cellValue && String(cellValue).toLowerCase().includes(keyword)) {
+                        filteredData.push(row);
+                    } else {
+                        remainingData.push(row);
                     }
-                    
+
                     // 每 100 筆更新一次進度
                     if (i % 100 === 0 || i === allUploadedDataForFilter.length - 1) {
-                        updateProgress(i + 1, allUploadedDataForFilter.length, '篩選中');
-                        await new Promise(r => setTimeout(r, 0));
+                        updateProgress(i + 1, allUploadedDataForFilter.length, '篩選中', 'filterStatus');
+                        await sleep(0);
                     }
                 }
-                
+
                 // 產生檔案
-                updateProgress(allUploadedDataForFilter.length, allUploadedDataForFilter.length, '正在產生 Excel 檔案');
-                await new Promise(r => setTimeout(r, 100));
-                
-                const exportOptions = { bookType: 'xlsx', bookSST: true, type: 'binary' };
-                
-                if (filteredData.length > 0) { 
-                    const wbFiltered = XLSX.utils.book_new(); 
-                    const wsFiltered = XLSX.utils.json_to_sheet(filteredData); 
-                    XLSX.utils.book_append_sheet(wbFiltered, wsFiltered, 'Filtered Data'); 
-                    XLSX.writeFile(wbFiltered, 'filtered_data.xlsx', exportOptions); 
+                updateProgress(allUploadedDataForFilter.length, allUploadedDataForFilter.length,
+                    '正在產生 Excel 檔案', 'filterStatus');
+                await sleep(100);
+
+                // 使用共用函數匯出
+                if (filteredData.length > 0) {
+                    exportToExcel(filteredData, 'filtered_data.xlsx', 'Filtered Data');
                 }
-                
-                if (remainingData.length > 0) { 
-                    const wbRemaining = XLSX.utils.book_new(); 
-                    const wsRemaining = XLSX.utils.json_to_sheet(remainingData); 
-                    XLSX.utils.book_append_sheet(wbRemaining, wsRemaining, 'Remaining Data'); 
-                    XLSX.writeFile(wbRemaining, 'remaining_data.xlsx', exportOptions); 
+
+                if (remainingData.length > 0) {
+                    exportToExcel(remainingData, 'remaining_data.xlsx', 'Remaining Data');
                 }
-                
+
+                // 顯示完成訊息（使用共用函數）
                 showCompleteMessage(
                     '篩選完成！',
-                    `符合條件的資料共 ${filteredData.length} 筆，已匯出為 filtered_data.xlsx。<br>剩餘的資料共 ${remainingData.length} 筆，已匯出為 remaining_data.xlsx。`
+                    `符合條件的資料共 ${filteredData.length} 筆，已匯出為 filtered_data.xlsx。<br>剩餘的資料共 ${remainingData.length} 筆，已匯出為 remaining_data.xlsx。`,
+                    'filterStatus'
                 );
             });
         })();
