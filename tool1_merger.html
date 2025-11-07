@@ -20,6 +20,9 @@
             box-shadow: none;
             background-color: transparent;
             text-align: left;
+            display: flex;
+            gap: 15px;
+            justify-content: space-between;
         }
 
         body.tool-page-body input,
@@ -32,7 +35,7 @@
         }
 
         /* 工具一特定樣式 */
-        .file-container { width: 48%; min-width: 300px; }
+        .file-container { flex: 1; min-width: 280px; }
         .key-pair { display: flex; justify-content: center; align-items: center; margin-bottom: 8px; flex-wrap: wrap; padding: 8px; border: 1px solid #eee; border-radius: 5px; }
         .key-pair-label { font-weight: bold; color: #007BFF; margin-bottom: 4px; display: block; width: 100%; font-size: 13px; }
         .key-pair > span { margin: 4px; font-size: 13px; }
