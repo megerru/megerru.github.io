@@ -153,12 +153,12 @@
 .drop-zone {
     border: 2px dashed #ccc;
     border-radius: 10px;
-    padding: 30px 20px;
+    padding: 20px 15px;
     text-align: center;
     background-color: #fafafa;
     cursor: pointer;
     transition: all 0.3s ease;
-    min-height: 120px;
+    min-height: 80px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -178,9 +178,9 @@
 }
 
 .drop-zone p {
-    margin: 5px 0;
+    margin: 3px 0;
     color: #666;
-    font-size: 15px;
+    font-size: 14px;
 }
 
 .drop-zone .icon {
@@ -204,30 +204,31 @@
 .sheet-list {
     border: 1px solid #ddd;
     border-radius: 5px;
-    padding: 15px;
-    margin-top: 15px;
+    padding: 10px;
+    margin-top: 10px;
     background-color: #fcfcfc;
-    max-height: 200px;
+    max-height: 120px;
     overflow-y: auto;
 }
 
 .sheet-list h4 {
-    margin: 10px 0 8px 0;
-    padding-bottom: 8px;
+    margin: 8px 0 6px 0;
+    padding-bottom: 6px;
     border-bottom: 2px solid #007BFF;
     color: #0056b3;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
 }
 
 .sheet-list label {
     display: block;
     text-align: left;
-    margin: 8px 0;
-    padding: 5px 10px;
+    margin: 5px 0;
+    padding: 3px 8px;
     cursor: pointer;
     border-radius: 3px;
     transition: background-color 0.2s;
+    font-size: 13px;
 }
 
 .sheet-list label:hover {
