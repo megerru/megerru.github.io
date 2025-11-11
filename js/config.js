@@ -25,11 +25,7 @@ const CONFIG = {
         CORS_PROXY: 'https://api.allorigins.win/get?url=',
 
         // g0v 公司資料備用 API
-        G0V_COMPANY_API: 'https://company.g0v.ronny.tw/api/show/',
-
-        // Replit 喚醒端點（保持服務器活躍，防止休眠）
-        // 注意：這個 URL 應該從環境變數或配置文件讀取，而不是硬編碼
-        REPLIT_WAKEUP: 'https://2b5b8e82-ebaa-47ce-a19d-9ea694ad9054-00-1224m4kz7kkf2.sisko.replit.dev'
+        G0V_COMPANY_API: 'https://company.g0v.ronny.tw/api/show/'
     },
 
     // ============ UI 動畫時長 ============

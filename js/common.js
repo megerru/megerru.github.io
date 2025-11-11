@@ -398,20 +398,6 @@ function dayOfYear(date) {
 // ===================================================================
 
 /**
- * 喚醒 Replit 服務器（防止休眠）
- * 這個函數會在背景發送請求，不影響用戶體驗
- */
-function wakeupReplitServer() {
-    if (!CONFIG.API.REPLIT_WAKEUP) return;
-
-    fetch(CONFIG.API.REPLIT_WAKEUP, { mode: 'no-cors' })
-        .catch(() => {
-            // 靜默失敗，不影響主要功能
-            console.info('Replit server wakeup request sent');
-        });
-}
-
-/**
  * 查詢統一編號對應的公司名稱
  * @param {string} taxId - 統一編號（8位數字）
  * @returns {Promise<string>} - 公司名稱或錯誤訊息
@@ -573,7 +559,6 @@ export {
     autoTab,
 
     // API 呼叫
-    wakeupReplitServer,
     lookupCompanyName,
 
     // 表格導航
