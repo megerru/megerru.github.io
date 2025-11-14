@@ -394,7 +394,14 @@
 }
 
 .controls input[type="text"],
-.controls input[type="number"],
+.controls input[type="number"] {
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 15px;
+    width: 300px;
+}
+
 .controls select {
     padding: 10px 15px;
     border: 1px solid #ccc;

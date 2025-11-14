@@ -40,10 +40,44 @@
         </div>
 
         <div class="controls">
-            <div class="filter-controls">
+            <!-- 模式切換 -->
+            <div style="text-align: center; margin-bottom: 15px;">
+                <label style="cursor: pointer; font-weight: bold;">
+                    <input type="checkbox" id="advancedModeToggle" style="width: auto;">
+                    進階模式 (多條件篩選)
+                </label>
+            </div>
+
+            <!-- 簡單模式 -->
+            <div id="simpleMode" class="filter-controls">
                 <input type="text" id="keywordInput" placeholder="輸入關鍵字 (例如: 油)">
                 <select id="headerSelectFilter"></select>
                 <button id="filterButton" class="btn btn-primary" disabled>開始篩選與匯出</button>
+            </div>
+
+            <!-- 進階模式 -->
+            <div id="advancedMode" style="display: none;">
+                <div style="margin-bottom: 15px; text-align: center;">
+                    <span style="font-weight: bold;">在欄位</span>
+                    <select id="headerSelectAdvanced"></select>
+                    <span style="font-weight: bold;">中篩選資料</span>
+                </div>
+
+                <!-- 包含條件 -->
+                <div style="background: #f0f8ff; padding: 15px; margin-bottom: 15px; border-radius: 5px;">
+                    <h4 style="margin: 0 0 10px 0; color: #007BFF;">✓ 包含以下任一關鍵字 (OR)</h4>
+                    <div id="includeConditions" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+                    <button id="addIncludeBtn" style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-top: 10px;">+ 新增條件</button>
+                </div>
+
+                <!-- 排除條件 -->
+                <div style="background: #fff5f5; padding: 15px; margin-bottom: 15px; border-radius: 5px;">
+                    <h4 style="margin: 0 0 10px 0; color: #dc3545;">✗ 排除以下關鍵字 (NOT)</h4>
+                    <div id="excludeConditions" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+                    <button id="addExcludeBtn" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-top: 10px;">+ 新增條件</button>
+                </div>
+
+                <button id="filterButtonAdvanced" class="btn btn-primary" disabled>開始篩選與匯出</button>
             </div>
         </div>
 
@@ -66,6 +100,17 @@
             const keywordInput = document.getElementById('keywordInput');
             const headerSelectFilter = document.getElementById('headerSelectFilter');
             const filterButton = document.getElementById('filterButton');
+
+            // 進階模式元素
+            const advancedModeToggle = document.getElementById('advancedModeToggle');
+            const simpleMode = document.getElementById('simpleMode');
+            const advancedMode = document.getElementById('advancedMode');
+            const headerSelectAdvanced = document.getElementById('headerSelectAdvanced');
+            const includeConditions = document.getElementById('includeConditions');
+            const excludeConditions = document.getElementById('excludeConditions');
+            const addIncludeBtn = document.getElementById('addIncludeBtn');
+            const addExcludeBtn = document.getElementById('addExcludeBtn');
+            const filterButtonAdvanced = document.getElementById('filterButtonAdvanced');
 
             let allUploadedDataForFilter = [];
             let workbooksFilter = [];
@@ -135,16 +180,64 @@
                 if (allUploadedDataForFilter.length > 0) {
                     const headers = Object.keys(allUploadedDataForFilter[0]);
                     headerSelectFilter.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
+                    headerSelectAdvanced.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
                     filterButton.disabled = false;
+                    filterButtonAdvanced.disabled = false;
                     document.getElementById('filterStatus').textContent =
                         `資料淨化完成！共讀取 ${allUploadedDataForFilter.length} 筆有效資料，請輸入關鍵字篩選。`;
                 } else {
                     filterButton.disabled = true;
+                    filterButtonAdvanced.disabled = true;
                     document.getElementById('filterStatus').textContent = '請至少選擇一個包含資料的工作表。';
                 }
             }
 
-            // 篩選並匯出
+            // 模式切換
+            advancedModeToggle.addEventListener('change', () => {
+                if (advancedModeToggle.checked) {
+                    simpleMode.style.display = 'none';
+                    advancedMode.style.display = 'block';
+                    // 初始化進階模式（如果是第一次開啟）
+                    if (includeConditions.children.length === 0) {
+                        addConditionInput('include');
+                    }
+                } else {
+                    simpleMode.style.display = 'block';
+                    advancedMode.style.display = 'none';
+                }
+            });
+
+            // 新增條件輸入框
+            function addConditionInput(type) {
+                const container = type === 'include' ? includeConditions : excludeConditions;
+                const div = document.createElement('div');
+                div.style.cssText = 'display: flex; gap: 8px; align-items: center;';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = type === 'include' ? '例如: 油' : '例如: 機油';
+                input.style.cssText = 'width: 300px; padding: 8px; border: 1px solid #ccc; border-radius: 3px; font-size: 14px;';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '✗';
+                removeBtn.style.cssText = 'background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 14px; min-width: 36px;';
+                removeBtn.onclick = () => {
+                    if (type === 'include' && container.children.length === 1) {
+                        document.getElementById('filterStatus').textContent = '至少需要保留一個包含條件';
+                        return;
+                    }
+                    div.remove();
+                };
+
+                div.appendChild(input);
+                div.appendChild(removeBtn);
+                container.appendChild(div);
+            }
+
+            addIncludeBtn.addEventListener('click', () => addConditionInput('include'));
+            addExcludeBtn.addEventListener('click', () => addConditionInput('exclude'));
+
+            // 簡單模式篩選
             filterButton.addEventListener('click', async () => {
                 const keyword = keywordInput.value.trim().toLowerCase();
                 const selectedHeader = headerSelectFilter.value;
@@ -202,6 +295,96 @@
                 showCompleteMessage(
                     '篩選完成！',
                     `符合條件的資料共 ${filteredData.length} 筆，已匯出為 filtered_data.xlsx。<br>剩餘的資料共 ${remainingData.length} 筆，已匯出為 remaining_data.xlsx。`,
+                    'filterStatus'
+                );
+            });
+
+            // 進階模式篩選
+            filterButtonAdvanced.addEventListener('click', async () => {
+                const selectedHeader = headerSelectAdvanced.value;
+
+                // 收集包含條件
+                const includeKeywords = Array.from(includeConditions.querySelectorAll('input'))
+                    .map(input => input.value.trim().toLowerCase())
+                    .filter(v => v !== '');
+
+                // 收集排除條件
+                const excludeKeywords = Array.from(excludeConditions.querySelectorAll('input'))
+                    .map(input => input.value.trim().toLowerCase())
+                    .filter(v => v !== '');
+
+                // 驗證輸入
+                if (includeKeywords.length === 0) {
+                    showErrorMessage('錯誤：請至少輸入一個包含條件。', 'filterStatus');
+                    return;
+                }
+                if (!selectedHeader) {
+                    showErrorMessage('錯誤：請選擇要篩選的標題欄位。', 'filterStatus');
+                    return;
+                }
+
+                // 開始處理
+                updateProgress(0, allUploadedDataForFilter.length, '正在進階篩選', 'filterStatus');
+                await sleep(0);
+
+                const filteredData = [];
+                const remainingData = [];
+
+                // 進階篩選邏輯
+                for (let i = 0; i < allUploadedDataForFilter.length; i++) {
+                    const row = allUploadedDataForFilter[i];
+                    const cellValue = row[selectedHeader];
+                    const cellValueLower = cellValue ? String(cellValue).toLowerCase() : '';
+
+                    // 檢查是否符合包含條件（OR 邏輯）
+                    const matchesInclude = includeKeywords.some(keyword =>
+                        cellValueLower.includes(keyword)
+                    );
+
+                    // 檢查是否符合排除條件
+                    const matchesExclude = excludeKeywords.length > 0 && excludeKeywords.some(keyword =>
+                        cellValueLower.includes(keyword)
+                    );
+
+                    // 最終判斷：必須包含 AND 不能排除
+                    if (matchesInclude && !matchesExclude) {
+                        filteredData.push(row);
+                    } else {
+                        remainingData.push(row);
+                    }
+
+                    // 每 100 筆更新一次進度
+                    if (i % 100 === 0 || i === allUploadedDataForFilter.length - 1) {
+                        updateProgress(i + 1, allUploadedDataForFilter.length, '進階篩選中', 'filterStatus');
+                        await sleep(0);
+                    }
+                }
+
+                // 產生檔案
+                updateProgress(allUploadedDataForFilter.length, allUploadedDataForFilter.length,
+                    '正在產生 Excel 檔案', 'filterStatus');
+                await sleep(100);
+
+                // 使用共用函數匯出
+                if (filteredData.length > 0) {
+                    exportToExcel(filteredData, 'filtered_data.xlsx', 'Filtered Data');
+                }
+
+                if (remainingData.length > 0) {
+                    exportToExcel(remainingData, 'remaining_data.xlsx', 'Remaining Data');
+                }
+
+                // 顯示詳細的篩選條件和結果
+                const conditionSummary = `
+                    包含條件: ${includeKeywords.join(' 或 ')}<br>
+                    ${excludeKeywords.length > 0 ? `排除條件: ${excludeKeywords.join(', ')}<br>` : ''}
+                    符合條件: ${filteredData.length} 筆<br>
+                    不符合: ${remainingData.length} 筆
+                `;
+
+                showCompleteMessage(
+                    '進階篩選完成！',
+                    conditionSummary,
                     'filterStatus'
                 );
             });
