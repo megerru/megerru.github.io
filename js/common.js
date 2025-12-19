@@ -398,7 +398,7 @@ function dayOfYear(date) {
 // ===================================================================
 
 /**
- * 查詢統一編號對應的公司名稱
+ * 查詢統一編號對應的公司名稱（多層備用 API）
  * @param {string} taxId - 統一編號（8位數字）
  * @returns {Promise<string>} - 公司名稱或錯誤訊息
  */
@@ -408,41 +408,85 @@ async function lookupCompanyName(taxId) {
         return '統編格式錯誤';
     }
 
-    // 優先使用政府 API
+    // 策略 1：g0v 主 API
     try {
-        const proxyUrl = CONFIG.API.CORS_PROXY;
-        const taxApiUrl = `${CONFIG.API.TAX_ID_LOOKUP}?$filter=Business_Accounting_NO eq ${taxId}`;
-        const response = await fetch(proxyUrl + encodeURIComponent(taxApiUrl));
-
-        if (response.ok) {
-            const data = await response.json();
-            const results = JSON.parse(data.contents);
-            if (results && results.length > 0 && results[0]['營業人名稱']) {
-                return results[0]['營業人名稱'];
-            }
-        }
-    } catch (error) {
-        console.error('政府稅籍 API 查詢失敗:', error);
-    }
-
-    // 備用：使用 g0v API
-    try {
-        const g0vApiUrl = `${CONFIG.API.G0V_COMPANY_API}${taxId}`;
-        const response = await fetch(g0vApiUrl);
+        const g0vUrl = `https://company.g0v.ronny.tw/api/show/${taxId}`;
+        const response = await fetch(g0vUrl, { timeout: 5000 });
 
         if (response.ok) {
             const data = await response.json();
             if (data && data.data) {
-                const companyName = data.data['公司名稱'] || data.data['名稱'];
-                if (companyName) {
-                    return companyName;
+                // g0v API 的公司數據在 財政部 或其他鍵值下
+                const companyData = data.data['財政部'] || data.data['經濟部'] || data.data;
+
+                // 嘗試多個可能的公司名稱字段
+                const companyName = companyData['公司名稱'] || companyData['名稱'] || companyData['Company_Name'];
+                if (companyName && typeof companyName === 'string' && companyName.trim()) {
+                    return companyName.trim();
                 }
             }
         }
     } catch (error) {
-        console.error('g0v API 查詢失敗:', error);
+        console.warn('g0v 主 API 查詢失敗:', error.message);
     }
 
+    // 策略 2：g0v 備用 API（較慢但更詳細）
+    try {
+        const g0vBackupUrl = `https://g0v.hackpad.tw/company/${taxId}`;
+        const response = await fetch(g0vBackupUrl, { timeout: 5000 });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.companyName) {
+                return data.companyName.trim();
+            }
+        }
+    } catch (error) {
+        console.warn('g0v 備用 API 查詢失敗:', error.message);
+    }
+
+    // 策略 3：政府資料開放平台 API（需要 CORS 代理）
+    try {
+        const proxyUrl = 'https://api.allorigins.win/get?url=';
+        const govApiUrl = `https://data.gov.tw/api/v2/rest/dataset/9D17AE0D-09B5-4732-A8F4-81ADED04B679?%24filter=Business_Accounting_NO%20eq%20${taxId}`;
+        const response = await fetch(proxyUrl + encodeURIComponent(govApiUrl), { timeout: 5000 });
+
+        if (response.ok) {
+            const proxyData = await response.json();
+            if (proxyData && proxyData.contents) {
+                try {
+                    const results = JSON.parse(proxyData.contents);
+                    if (results && Array.isArray(results) && results.length > 0) {
+                        const companyName = results[0]['營業人名稱'] || results[0]['公司名稱'];
+                        if (companyName) {
+                            return companyName.trim();
+                        }
+                    }
+                } catch (e) {
+                    console.warn('政府 API 回應解析失敗:', e.message);
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('政府資料 API 查詢失敗:', error.message);
+    }
+
+    // 策略 4：經濟部中小企業認證資訊系統
+    try {
+        const smeUrl = `https://sme.smeportal.org.tw/api/search?taxId=${taxId}`;
+        const response = await fetch(smeUrl, { timeout: 5000 });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.result && data.result.companyName) {
+                return data.result.companyName.trim();
+            }
+        }
+    } catch (error) {
+        console.warn('中小企業系統查詢失敗:', error.message);
+    }
+
+    // 所有 API 都失敗，返回查無資料
     return '查無資料';
 }
 
