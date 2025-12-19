@@ -152,13 +152,23 @@ const InvoiceStorage = {
 
     save(type) {
         try {
-            const data = this.extractTableData(type);
-            const allData = {
-                twoPartInvoices: type === 'two-part' ? data : this.extractTableData('two-part'),
-                threePartInvoices: type === 'three-part' ? data : this.extractTableData('three-part'),
+            // 讀取既有的 localStorage 數據
+            const existingData = this.load() || {
+                twoPartInvoices: [],
+                threePartInvoices: [],
                 timestamp: new Date().toISOString()
             };
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(allData));
+
+            // 只更新指定類型的數據，保留另一種類型的舊數據
+            const data = this.extractTableData(type);
+            if (type === 'two-part') {
+                existingData.twoPartInvoices = data;
+            } else {
+                existingData.threePartInvoices = data;
+            }
+
+            existingData.timestamp = new Date().toISOString();
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(existingData));
         } catch (e) {
             console.warn('localStorage 保存失敗:', e.message);
         }
@@ -167,9 +177,21 @@ const InvoiceStorage = {
     load() {
         try {
             const data = localStorage.getItem(this.STORAGE_KEY);
-            return data ? JSON.parse(data) : null;
+            if (!data) return null;
+
+            const parsed = JSON.parse(data);
+
+            // 數據格式驗證：確保有 twoPartInvoices 和 threePartInvoices
+            if (!parsed.twoPartInvoices) parsed.twoPartInvoices = [];
+            if (!parsed.threePartInvoices) parsed.threePartInvoices = [];
+
+            return parsed;
         } catch (e) {
             console.warn('localStorage 讀取失敗:', e.message);
+            // 如果數據損壞，清空它
+            try {
+                localStorage.removeItem(this.STORAGE_KEY);
+            } catch (e2) {}
             return null;
         }
     },
@@ -187,9 +209,12 @@ const InvoiceStorage = {
             document.getElementById('invoice-table-body-two-part') :
             document.getElementById('invoice-table-body-three-part');
 
-        if (!body || !invoices || invoices.length === 0) return;
+        if (!body) return;
 
         body.innerHTML = '';
+
+        // 如果沒有數據要還原，直接返回（呼叫者應該調用 addInvoiceRow）
+        if (!invoices || invoices.length === 0) return;
 
         // 檢查當前 VAT 鎖定狀態：若按鈕文字為「修改營業稅」則稅額已鎖定
         const isVatLocked = vatEditButton.textContent === '修改營業稅';
@@ -563,6 +588,11 @@ if (document.getElementById('invoice-section')) {
         const twoPartSummary = document.getElementById('invoice-summary-two-part');
         const threePartSummary = document.getElementById('invoice-summary-three-part');
 
+        // 第1步：保存即將離開的類型數據（在改變 DOM 之前）
+        const leavingType = type === 'two-part' ? 'three-part' : 'two-part';
+        InvoiceStorage.save(leavingType);
+
+        // 第2步：更新 UI 顯示
         if (type === "two-part") {
             twoPartContainer.classList.remove("hidden");
             twoPartSummary.classList.remove("hidden");
@@ -579,24 +609,30 @@ if (document.getElementById('invoice-section')) {
             twoPartControls.classList.add('hidden');
         }
 
-        // 保存當前的另一種類型數據到 localStorage
-        const currentType = type === 'two-part' ? 'three-part' : 'two-part';
-        InvoiceStorage.save(currentType);
-
-        // 嘗試從 localStorage 還原該類型的數據
+        // 第3步：還原即將進入的類型數據
         const stored = InvoiceStorage.load();
+        const targetBody = type === 'two-part' ? twoPartBody : threePartBody;
+
+        // 如果目標表格為空，或沒有保存的數據，就添加一行
+        let hasData = false;
         if (stored) {
             if (type === 'two-part' && stored.twoPartInvoices && stored.twoPartInvoices.length > 0) {
                 InvoiceStorage.restore('two-part', stored.twoPartInvoices);
                 updateInvoiceSummary();
+                hasData = true;
             } else if (type === 'three-part' && stored.threePartInvoices && stored.threePartInvoices.length > 0) {
                 InvoiceStorage.restore('three-part', stored.threePartInvoices);
                 updateInvoiceSummary();
-            } else {
+                hasData = true;
+            }
+        }
+
+        // 如果表格仍然為空，添加一行
+        if (!hasData || targetBody.rows.length === 0) {
+            // 只在真的沒有行時才添加
+            if (targetBody.rows.length === 0) {
                 addInvoiceRow();
             }
-        } else {
-            addInvoiceRow();
         }
     };
 
