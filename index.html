@@ -96,12 +96,12 @@
     <div id="invoice-section" class="container hidden">
         <button class="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
         <h1>銷項發票稅額計算</h1>
-        <button id="reset-invoice-button" onclick="resetInvoiceForm()">↺</button>
         <div class="invoice-controls">
             <select id="invoice-type-select" onchange="switchInvoiceType()">
                 <option value="two-part">二聯式發票</option>
                 <option value="three-part">三聯式發票</option>
             </select>
+            <button id="reset-invoice-button" onclick="resetCurrentInvoiceType()" title="只重置當前類型">↺ 重置此類型</button>
         </div>
         <div class="optional-columns-controls" id="optional-controls-two-part">
             <label><input type="checkbox" id="toggle-col-date-2" onclick="toggleOptionalColumn('date', 2)"> 日期</label>

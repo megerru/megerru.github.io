@@ -669,6 +669,35 @@ if (document.getElementById('invoice-section')) {
         addInvoiceRow();
     };
 
+    /**
+     * 只重置當前發票類型（不影響另一種類型）
+     */
+    window.resetCurrentInvoiceType = function() {
+        const currentType = invoiceTypeSelect.value;
+        const body = currentType === 'two-part' ? twoPartBody : threePartBody;
+        const table = currentType === 'two-part' ? twoPartTable : threePartTable;
+        const controlsId = currentType === 'two-part' ? 'optional-controls-two-part' : 'optional-controls-three-part';
+
+        // 清空當前類型的表格
+        body.innerHTML = '';
+
+        // 重置當前類型的可選欄位 checkbox
+        document.getElementById(controlsId).querySelectorAll('input[type="checkbox"]')
+            .forEach(cb => cb.checked = false);
+
+        // 移除當前類型的顯示 class
+        table.className = table.className.replace(/show-[\w-]+/g, '').trim();
+
+        // 新增一行空列
+        addInvoiceRow();
+
+        // 更新統計
+        updateInvoiceSummary();
+
+        // 保存空狀態到 localStorage
+        InvoiceStorage.save(currentType);
+    };
+
     window.toggleVatEditMode = function() {
         const isTwoPart = invoiceTypeSelect.value === 'two-part';
         const taxInputs = isTwoPart ?
