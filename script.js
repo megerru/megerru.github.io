@@ -379,6 +379,7 @@ if (document.getElementById('invoice-section')) {
             newRow.innerHTML = `
                 <td>${index}</td>
                 <td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7"></td>
+                <td class="col-optional col-invoice-no"><input type="text" class="data-invoice-no" placeholder="AB12345678" maxlength="10"></td>
                 <td class="col-optional col-buyer"><input type="text" class="data-buyer" placeholder="買受人名稱"></td>
                 <td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td>
                 <td><input type="number" class="total-2" placeholder="總計金額"></td>
@@ -389,6 +390,7 @@ if (document.getElementById('invoice-section')) {
             newRow.innerHTML = `
                 <td>${index}</td>
                 <td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7"></td>
+                <td class="col-optional col-invoice-no"><input type="text" class="data-invoice-no" placeholder="AB12345678" maxlength="10"></td>
                 <td class="col-optional col-tax-id"><input type="tel" class="tax-id-3" maxlength="8"></td>
                 <td class="col-optional col-company"><input type="text" class="company-3"></td>
                 <td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td>
@@ -474,6 +476,7 @@ if (document.getElementById('invoice-section')) {
         const headers = [];
         const data = [];
         const showDate = document.getElementById(isTwoPart ? 'toggle-col-date-2' : 'toggle-col-date-3').checked;
+        const showInvoiceNo = document.getElementById(isTwoPart ? 'toggle-col-invoice-2' : 'toggle-col-invoice-3').checked;
         const showBuyer = isTwoPart && document.getElementById('toggle-col-buyer-2').checked;
         const showItem = document.getElementById(isTwoPart ? 'toggle-col-item-2' : 'toggle-col-item-3').checked;
         const showTaxId = !isTwoPart && document.getElementById('toggle-col-tax-id-3').checked;
@@ -481,6 +484,7 @@ if (document.getElementById('invoice-section')) {
 
         headers.push('編號');
         if (showDate) headers.push('日期');
+        if (showInvoiceNo) headers.push('發票號碼');
 
         if (isTwoPart) {
             if (showBuyer) headers.push('買受人');
@@ -502,6 +506,7 @@ if (document.getElementById('invoice-section')) {
 
                 rowData.push(row.cells[0].textContent);
                 if (showDate) rowData.push(row.querySelector('.data-date').value);
+                if (showInvoiceNo) rowData.push(row.querySelector('.data-invoice-no').value);
                 if (showBuyer) rowData.push(row.querySelector('.data-buyer').value);
                 if (showItem) rowData.push(row.querySelector('.data-item').value);
                 rowData.push(
@@ -515,6 +520,7 @@ if (document.getElementById('invoice-section')) {
 
                 rowData.push(row.cells[0].textContent);
                 if (showDate) rowData.push(row.querySelector('.data-date').value);
+                if (showInvoiceNo) rowData.push(row.querySelector('.data-invoice-no').value);
                 if (showTaxId) rowData.push(row.querySelector('.tax-id-3').value);
                 if (showCompany) rowData.push(row.querySelector('.company-3').value);
                 if (showItem) rowData.push(row.querySelector('.data-item').value);
@@ -614,7 +620,24 @@ if (document.getElementById('invoice-section')) {
 
         adjustInputWidth(target);
 
-        if (target.classList.contains('data-date') || target.classList.contains('tax-id-3')) {
+        if (target.classList.contains('data-invoice-no')) {
+            // 發票號碼驗證：2英文 + 8數字
+            target.value = target.value.toUpperCase();
+
+            // 驗證格式
+            const isValid = /^[A-Z]{2}\d{8}$/.test(target.value);
+            if (target.value.length === 10) {
+                if (isValid) {
+                    target.classList.remove('invoice-error');
+                } else {
+                    target.classList.add('invoice-error');
+                }
+            } else if (target.value.length > 0) {
+                target.classList.add('invoice-error');
+            } else {
+                target.classList.remove('invoice-error');
+            }
+        } else if (target.classList.contains('data-date') || target.classList.contains('tax-id-3')) {
             const numericValue = target.value.replace(/\D/g, '');
             target.value = numericValue;
 
@@ -720,4 +743,62 @@ if (document.getElementById('invoice-section')) {
             handleArrowKey(targetInput, e.key);
         }
     });
+
+    // 發票號碼自動遞增功能
+    window.incrementInvoiceNumber = function(type) {
+        const body = type === 2 ? twoPartBody : threePartBody;
+        if (!body || body.rows.length === 0) {
+            alert('沒有發票列可以參考');
+            return;
+        }
+
+        // 找到倒數第二列（上一列）的發票號碼
+        const lastRowIndex = body.rows.length - 1;
+        if (lastRowIndex === 0) {
+            alert('上一列為空值，無效操作');
+            return;
+        }
+
+        const prevRow = body.rows[lastRowIndex - 1];
+        const prevInvoiceInput = prevRow.querySelector('.data-invoice-no');
+
+        if (!prevInvoiceInput || !prevInvoiceInput.value) {
+            alert('上一列為空值，無效操作');
+            return;
+        }
+
+        const prevValue = prevInvoiceInput.value.trim();
+
+        // 驗證上一列格式
+        if (!/^[A-Z]{2}\d{8}$/.test(prevValue)) {
+            alert('上一列為空值，無效操作');
+            return;
+        }
+
+        // 提取英文和數字部分
+        const prefix = prevValue.substring(0, 2);
+        let numPart = parseInt(prevValue.substring(2), 10);
+
+        // 遞增數字部分
+        numPart++;
+
+        // 如果超過8位數，重置為00000000
+        if (numPart > 99999999) {
+            numPart = 0;
+        }
+
+        // 格式化為8位數字（補零）
+        const newNumber = String(numPart).padStart(8, '0');
+        const newInvoiceNo = prefix + newNumber;
+
+        // 將新發票號碼填入最後一列
+        const lastRow = body.rows[lastRowIndex];
+        const lastInvoiceInput = lastRow.querySelector('.data-invoice-no');
+        if (lastInvoiceInput) {
+            lastInvoiceInput.value = newInvoiceNo;
+            lastInvoiceInput.classList.remove('invoice-error');
+            adjustInputWidth(lastInvoiceInput);
+            lastInvoiceInput.focus();
+        }
+    };
 }

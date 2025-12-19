@@ -105,11 +105,13 @@
         </div>
         <div class="optional-columns-controls" id="optional-controls-two-part">
             <label><input type="checkbox" id="toggle-col-date-2" onclick="toggleOptionalColumn('date', 2)"> 日期</label>
+            <label><input type="checkbox" id="toggle-col-invoice-2" onclick="toggleOptionalColumn('invoice-no', 2)"> 發票號碼</label>
             <label><input type="checkbox" id="toggle-col-buyer-2" onclick="toggleOptionalColumn('buyer', 2)"> 買受人</label>
             <label><input type="checkbox" id="toggle-col-item-2" onclick="toggleOptionalColumn('item', 2)"> 品名</label>
         </div>
         <div class="optional-columns-controls hidden" id="optional-controls-three-part">
             <label><input type="checkbox" id="toggle-col-date-3" onclick="toggleOptionalColumn('date', 3)"> 日期</label>
+            <label><input type="checkbox" id="toggle-col-invoice-3" onclick="toggleOptionalColumn('invoice-no', 3)"> 發票號碼</label>
             <label><input type="checkbox" id="toggle-col-tax-id-3" onclick="toggleOptionalColumn('tax-id', 3)"> 統一編號</label>
             <label><input type="checkbox" id="toggle-col-company-3" onclick="toggleOptionalColumn('company', 3)"> 公司名稱</label>
             <label><input type="checkbox" id="toggle-col-item-3" onclick="toggleOptionalColumn('item', 3)"> 品名</label>
@@ -120,6 +122,7 @@
                     <tr>
                         <th class="col-index">#</th>
                         <th class="col-optional col-date">日期</th>
+                        <th class="col-optional col-invoice-no">發票號碼<span class="invoice-increment-btn" onclick="incrementInvoiceNumber(2)">+</span></th>
                         <th class="col-optional col-buyer">買受人</th>
                         <th class="col-optional col-item">品名</th>
                         <th class="col-total">總計 (含稅)</th>
@@ -134,6 +137,7 @@
                     <tr>
                         <th class="col-index">#</th>
                         <th class="col-optional col-date">日期</th>
+                        <th class="col-optional col-invoice-no">發票號碼<span class="invoice-increment-btn" onclick="incrementInvoiceNumber(3)">+</span></th>
                         <th class="col-optional col-tax-id">統一編號</th>
                         <th class="col-optional col-company">公司名稱</th>
                         <th class="col-optional col-item">品名</th>
