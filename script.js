@@ -4,6 +4,226 @@
 // CONFIG 變數在 config.js 中定義，這裡不再重複聲明
 
 // ===================================================================
+// 發票卡片模式 - 全域數據模型（支持同時顯示二聯式和三聯式）
+// ===================================================================
+
+let invoiceCardsMode = {
+    twoPartInvoices: [],    // 二聯式發票陣列
+    threePartInvoices: [],  // 三聯式發票陣列
+    nextId: 1,              // 全域 ID 生成器
+    collapsedCards: {},     // 卡片收合狀態
+
+    generateId() {
+        return this.nextId++;
+    },
+
+    addInvoice(type, data = {}) {
+        const invoice = {
+            id: this.generateId(),
+            type: type,
+            date: data.date || '',
+            invoiceNo: data.invoiceNo || '',
+            buyer: data.buyer || '',
+            item: data.item || '',
+            taxId: data.taxId || '',
+            company: data.company || '',
+            sales: parseFloat(data.sales) || 0,
+            tax: parseFloat(data.tax) || 0,
+            total: parseFloat(data.total) || 0
+        };
+
+        if (type === 'two-part') {
+            this.twoPartInvoices.push(invoice);
+        } else {
+            this.threePartInvoices.push(invoice);
+        }
+
+        return invoice;
+    },
+
+    updateInvoice(id, type, updates) {
+        const invoices = type === 'two-part' ? this.twoPartInvoices : this.threePartInvoices;
+        const invoice = invoices.find(inv => inv.id === id);
+        if (invoice) {
+            Object.assign(invoice, updates);
+        }
+        return invoice;
+    },
+
+    deleteInvoice(id, type) {
+        if (type === 'two-part') {
+            this.twoPartInvoices = this.twoPartInvoices.filter(inv => inv.id !== id);
+        } else {
+            this.threePartInvoices = this.threePartInvoices.filter(inv => inv.id !== id);
+        }
+    },
+
+    calculateTwoPartStats() {
+        let salesSum = 0, taxSum = 0, totalSum = 0, count = 0;
+        this.twoPartInvoices.forEach(inv => {
+            if (inv.total || inv.sales) {
+                count++;
+                salesSum += inv.sales;
+                taxSum += inv.tax;
+                totalSum += inv.total;
+            }
+        });
+        return { count, salesSum, taxSum, totalSum };
+    },
+
+    calculateThreePartStats() {
+        let salesSum = 0, taxSum = 0, totalSum = 0, count = 0;
+        this.threePartInvoices.forEach(inv => {
+            if (inv.sales) {
+                count++;
+                salesSum += inv.sales;
+                taxSum += inv.tax;
+                totalSum += inv.total;
+            }
+        });
+        return { count, salesSum, taxSum, totalSum };
+    },
+
+    toggleCardCollapse(type) {
+        this.collapsedCards[type] = !this.collapsedCards[type];
+        return this.collapsedCards[type];
+    },
+
+    clear() {
+        this.twoPartInvoices = [];
+        this.threePartInvoices = [];
+        this.collapsedCards = {};
+    }
+};
+
+// ===================================================================
+// localStorage 持久化 - 發票數據保存和還原
+// ===================================================================
+
+const InvoiceStorage = {
+    STORAGE_KEY: 'invoice_data_v1',
+
+    extractTableData(type) {
+        const body = type === 'two-part' ?
+            document.getElementById('invoice-table-body-two-part') :
+            document.getElementById('invoice-table-body-three-part');
+
+        if (!body) return [];
+
+        const invoices = [];
+        let rowIndex = 1;
+
+        for (const row of body.rows) {
+            if (type === 'two-part') {
+                const total = row.querySelector('.total-2')?.value || '';
+                if (!total.trim()) continue;
+
+                invoices.push({
+                    id: rowIndex,
+                    date: row.querySelector('.data-date')?.value || '',
+                    invoiceNo: row.querySelector('.data-invoice-no')?.value || '',
+                    buyer: row.querySelector('.data-buyer')?.value || '',
+                    item: row.querySelector('.data-item')?.value || '',
+                    sales: parseFloat(row.querySelector('.sales-2')?.value) || 0,
+                    tax: parseFloat(row.querySelector('.tax-2')?.value) || 0,
+                    total: parseFloat(total) || 0
+                });
+            } else {
+                const sales = row.querySelector('.sales-3')?.value || '';
+                if (!sales.trim()) continue;
+
+                invoices.push({
+                    id: rowIndex,
+                    date: row.querySelector('.data-date')?.value || '',
+                    invoiceNo: row.querySelector('.data-invoice-no')?.value || '',
+                    taxId: row.querySelector('.tax-id-3')?.value || '',
+                    company: row.querySelector('.company-3')?.value || '',
+                    item: row.querySelector('.data-item')?.value || '',
+                    sales: parseFloat(sales) || 0,
+                    tax: parseFloat(row.querySelector('.tax-3')?.value) || 0,
+                    total: parseFloat(row.querySelector('.total-3')?.value) || 0
+                });
+            }
+            rowIndex++;
+        }
+
+        return invoices;
+    },
+
+    save(type) {
+        try {
+            const data = this.extractTableData(type);
+            const allData = {
+                twoPartInvoices: type === 'two-part' ? data : this.extractTableData('two-part'),
+                threePartInvoices: type === 'three-part' ? data : this.extractTableData('three-part'),
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(allData));
+        } catch (e) {
+            console.warn('localStorage 保存失敗:', e.message);
+        }
+    },
+
+    load() {
+        try {
+            const data = localStorage.getItem(this.STORAGE_KEY);
+            return data ? JSON.parse(data) : null;
+        } catch (e) {
+            console.warn('localStorage 讀取失敗:', e.message);
+            return null;
+        }
+    },
+
+    clear() {
+        try {
+            localStorage.removeItem(this.STORAGE_KEY);
+        } catch (e) {
+            console.warn('localStorage 清空失敗:', e.message);
+        }
+    },
+
+    restore(type, invoices) {
+        const body = type === 'two-part' ?
+            document.getElementById('invoice-table-body-two-part') :
+            document.getElementById('invoice-table-body-three-part');
+
+        if (!body || !invoices || invoices.length === 0) return;
+
+        body.innerHTML = '';
+
+        invoices.forEach((invoice, index) => {
+            const newRow = body.insertRow();
+            newRow.innerHTML = type === 'two-part' ?
+                `<td>${index + 1}</td>
+                 <td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7" value="${invoice.date}"></td>
+                 <td class="col-optional col-invoice-no"><input type="text" class="data-invoice-no" placeholder="AB12345678" maxlength="10" value="${invoice.invoiceNo}"></td>
+                 <td class="col-optional col-buyer"><input type="text" class="data-buyer" placeholder="買受人名稱" value="${invoice.buyer}"></td>
+                 <td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目" value="${invoice.item}"></td>
+                 <td><input type="number" class="total-2" placeholder="總計金額" value="${invoice.total}"></td>
+                 <td><input type="number" class="sales-2" readonly value="${invoice.sales}"></td>
+                 <td><input type="number" class="tax-2" value="${invoice.tax}"></td>` :
+                `<td>${index + 1}</td>
+                 <td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7" value="${invoice.date}"></td>
+                 <td class="col-optional col-invoice-no"><input type="text" class="data-invoice-no" placeholder="AB12345678" maxlength="10" value="${invoice.invoiceNo}"></td>
+                 <td class="col-optional col-tax-id"><input type="tel" class="tax-id-3" maxlength="8" value="${invoice.taxId}"></td>
+                 <td class="col-optional col-company"><input type="text" class="company-3" value="${invoice.company}"></td>
+                 <td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目" value="${invoice.item}"></td>
+                 <td><input type="number" class="sales-3" placeholder="未稅銷售額" value="${invoice.sales}"></td>
+                 <td><input type="number" class="tax-3" value="${invoice.tax}"></td>
+                 <td><input type="number" class="total-3" readonly value="${invoice.total}"></td>`;
+
+            newRow.querySelectorAll('input:not([readonly])').forEach(input => {
+                if (input.placeholder) {
+                    try {
+                        adjustInputWidth(input);
+                    } catch (e) {}
+                }
+            });
+        });
+    }
+};
+
+// ===================================================================
 // I. 頁面導覽與通用函式
 // ===================================================================
 
@@ -354,7 +574,26 @@ if (document.getElementById('invoice-section')) {
             twoPartSummary.classList.add("hidden");
             twoPartControls.classList.add('hidden');
         }
-        resetInvoiceForm();
+
+        // 保存當前的另一種類型數據到 localStorage
+        const currentType = type === 'two-part' ? 'three-part' : 'two-part';
+        InvoiceStorage.save(currentType);
+
+        // 嘗試從 localStorage 還原該類型的數據
+        const stored = InvoiceStorage.load();
+        if (stored) {
+            if (type === 'two-part' && stored.twoPartInvoices && stored.twoPartInvoices.length > 0) {
+                InvoiceStorage.restore('two-part', stored.twoPartInvoices);
+                updateInvoiceSummary();
+            } else if (type === 'three-part' && stored.threePartInvoices && stored.threePartInvoices.length > 0) {
+                InvoiceStorage.restore('three-part', stored.threePartInvoices);
+                updateInvoiceSummary();
+            } else {
+                addInvoiceRow();
+            }
+        } else {
+            addInvoiceRow();
+        }
     };
 
     window.toggleOptionalColumn = function(columnName, type) {
@@ -412,6 +651,11 @@ if (document.getElementById('invoice-section')) {
     };
 
     window.resetInvoiceForm = function() {
+        // 保存當前數據後清空
+        const currentType = invoiceTypeSelect.value;
+        InvoiceStorage.save(currentType);
+        InvoiceStorage.clear();  // 清空 localStorage
+
         twoPartBody.innerHTML = '';
         threePartBody.innerHTML = '';
         vatEditButton.textContent = '修改營業稅';
@@ -423,8 +667,6 @@ if (document.getElementById('invoice-section')) {
         threePartTable.className = threePartTable.className.replace(/show-[\w-]+/g, '').trim();
 
         addInvoiceRow();
-
-        // 移除無用的 readonly 設置（表格已被清空）
     };
 
     window.toggleVatEditMode = function() {
@@ -588,6 +830,12 @@ if (document.getElementById('invoice-section')) {
     // 使用者輸入"1000"會觸發4次，現在只觸發1次（300ms後）
     const debouncedUpdateSummary = debounce(updateInvoiceSummary, 300);
 
+    // 自動保存到 localStorage
+    const debouncedSaveInvoice = debounce(function() {
+        const type = invoiceTypeSelect.value;
+        InvoiceStorage.save(type);
+    }, 1000);
+
     /**
      * 查詢統編對應的公司名稱（使用 common.js 的函數）
      * @param {string} taxId - 統一編號
@@ -678,6 +926,7 @@ if (document.getElementById('invoice-section')) {
 
         // 使用 debounce 版本：減少頻繁輸入時的重複計算
         debouncedUpdateSummary();
+        debouncedSaveInvoice();  // 自動保存到 localStorage
         row.querySelectorAll('input[readonly]').forEach(adjustInputWidth);
     });
 
