@@ -161,6 +161,8 @@ const InvoiceStorage = {
 
             // 只更新指定類型的數據，保留另一種類型的舊數據
             const data = this.extractTableData(type);
+            console.log(`[InvoiceStorage.save] 保存 ${type}，提取到 ${data.length} 行數據`);
+
             if (type === 'two-part') {
                 existingData.twoPartInvoices = data;
             } else {
@@ -169,6 +171,7 @@ const InvoiceStorage = {
 
             existingData.timestamp = new Date().toISOString();
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(existingData));
+            console.log(`[InvoiceStorage.save] 成功保存，localStorage 現在包含: 二聯 ${existingData.twoPartInvoices.length} 行, 三聯 ${existingData.threePartInvoices.length} 行`);
         } catch (e) {
             console.warn('localStorage 保存失敗:', e.message);
         }
@@ -588,8 +591,15 @@ if (document.getElementById('invoice-section')) {
         const twoPartSummary = document.getElementById('invoice-summary-two-part');
         const threePartSummary = document.getElementById('invoice-summary-three-part');
 
+        // 第0步：確保立即保存兩種類型的數據（不依賴 debounce）
+        // 這是為了防止 debouncedSaveInvoice 在切換後觸發並覆蓋數據
+        console.log(`[switchInvoiceType] 第0步：強制保存當前兩種類型的數據`);
+        InvoiceStorage.save('two-part');
+        InvoiceStorage.save('three-part');
+
         // 第1步：保存即將離開的類型數據（在改變 DOM 之前）
         const leavingType = type === 'two-part' ? 'three-part' : 'two-part';
+        console.log(`[switchInvoiceType] 第1步：再次保存 ${leavingType} 的數據（確保最新）`);
         InvoiceStorage.save(leavingType);
 
         // 第2步：更新 UI 顯示
@@ -611,28 +621,24 @@ if (document.getElementById('invoice-section')) {
 
         // 第3步：還原即將進入的類型數據
         const stored = InvoiceStorage.load();
+        console.log(`[switchInvoiceType] 從 localStorage 讀取的數據:`, stored);
+
         const targetBody = type === 'two-part' ? twoPartBody : threePartBody;
 
-        // 如果目標表格為空，或沒有保存的數據，就添加一行
-        let hasData = false;
-        if (stored) {
-            if (type === 'two-part' && stored.twoPartInvoices && stored.twoPartInvoices.length > 0) {
-                InvoiceStorage.restore('two-part', stored.twoPartInvoices);
-                updateInvoiceSummary();
-                hasData = true;
-            } else if (type === 'three-part' && stored.threePartInvoices && stored.threePartInvoices.length > 0) {
-                InvoiceStorage.restore('three-part', stored.threePartInvoices);
-                updateInvoiceSummary();
-                hasData = true;
-            }
-        }
+        // 決定是否有可還原的數據
+        const invoicesToRestore = type === 'two-part' ?
+            (stored && stored.twoPartInvoices) :
+            (stored && stored.threePartInvoices);
 
-        // 如果表格仍然為空，添加一行
-        if (!hasData || targetBody.rows.length === 0) {
-            // 只在真的沒有行時才添加
-            if (targetBody.rows.length === 0) {
-                addInvoiceRow();
-            }
+        if (invoicesToRestore && invoicesToRestore.length > 0) {
+            console.log(`[switchInvoiceType] 還原 ${type}，數據行數: ${invoicesToRestore.length}`);
+            InvoiceStorage.restore(type, invoicesToRestore);
+            updateInvoiceSummary();
+        } else {
+            console.log(`[switchInvoiceType] 沒有保存的 ${type} 數據，添加空行`);
+            // 清空表格並添加一行空行
+            targetBody.innerHTML = '';
+            addInvoiceRow();
         }
     };
 
