@@ -220,7 +220,8 @@ const InvoiceStorage = {
         if (!invoices || invoices.length === 0) return;
 
         // 檢查當前 VAT 鎖定狀態：若按鈕文字為「修改營業稅」則稅額已鎖定
-        const isVatLocked = vatEditButton.textContent === '修改營業稅';
+        const vatButton = document.getElementById('toggle-vat-edit-button');
+        const isVatLocked = vatButton && vatButton.textContent === '修改營業稅';
         const taxReadonlyAttr = isVatLocked ? 'readonly' : '';
 
         invoices.forEach((invoice, index) => {
