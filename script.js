@@ -31,60 +31,15 @@ const invoiceState = {
 };
 
 // ===================================================================
-// 發票卡片模式 - 全域數據模型（支持同時顯示二聯式和三聯式）
+// 發票卡片模式 - 保留備用（統計方法可能未來有用）
+// 注：addInvoice/updateInvoice/deleteInvoice 已於 Phase 3 重構中刪除（未被使用）
 // ===================================================================
 
 let invoiceCardsMode = {
     twoPartInvoices: [],    // 二聯式發票陣列
     threePartInvoices: [],  // 三聯式發票陣列
-    nextId: 1,              // 全域 ID 生成器
-    collapsedCards: {},     // 卡片收合狀態
 
-    generateId() {
-        return this.nextId++;
-    },
-
-    addInvoice(type, data = {}) {
-        const invoice = {
-            id: this.generateId(),
-            type: type,
-            date: data.date || '',
-            invoiceNo: data.invoiceNo || '',
-            buyer: data.buyer || '',
-            item: data.item || '',
-            taxId: data.taxId || '',
-            company: data.company || '',
-            sales: parseFloat(data.sales) || 0,
-            tax: parseFloat(data.tax) || 0,
-            total: parseFloat(data.total) || 0
-        };
-
-        if (type === 'two-part') {
-            this.twoPartInvoices.push(invoice);
-        } else {
-            this.threePartInvoices.push(invoice);
-        }
-
-        return invoice;
-    },
-
-    updateInvoice(id, type, updates) {
-        const invoices = type === 'two-part' ? this.twoPartInvoices : this.threePartInvoices;
-        const invoice = invoices.find(inv => inv.id === id);
-        if (invoice) {
-            Object.assign(invoice, updates);
-        }
-        return invoice;
-    },
-
-    deleteInvoice(id, type) {
-        if (type === 'two-part') {
-            this.twoPartInvoices = this.twoPartInvoices.filter(inv => inv.id !== id);
-        } else {
-            this.threePartInvoices = this.threePartInvoices.filter(inv => inv.id !== id);
-        }
-    },
-
+    // 統計方法（保留備用）
     calculateTwoPartStats() {
         let salesSum = 0, taxSum = 0, totalSum = 0, count = 0;
         this.twoPartInvoices.forEach(inv => {
@@ -109,17 +64,6 @@ let invoiceCardsMode = {
             }
         });
         return { count, salesSum, taxSum, totalSum };
-    },
-
-    toggleCardCollapse(type) {
-        this.collapsedCards[type] = !this.collapsedCards[type];
-        return this.collapsedCards[type];
-    },
-
-    clear() {
-        this.twoPartInvoices = [];
-        this.threePartInvoices = [];
-        this.collapsedCards = {};
     }
 };
 
@@ -207,11 +151,8 @@ const InvoiceStorage = {
 
             const parsed = JSON.parse(data);
 
-            // 數據格式驗證：確保有 twoPartInvoices 和 threePartInvoices
-            if (!parsed.twoPartInvoices) parsed.twoPartInvoices = [];
-            if (!parsed.threePartInvoices) parsed.threePartInvoices = [];
-
-            return parsed;
+            // 遷移層：處理舊版本數據格式
+            return this.migrate(parsed);
         } catch (e) {
             console.warn('localStorage 讀取失敗:', e.message);
             // 如果數據損壞，清空它
@@ -220,6 +161,29 @@ const InvoiceStorage = {
             } catch (e2) {}
             return null;
         }
+    },
+
+    // ===================================================================
+    // 數據遷移層 - 支援未來 localStorage 格式升級
+    // ===================================================================
+    migrate(data) {
+        // v1 格式檢查
+        if (!data.version || data.version === 1) {
+            // 確保必要欄位存在
+            if (!data.twoPartInvoices) data.twoPartInvoices = [];
+            if (!data.threePartInvoices) data.threePartInvoices = [];
+            if (!data.timestamp) data.timestamp = new Date().toISOString();
+
+            data.version = 1;
+        }
+
+        // 未來可以在此新增 v2, v3 等格式的遷移邏輯
+        // if (data.version === 1) {
+        //     // 升級到 v2 的邏輯
+        //     data.version = 2;
+        // }
+
+        return data;
     },
 
     clear() {
