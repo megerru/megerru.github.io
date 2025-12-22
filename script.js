@@ -744,30 +744,167 @@ if (document.getElementById('invoice-section')) {
     window.exportToExcel = function() {
         if (document.activeElement) document.activeElement.blur();
 
-        const type = invoiceTypeSelect.value;
-        const isTwoPart = type === 'two-part';
-        const body = isTwoPart ? twoPartBody : threePartBody;
+        // 檢查兩種類型是否都有資料
+        const hasTwoPartData = checkHasValidData('two-part');
+        const hasThreePartData = checkHasValidData('three-part');
 
-        // 檢查是否有有效資料
-        let hasValidData = false;
-        for (const row of body.rows) {
-            if (isTwoPart) {
-                if (row.querySelector('.total-2')?.value.trim()) {
-                    hasValidData = true;
-                    break;
-                }
-            } else {
-                if (row.querySelector('.sales-3')?.value.trim()) {
-                    hasValidData = true;
-                    break;
-                }
-            }
-        }
-
-        if (!hasValidData) {
+        if (!hasTwoPartData && !hasThreePartData) {
             alert('沒有資料可以匯出!');
             return;
         }
+
+        // 顯示匯出選項對話框
+        showExportDialog(hasTwoPartData, hasThreePartData);
+    };
+
+    // 檢查指定類型是否有有效資料
+    function checkHasValidData(type) {
+        const body = type === 'two-part' ? twoPartBody : threePartBody;
+        const requiredClass = type === 'two-part' ? '.total-2' : '.sales-3';
+
+        for (const row of body.rows) {
+            if (row.querySelector(requiredClass)?.value.trim()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 顯示匯出選項對話框
+    function showExportDialog(hasTwoPartData, hasThreePartData) {
+        const currentType = invoiceTypeSelect.value;
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        `;
+
+        const dialogContent = document.createElement('div');
+        dialogContent.style.cssText = `
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+        `;
+
+        let optionsHTML = '<h2 style="margin-top: 0; color: #333;">選擇匯出方式</h2>';
+
+        // 選項 1：只匯出當前類型
+        optionsHTML += `
+            <button class="export-option-btn" data-mode="current" style="
+                width: 100%;
+                padding: 15px;
+                margin: 10px 0;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                font-size: 16px;
+                cursor: pointer;
+                transition: background 0.3s;
+            " onmouseover="this.style.background='#45a049'" onmouseout="this.style.background='#4CAF50'">
+                📄 只匯出當前類型 (${currentType === 'two-part' ? '二聯式' : '三聯式'})
+            </button>
+        `;
+
+        // 選項 2 & 3：只在兩種都有資料時顯示
+        if (hasTwoPartData && hasThreePartData) {
+            optionsHTML += `
+                <button class="export-option-btn" data-mode="merged" style="
+                    width: 100%;
+                    padding: 15px;
+                    margin: 10px 0;
+                    background: #2196F3;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    font-size: 16px;
+                    cursor: pointer;
+                    transition: background 0.3s;
+                " onmouseover="this.style.background='#0b7dda'" onmouseout="this.style.background='#2196F3'">
+                    📊 合併匯出 (按日期智能排序)
+                </button>
+                <button class="export-option-btn" data-mode="separate" style="
+                    width: 100%;
+                    padding: 15px;
+                    margin: 10px 0;
+                    background: #FF9800;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    font-size: 16px;
+                    cursor: pointer;
+                    transition: background 0.3s;
+                " onmouseover="this.style.background='#e68900'" onmouseout="this.style.background='#FF9800'">
+                    📑 分開匯出 (兩個獨立檔案)
+                </button>
+            `;
+        }
+
+        optionsHTML += `
+            <button class="export-option-btn" data-mode="cancel" style="
+                width: 100%;
+                padding: 12px;
+                margin: 10px 0;
+                background: #f44336;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                font-size: 14px;
+                cursor: pointer;
+                transition: background 0.3s;
+            " onmouseover="this.style.background='#da190b'" onmouseout="this.style.background='#f44336'">
+                取消
+            </button>
+        `;
+
+        dialogContent.innerHTML = optionsHTML;
+        dialog.appendChild(dialogContent);
+        document.body.appendChild(dialog);
+
+        // 綁定點擊事件
+        dialogContent.querySelectorAll('.export-option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.mode;
+                document.body.removeChild(dialog);
+
+                if (mode === 'cancel') return;
+
+                performExport(mode);
+            });
+        });
+    }
+
+    // 執行匯出
+    function performExport(mode) {
+        switch (mode) {
+            case 'current':
+                exportCurrentType();
+                break;
+            case 'merged':
+                exportMerged();
+                break;
+            case 'separate':
+                exportSeparate();
+                break;
+        }
+    }
+
+    // 匯出當前類型
+    function exportCurrentType() {
+        const type = invoiceTypeSelect.value;
+        const isTwoPart = type === 'two-part';
+        const body = isTwoPart ? twoPartBody : threePartBody;
 
         const headers = [];
         const data = [];
@@ -839,7 +976,162 @@ if (document.getElementById('invoice-section')) {
         XLSX.utils.book_append_sheet(workbook, worksheet, '發票明細');
 
         XLSX.writeFile(workbook, isTwoPart ? '二聯式銷項發票.xlsx' : '三聯式銷項發票.xlsx');
-    };
+    }
+
+    // 匯出合併（按日期智能排序）
+    function exportMerged() {
+        // 收集兩種類型的所有資料
+        const twoPartData = extractInvoiceData('two-part');
+        const threePartData = extractInvoiceData('three-part');
+
+        // 合併並按日期排序
+        const allData = [...twoPartData, ...threePartData];
+        allData.sort((a, b) => {
+            const dateA = a.date || '9999999';
+            const dateB = b.date || '9999999';
+            return dateA.localeCompare(dateB);
+        });
+
+        if (allData.length === 0) {
+            alert('沒有有效的資料可以匯出!');
+            return;
+        }
+
+        // 建立表頭（包含所有可能的欄位）
+        const headers = ['編號', '類型', '日期', '發票號碼', '買受人/統編', '公司名稱', '品名', '銷售額(未稅)', '稅額', '總計(含稅)'];
+        const data = [];
+
+        allData.forEach((invoice, index) => {
+            const row = [
+                index + 1,
+                invoice.type === 'two-part' ? '二聯式' : '三聯式',
+                invoice.date || '',
+                invoice.invoiceNo || '',
+                invoice.buyer || invoice.taxId || '',
+                invoice.company || '',
+                invoice.item || '',
+                invoice.sales || 0,
+                invoice.tax || 0,
+                invoice.total || 0
+            ];
+            data.push(row);
+        });
+
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, '發票明細');
+
+        XLSX.writeFile(workbook, '銷項發票_合併匯出.xlsx');
+    }
+
+    // 匯出分開（兩個獨立檔案）
+    function exportSeparate() {
+        const hasTwoPartData = checkHasValidData('two-part');
+        const hasThreePartData = checkHasValidData('three-part');
+
+        if (hasTwoPartData) {
+            exportSingleType('two-part');
+        }
+
+        if (hasThreePartData) {
+            setTimeout(() => {
+                exportSingleType('three-part');
+            }, 300); // 延遲避免瀏覽器阻擋多檔案下載
+        }
+    }
+
+    // 匯出單一類型（內部使用）
+    function exportSingleType(type) {
+        const invoices = extractInvoiceData(type);
+
+        if (invoices.length === 0) {
+            return;
+        }
+
+        const isTwoPart = type === 'two-part';
+        const headers = ['編號', '日期', '發票號碼'];
+
+        if (isTwoPart) {
+            headers.push('買受人', '品名', '銷售額(未稅)', '稅額', '總計(含稅)');
+        } else {
+            headers.push('統一編號', '公司名稱', '品名', '銷售額(未稅)', '營業稅', '總計(含稅)');
+        }
+
+        const data = invoices.map((inv, index) => {
+            const row = [
+                index + 1,
+                inv.date || '',
+                inv.invoiceNo || ''
+            ];
+
+            if (isTwoPart) {
+                row.push(
+                    inv.buyer || '',
+                    inv.item || '',
+                    inv.sales || 0,
+                    inv.tax || 0,
+                    inv.total || 0
+                );
+            } else {
+                row.push(
+                    inv.taxId || '',
+                    inv.company || '',
+                    inv.item || '',
+                    inv.sales || 0,
+                    inv.tax || 0,
+                    inv.total || 0
+                );
+            }
+
+            return row;
+        });
+
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, '發票明細');
+
+        XLSX.writeFile(workbook, isTwoPart ? '二聯式銷項發票.xlsx' : '三聯式銷項發票.xlsx');
+    }
+
+    // 提取發票數據（供合併/分開匯出使用）
+    function extractInvoiceData(type) {
+        const body = type === 'two-part' ? twoPartBody : threePartBody;
+        const isTwoPart = type === 'two-part';
+        const invoices = [];
+
+        for (const row of body.rows) {
+            const invoice = { type };
+
+            if (isTwoPart) {
+                const totalValue = row.querySelector('.total-2')?.value;
+                if (!totalValue) continue;
+
+                invoice.date = row.querySelector('.data-date')?.value || '';
+                invoice.invoiceNo = row.querySelector('.data-invoice-no')?.value || '';
+                invoice.buyer = row.querySelector('.data-buyer')?.value || '';
+                invoice.item = row.querySelector('.data-item')?.value || '';
+                invoice.sales = parseFloat(row.querySelector('.sales-2')?.value) || 0;
+                invoice.tax = parseFloat(row.querySelector('.tax-2')?.value) || 0;
+                invoice.total = parseFloat(totalValue) || 0;
+            } else {
+                const salesValue = row.querySelector('.sales-3')?.value;
+                if (!salesValue) continue;
+
+                invoice.date = row.querySelector('.data-date')?.value || '';
+                invoice.invoiceNo = row.querySelector('.data-invoice-no')?.value || '';
+                invoice.taxId = row.querySelector('.tax-id-3')?.value || '';
+                invoice.company = row.querySelector('.company-3')?.value || '';
+                invoice.item = row.querySelector('.data-item')?.value || '';
+                invoice.sales = parseFloat(salesValue) || 0;
+                invoice.tax = parseFloat(row.querySelector('.tax-3')?.value) || 0;
+                invoice.total = parseFloat(row.querySelector('.total-3')?.value) || 0;
+            }
+
+            invoices.push(invoice);
+        }
+
+        return invoices;
+    }
 
     function updateInvoiceSummary() {
         const type = invoiceTypeSelect.value;
