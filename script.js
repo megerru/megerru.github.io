@@ -757,17 +757,37 @@ if (document.getElementById('invoice-section')) {
         showExportDialog(hasTwoPartData, hasThreePartData);
     };
 
-    // 檢查指定類型是否有有效資料
+    // 檢查指定類型是否有有效資料（從 localStorage 檢查）
     function checkHasValidData(type) {
-        const body = type === 'two-part' ? twoPartBody : threePartBody;
-        const requiredClass = type === 'two-part' ? '.total-2' : '.sales-3';
+        // 先檢查當前顯示的 DOM
+        const currentType = invoiceTypeSelect.value;
+        if (currentType === type) {
+            const body = type === 'two-part' ? twoPartBody : threePartBody;
+            const requiredClass = type === 'two-part' ? '.total-2' : '.sales-3';
 
-        for (const row of body.rows) {
-            if (row.querySelector(requiredClass)?.value.trim()) {
-                return true;
+            for (const row of body.rows) {
+                if (row.querySelector(requiredClass)?.value.trim()) {
+                    return true;
+                }
             }
+            return false;
         }
-        return false;
+
+        // 如果不是當前顯示的類型，從 localStorage 檢查
+        const stored = InvoiceStorage.load();
+        if (!stored) return false;
+
+        const invoices = type === 'two-part' ? stored.twoPartInvoices : stored.threePartInvoices;
+        if (!invoices || invoices.length === 0) return false;
+
+        // 檢查是否有至少一筆有效資料
+        return invoices.some(inv => {
+            if (type === 'two-part') {
+                return inv.total && String(inv.total).trim() !== '';
+            } else {
+                return inv.sales && String(inv.sales).trim() !== '';
+            }
+        });
     }
 
     // 顯示匯出選項對話框
@@ -1111,42 +1131,75 @@ if (document.getElementById('invoice-section')) {
 
     // 提取發票數據（供合併/分開匯出使用）
     function extractInvoiceData(type) {
-        const body = type === 'two-part' ? twoPartBody : threePartBody;
+        const currentType = invoiceTypeSelect.value;
         const isTwoPart = type === 'two-part';
-        const invoices = [];
 
-        for (const row of body.rows) {
-            const invoice = { type };
+        // 如果是當前顯示的類型，從 DOM 提取
+        if (currentType === type) {
+            const body = type === 'two-part' ? twoPartBody : threePartBody;
+            const invoices = [];
 
-            if (isTwoPart) {
-                const totalValue = row.querySelector('.total-2')?.value;
-                if (!totalValue) continue;
+            for (const row of body.rows) {
+                const invoice = { type };
 
-                invoice.date = row.querySelector('.data-date')?.value || '';
-                invoice.invoiceNo = row.querySelector('.data-invoice-no')?.value || '';
-                invoice.buyer = row.querySelector('.data-buyer')?.value || '';
-                invoice.item = row.querySelector('.data-item')?.value || '';
-                invoice.sales = parseFloat(row.querySelector('.sales-2')?.value) || 0;
-                invoice.tax = parseFloat(row.querySelector('.tax-2')?.value) || 0;
-                invoice.total = parseFloat(totalValue) || 0;
-            } else {
-                const salesValue = row.querySelector('.sales-3')?.value;
-                if (!salesValue) continue;
+                if (isTwoPart) {
+                    const totalValue = row.querySelector('.total-2')?.value;
+                    if (!totalValue) continue;
 
-                invoice.date = row.querySelector('.data-date')?.value || '';
-                invoice.invoiceNo = row.querySelector('.data-invoice-no')?.value || '';
-                invoice.taxId = row.querySelector('.tax-id-3')?.value || '';
-                invoice.company = row.querySelector('.company-3')?.value || '';
-                invoice.item = row.querySelector('.data-item')?.value || '';
-                invoice.sales = parseFloat(salesValue) || 0;
-                invoice.tax = parseFloat(row.querySelector('.tax-3')?.value) || 0;
-                invoice.total = parseFloat(row.querySelector('.total-3')?.value) || 0;
+                    invoice.date = row.querySelector('.data-date')?.value || '';
+                    invoice.invoiceNo = row.querySelector('.data-invoice-no')?.value || '';
+                    invoice.buyer = row.querySelector('.data-buyer')?.value || '';
+                    invoice.item = row.querySelector('.data-item')?.value || '';
+                    invoice.sales = parseFloat(row.querySelector('.sales-2')?.value) || 0;
+                    invoice.tax = parseFloat(row.querySelector('.tax-2')?.value) || 0;
+                    invoice.total = parseFloat(totalValue) || 0;
+                } else {
+                    const salesValue = row.querySelector('.sales-3')?.value;
+                    if (!salesValue) continue;
+
+                    invoice.date = row.querySelector('.data-date')?.value || '';
+                    invoice.invoiceNo = row.querySelector('.data-invoice-no')?.value || '';
+                    invoice.taxId = row.querySelector('.tax-id-3')?.value || '';
+                    invoice.company = row.querySelector('.company-3')?.value || '';
+                    invoice.item = row.querySelector('.data-item')?.value || '';
+                    invoice.sales = parseFloat(salesValue) || 0;
+                    invoice.tax = parseFloat(row.querySelector('.tax-3')?.value) || 0;
+                    invoice.total = parseFloat(row.querySelector('.total-3')?.value) || 0;
+                }
+
+                invoices.push(invoice);
             }
 
-            invoices.push(invoice);
+            return invoices;
         }
 
-        return invoices;
+        // 如果不是當前顯示的類型，從 localStorage 提取
+        const stored = InvoiceStorage.load();
+        if (!stored) return [];
+
+        const storedInvoices = isTwoPart ? stored.twoPartInvoices : stored.threePartInvoices;
+        if (!storedInvoices || storedInvoices.length === 0) return [];
+
+        // 將 localStorage 格式轉換為匯出格式
+        return storedInvoices.filter(inv => {
+            // 過濾掉空資料
+            if (isTwoPart) {
+                return inv.total && String(inv.total).trim() !== '';
+            } else {
+                return inv.sales && String(inv.sales).trim() !== '';
+            }
+        }).map(inv => ({
+            type,
+            date: inv.date || '',
+            invoiceNo: inv.invoiceno || '',
+            buyer: inv.buyer || '',
+            taxId: inv.taxid || '',
+            company: inv.company || '',
+            item: inv.item || '',
+            sales: parseFloat(inv.sales) || 0,
+            tax: parseFloat(inv.tax) || 0,
+            total: parseFloat(inv.total) || 0
+        }));
     }
 
     function updateInvoiceSummary() {
