@@ -50,3 +50,61 @@ const CONFIG = {
         ROC_DATE_FULL_LENGTH: 7   // 完整民國日期長度（1140629）
     }
 };
+
+// ===================================================================
+// 發票類型配置 - 消除 type checking 分支
+// ===================================================================
+
+const INVOICE_TYPE_CONFIG = {
+    'two-part': {
+        // DOM 元素 ID
+        tableBodyId: 'invoice-table-body-two-part',
+        tableId: 'invoice-table-two-part',
+        summaryId: 'invoice-summary-two-part',
+        controlsId: 'optional-controls-two-part',
+
+        // 判斷有效行的必填欄位
+        requiredFieldClass: 'total-2',
+
+        // 欄位配置
+        fields: {
+            sales: { class: 'sales-2', readonly: true },
+            tax: { class: 'tax-2', vatControlled: true },
+            total: { class: 'total-2', required: true }
+        },
+
+        // 統計元素 ID
+        stats: {
+            count: 'invoice-count-two',
+            sales: 'sales-sum-two',
+            tax: 'tax-sum-two',
+            total: 'total-sum-two'
+        }
+    },
+
+    'three-part': {
+        // DOM 元素 ID
+        tableBodyId: 'invoice-table-body-three-part',
+        tableId: 'invoice-table-three-part',
+        summaryId: 'invoice-summary-three-part',
+        controlsId: 'optional-controls-three-part',
+
+        // 判斷有效行的必填欄位
+        requiredFieldClass: 'sales-3',
+
+        // 欄位配置
+        fields: {
+            sales: { class: 'sales-3', required: true },
+            tax: { class: 'tax-3', vatControlled: true },
+            total: { class: 'total-3', readonly: true }
+        },
+
+        // 統計元素 ID
+        stats: {
+            count: 'invoice-count-three',
+            sales: 'sales-sum-three',
+            tax: 'tax-sum-three',
+            total: 'total-sum-three'
+        }
+    }
+};

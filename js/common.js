@@ -633,3 +633,66 @@ export {
     sleep
 };
 */
+
+// ===================================================================
+// 發票類型配置輔助函數 - 消除 type checking
+// ===================================================================
+
+/**
+ * 取得發票類型配置
+ * @param {string} type - 發票類型 ('two-part' or 'three-part')
+ * @returns {Object} - 配置物件
+ */
+function getInvoiceConfig(type) {
+    return INVOICE_TYPE_CONFIG[type];
+}
+
+/**
+ * 取得表格 tbody 元素
+ * @param {string} type - 發票類型
+ * @returns {HTMLElement} - tbody 元素
+ */
+function getTableBody(type) {
+    const config = getInvoiceConfig(type);
+    return document.getElementById(config.tableBodyId);
+}
+
+/**
+ * 取得表格元素
+ * @param {string} type - 發票類型
+ * @returns {HTMLElement} - table 元素
+ */
+function getTableElement(type) {
+    const config = getInvoiceConfig(type);
+    return document.getElementById(config.tableId);
+}
+
+/**
+ * 取得統計區塊元素
+ * @param {string} type - 發票類型
+ * @returns {HTMLElement} - summary 元素
+ */
+function getSummaryElement(type) {
+    const config = getInvoiceConfig(type);
+    return document.getElementById(config.summaryId);
+}
+
+/**
+ * 取得控制區塊元素
+ * @param {string} type - 發票類型
+ * @returns {HTMLElement} - controls 元素
+ */
+function getControlsElement(type) {
+    const config = getInvoiceConfig(type);
+    return document.getElementById(config.controlsId);
+}
+
+/**
+ * 取得必填欄位類名
+ * @param {string} type - 發票類型
+ * @returns {string} - CSS 類名
+ */
+function getRequiredFieldClass(type) {
+    const config = getInvoiceConfig(type);
+    return config.requiredFieldClass;
+}

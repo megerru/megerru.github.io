@@ -131,46 +131,42 @@ const InvoiceStorage = {
     STORAGE_KEY: 'invoice_data_v1',
 
     extractTableData(type) {
-        const body = type === 'two-part' ?
-            document.getElementById('invoice-table-body-two-part') :
-            document.getElementById('invoice-table-body-three-part');
-
+        const body = getTableBody(type);
         if (!body) return [];
 
+        const config = getInvoiceConfig(type);
+        const requiredClass = config.requiredFieldClass;
         const invoices = [];
         let rowIndex = 1;
 
         for (const row of body.rows) {
-            if (type === 'two-part') {
-                const total = row.querySelector('.total-2')?.value || '';
-                if (!total.trim()) continue;
+            // 檢查必填欄位是否有值
+            const requiredField = row.querySelector(`.${requiredClass}`)?.value || '';
+            if (!requiredField.trim()) continue;
 
-                invoices.push({
-                    id: rowIndex,
-                    date: row.querySelector('.data-date')?.value || '',
-                    invoiceNo: row.querySelector('.data-invoice-no')?.value || '',
-                    buyer: row.querySelector('.data-buyer')?.value || '',
-                    item: row.querySelector('.data-item')?.value || '',
-                    sales: parseFloat(row.querySelector('.sales-2')?.value) || 0,
-                    tax: parseFloat(row.querySelector('.tax-2')?.value) || 0,
-                    total: parseFloat(total) || 0
-                });
-            } else {
-                const sales = row.querySelector('.sales-3')?.value || '';
-                if (!sales.trim()) continue;
+            const invoice = { id: rowIndex };
 
-                invoices.push({
-                    id: rowIndex,
-                    date: row.querySelector('.data-date')?.value || '',
-                    invoiceNo: row.querySelector('.data-invoice-no')?.value || '',
-                    taxId: row.querySelector('.tax-id-3')?.value || '',
-                    company: row.querySelector('.company-3')?.value || '',
-                    item: row.querySelector('.data-item')?.value || '',
-                    sales: parseFloat(sales) || 0,
-                    tax: parseFloat(row.querySelector('.tax-3')?.value) || 0,
-                    total: parseFloat(row.querySelector('.total-3')?.value) || 0
-                });
-            }
+            // 通用欄位提取
+            const commonFields = ['data-date', 'data-invoice-no', 'data-buyer', 'data-item', 'tax-id-3', 'company-3'];
+            commonFields.forEach(fieldClass => {
+                const input = row.querySelector(`.${fieldClass}`);
+                if (input) {
+                    const fieldName = fieldClass.replace('data-', '').replace('-3', '').replace('-', '');
+                    invoice[fieldName] = input.value || '';
+                }
+            });
+
+            // 數字欄位提取（sales, tax, total）
+            const numericFields = ['sales-2', 'tax-2', 'total-2', 'sales-3', 'tax-3', 'total-3'];
+            numericFields.forEach(fieldClass => {
+                const input = row.querySelector(`.${fieldClass}`);
+                if (input) {
+                    const fieldName = fieldClass.replace(/-[0-9]/, '');  // 移除 -2 或 -3
+                    invoice[fieldName] = parseFloat(input.value) || 0;
+                }
+            });
+
+            invoices.push(invoice);
             rowIndex++;
         }
 
@@ -611,46 +607,37 @@ if (document.getElementById('invoice-section')) {
 
     window.switchInvoiceType = function() {
         const type = invoiceTypeSelect.value;
-        const twoPartControls = document.getElementById('optional-controls-two-part');
-        const threePartControls = document.getElementById('optional-controls-three-part');
-        const twoPartContainer = document.getElementById('invoice-table-two-part');
-        const threePartContainer = document.getElementById('invoice-table-three-part');
-        const twoPartSummary = document.getElementById('invoice-summary-two-part');
-        const threePartSummary = document.getElementById('invoice-summary-three-part');
+        const oppositeType = type === 'two-part' ? 'three-part' : 'two-part';
+
+        // 使用配置取得 DOM 元素（消除硬編碼的 ID）
+        const currentControls = getControlsElement(type);
+        const oppositeControls = getControlsElement(oppositeType);
+        const currentContainer = getTableElement(type);
+        const oppositeContainer = getTableElement(oppositeType);
+        const currentSummary = getSummaryElement(type);
+        const oppositeSummary = getSummaryElement(oppositeType);
+        const targetBody = getTableBody(type);
 
         // 第0步：確保立即保存兩種類型的數據（不依賴 debounce）
-        // 這是為了防止 debouncedSaveInvoice 在切換後觸發並覆蓋數據
         console.log(`[switchInvoiceType] 第0步：強制保存當前兩種類型的數據`);
         InvoiceStorage.save('two-part');
         InvoiceStorage.save('three-part');
 
         // 第1步：保存即將離開的類型數據（在改變 DOM 之前）
-        const leavingType = type === 'two-part' ? 'three-part' : 'two-part';
-        console.log(`[switchInvoiceType] 第1步：再次保存 ${leavingType} 的數據（確保最新）`);
-        InvoiceStorage.save(leavingType);
+        console.log(`[switchInvoiceType] 第1步：再次保存 ${oppositeType} 的數據（確保最新）`);
+        InvoiceStorage.save(oppositeType);
 
-        // 第2步：更新 UI 顯示
-        if (type === "two-part") {
-            twoPartContainer.classList.remove("hidden");
-            twoPartSummary.classList.remove("hidden");
-            twoPartControls.classList.remove('hidden');
-            threePartContainer.classList.add("hidden");
-            threePartSummary.classList.add("hidden");
-            threePartControls.classList.add('hidden');
-        } else {
-            threePartContainer.classList.remove("hidden");
-            threePartSummary.classList.remove("hidden");
-            threePartControls.classList.remove('hidden');
-            twoPartContainer.classList.add("hidden");
-            twoPartSummary.classList.add("hidden");
-            twoPartControls.classList.add('hidden');
-        }
+        // 第2步：更新 UI 顯示（使用統一邏輯）
+        currentContainer.classList.remove("hidden");
+        currentSummary.classList.remove("hidden");
+        currentControls.classList.remove('hidden');
+        oppositeContainer.classList.add("hidden");
+        oppositeSummary.classList.add("hidden");
+        oppositeControls.classList.add('hidden');
 
         // 第3步：還原即將進入的類型數據
         const stored = InvoiceStorage.load();
         console.log(`[switchInvoiceType] 從 localStorage 讀取的數據:`, stored);
-
-        const targetBody = type === 'two-part' ? twoPartBody : threePartBody;
 
         // 決定是否有可還原的數據
         const invoicesToRestore = type === 'two-part' ?
@@ -663,7 +650,6 @@ if (document.getElementById('invoice-section')) {
             updateInvoiceSummary();
         } else {
             console.log(`[switchInvoiceType] 沒有保存的 ${type} 數據，添加空行`);
-            // 清空表格並添加一行空行
             targetBody.innerHTML = '';
             addInvoiceRow();
         }
@@ -892,42 +878,35 @@ if (document.getElementById('invoice-section')) {
     };
 
     function updateInvoiceSummary() {
-        let totalSum = 0;
-        let salesSum = 0;
-        let taxSum = 0;
-        let validRowCount = 0;
+        const type = invoiceTypeSelect.value;
+        const config = getInvoiceConfig(type);
+        const body = getTableBody(type);
+        const requiredClass = config.requiredFieldClass;
 
-        if (invoiceTypeSelect.value === "two-part") {
-            const rows = twoPartBody.rows;
-            for (const row of rows) {
-                const totalInput = row.querySelector(".total-2");
-                if (totalInput && totalInput.value.trim() !== '') {
-                    validRowCount++;
-                    totalSum += parseFloat(totalInput.value) || 0;
-                    salesSum += parseFloat(row.querySelector(".sales-2").value) || 0;
-                    taxSum += parseFloat(row.querySelector(".tax-2").value) || 0;
-                }
+        let totalSum = 0, salesSum = 0, taxSum = 0, validRowCount = 0;
+
+        // 統一邏輯：檢查必填欄位、累加統計
+        for (const row of body.rows) {
+            const requiredField = row.querySelector(`.${requiredClass}`);
+            if (requiredField && requiredField.value.trim() !== '') {
+                validRowCount++;
+
+                // 提取各欄位值
+                const salesInput = row.querySelector(`.${config.fields.sales.class}`);
+                const taxInput = row.querySelector(`.${config.fields.tax.class}`);
+                const totalInput = row.querySelector(`.${config.fields.total.class}`);
+
+                salesSum += parseFloat(salesInput?.value) || 0;
+                taxSum += parseFloat(taxInput?.value) || 0;
+                totalSum += parseFloat(totalInput?.value) || 0;
             }
-            document.getElementById("invoice-count-two").textContent = validRowCount;
-            document.getElementById("total-sum-two").textContent = totalSum.toLocaleString();
-            document.getElementById("sales-sum-two").textContent = salesSum.toLocaleString();
-            document.getElementById("tax-sum-two").textContent = taxSum.toLocaleString();
-        } else {
-            const rows = threePartBody.rows;
-            for (const row of rows) {
-                const salesInput = row.querySelector(".sales-3");
-                if (salesInput && salesInput.value.trim() !== '') {
-                    validRowCount++;
-                    salesSum += parseFloat(salesInput.value) || 0;
-                    taxSum += parseFloat(row.querySelector(".tax-3").value) || 0;
-                    totalSum += parseFloat(row.querySelector(".total-3").value) || 0;
-                }
-            }
-            document.getElementById("invoice-count-three").textContent = validRowCount;
-            document.getElementById("sales-sum-three").textContent = salesSum.toLocaleString();
-            document.getElementById("tax-sum-three").textContent = taxSum.toLocaleString();
-            document.getElementById("total-sum-three").textContent = totalSum.toLocaleString();
         }
+
+        // 使用配置更新 DOM（消除硬編碼的元素 ID）
+        document.getElementById(config.stats.count).textContent = validRowCount;
+        document.getElementById(config.stats.sales).textContent = salesSum.toLocaleString();
+        document.getElementById(config.stats.tax).textContent = taxSum.toLocaleString();
+        document.getElementById(config.stats.total).textContent = totalSum.toLocaleString();
     }
 
     // 使用 debounce 優化：減少不必要的重複計算
