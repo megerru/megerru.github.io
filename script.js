@@ -232,9 +232,9 @@ const InvoiceStorage = {
                  <td class="col-optional col-invoice-no"><input type="text" class="data-invoice-no" placeholder="AB12345678" maxlength="10" value="${invoice.invoiceNo}"></td>
                  <td class="col-optional col-buyer"><input type="text" class="data-buyer" placeholder="買受人名稱" value="${invoice.buyer}"></td>
                  <td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目" value="${invoice.item}"></td>
-                 <td><input type="number" class="total-2" placeholder="總計金額" value="${invoice.total}"></td>
                  <td><input type="number" class="sales-2" readonly value="${invoice.sales}"></td>
-                 <td><input type="number" class="tax-2" value="${invoice.tax}" ${taxReadonlyAttr}></td>` :
+                 <td><input type="number" class="tax-2" value="${invoice.tax}" ${taxReadonlyAttr}></td>
+                 <td><input type="number" class="total-2" placeholder="總計金額" value="${invoice.total}"></td>` :
                 `<td>${index + 1}</td>
                  <td class="col-optional col-date"><input type="tel" class="data-date" placeholder="1140629" maxlength="7" value="${invoice.date}"></td>
                  <td class="col-optional col-invoice-no"><input type="text" class="data-invoice-no" placeholder="AB12345678" maxlength="10" value="${invoice.invoiceNo}"></td>
@@ -668,9 +668,9 @@ if (document.getElementById('invoice-section')) {
                 <td class="col-optional col-invoice-no"><input type="text" class="data-invoice-no" placeholder="AB12345678" maxlength="10"></td>
                 <td class="col-optional col-buyer"><input type="text" class="data-buyer" placeholder="買受人名稱"></td>
                 <td class="col-optional col-item"><input type="text" class="data-item" placeholder="品名/項目"></td>
-                <td><input type="number" class="total-2" placeholder="總計金額"></td>
                 <td><input type="number" class="sales-2" readonly></td>
                 <td><input type="number" class="tax-2" ${vatReadonlyState}></td>
+                <td><input type="number" class="total-2" placeholder="總計金額"></td>
             `;
         } else {
             newRow.innerHTML = `
