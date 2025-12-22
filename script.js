@@ -4,6 +4,33 @@
 // CONFIG 變數在 config.js 中定義，這裡不再重複聲明
 
 // ===================================================================
+// 發票系統狀態管理 - 取代 UI 文字判斷
+// ===================================================================
+
+const invoiceState = {
+    vatLocked: true,  // 營業稅是否鎖定（預設鎖定）
+
+    isVatLocked() {
+        return this.vatLocked;
+    },
+
+    setVatLocked(locked) {
+        this.vatLocked = locked;
+        this.syncVatButtonUI();
+    },
+
+    toggleVatLock() {
+        this.setVatLocked(!this.vatLocked);
+    },
+
+    syncVatButtonUI() {
+        const button = document.getElementById('toggle-vat-edit-button');
+        if (!button) return;
+        button.textContent = this.vatLocked ? '修改營業稅' : '鎖定營業稅';
+    }
+};
+
+// ===================================================================
 // 發票卡片模式 - 全域數據模型（支持同時顯示二聯式和三聯式）
 // ===================================================================
 
@@ -219,9 +246,8 @@ const InvoiceStorage = {
         // 如果沒有數據要還原，直接返回（呼叫者應該調用 addInvoiceRow）
         if (!invoices || invoices.length === 0) return;
 
-        // 檢查當前 VAT 鎖定狀態：若按鈕文字為「修改營業稅」則稅額已鎖定
-        const vatButton = document.getElementById('toggle-vat-edit-button');
-        const isVatLocked = vatButton && vatButton.textContent === '修改營業稅';
+        // 使用狀態旗標取代 UI 文字判斷
+        const isVatLocked = invoiceState.isVatLocked();
         const taxReadonlyAttr = isVatLocked ? 'readonly' : '';
 
         invoices.forEach((invoice, index) => {
@@ -658,7 +684,7 @@ if (document.getElementById('invoice-section')) {
 
         const newRow = body.insertRow();
         const index = body.rows.length;
-        const isVatLocked = vatEditButton.textContent === '修改營業稅';
+        const isVatLocked = invoiceState.isVatLocked();
         const vatReadonlyState = isVatLocked ? 'readonly' : '';
 
         if (invoiceTypeSelect.value === 'two-part') {
@@ -750,15 +776,17 @@ if (document.getElementById('invoice-section')) {
         const taxInputs = isTwoPart ?
             twoPartBody.querySelectorAll('.tax-2') :
             threePartBody.querySelectorAll('.tax-3');
-        const isCurrentlyLocked = vatEditButton.textContent === '修改營業稅';
 
-        if (isCurrentlyLocked) {
-            taxInputs.forEach(input => input.removeAttribute('readonly'));
-            vatEditButton.textContent = '鎖定營業稅';
-            if (taxInputs.length > 0) taxInputs[0].focus();
-        } else {
+        // 切換狀態旗標（而非 UI 文字）
+        invoiceState.toggleVatLock();
+        const isLocked = invoiceState.isVatLocked();
+
+        // DOM 跟隨狀態
+        if (isLocked) {
             taxInputs.forEach(input => input.setAttribute('readonly', true));
-            vatEditButton.textContent = '修改營業稅';
+        } else {
+            taxInputs.forEach(input => input.removeAttribute('readonly'));
+            if (taxInputs.length > 0) taxInputs[0].focus();
         }
         updateInvoiceSummary();
     };
@@ -1126,4 +1154,9 @@ if (document.getElementById('invoice-section')) {
             lastInvoiceInput.focus();
         }
     };
+
+    // 初始化發票狀態 UI 同步
+    document.addEventListener('DOMContentLoaded', () => {
+        invoiceState.syncVatButtonUI();
+    });
 }
