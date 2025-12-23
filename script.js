@@ -1439,12 +1439,42 @@ if (document.getElementById('invoice-section')) {
             return;
         }
 
-        // 從所有列中找到最後一個有效的發票號碼
+        // 第1步：先找目標欄位（要填入的那一格）
+        let targetInput = null;
+        let targetRowIndex = -1;
+
+        // 檢查上次聚焦的欄位是否還在當前類型的表格中
+        if (lastFocusedInvoiceInput && body.contains(lastFocusedInvoiceInput)) {
+            targetInput = lastFocusedInvoiceInput;
+            targetRowIndex = Array.from(body.rows).indexOf(targetInput.closest('tr'));
+        } else {
+            // 如果沒有記錄，找第一個空的發票號碼欄位
+            for (let i = 0; i < body.rows.length; i++) {
+                const row = body.rows[i];
+                const invoiceInput = row.querySelector('.data-invoice-no');
+
+                if (invoiceInput && !invoiceInput.value.trim()) {
+                    targetInput = invoiceInput;
+                    targetRowIndex = i;
+                    break;
+                }
+            }
+        }
+
+        // 如果還是找不到，就新增一列
+        if (!targetInput) {
+            addInvoiceRow();
+            const lastRow = body.rows[body.rows.length - 1];
+            targetInput = lastRow.querySelector('.data-invoice-no');
+            targetRowIndex = body.rows.length - 1;
+        }
+
+        // 第2步：從目標列「之前」往上找最後一個有效的發票號碼
         let lastValidInvoiceNo = null;
         let lastValidPrefix = null;
         let lastValidNum = null;
 
-        for (let i = body.rows.length - 1; i >= 0; i--) {
+        for (let i = targetRowIndex - 1; i >= 0; i--) {
             const row = body.rows[i];
             const invoiceInput = row.querySelector('.data-invoice-no');
 
@@ -1462,11 +1492,11 @@ if (document.getElementById('invoice-section')) {
         }
 
         if (!lastValidInvoiceNo) {
-            alert('找不到有效的發票號碼，請先在任一列輸入完整的發票號碼（格式：AB12345678）');
+            alert('目標列之前沒有有效的發票號碼，無法遞增！\n請先在前面的列輸入完整的發票號碼（格式：AB12345678）');
             return;
         }
 
-        // 遞增數字部分
+        // 第3步：遞增數字部分
         let newNum = lastValidNum + 1;
 
         // 如果超過8位數，重置為00000000
@@ -1477,32 +1507,6 @@ if (document.getElementById('invoice-section')) {
         // 格式化為8位數字（補零）
         const newNumber = String(newNum).padStart(8, '0');
         const newInvoiceNo = lastValidPrefix + newNumber;
-
-        // 找目標欄位：優先使用上一次聚焦的發票號碼欄位
-        let targetInput = null;
-
-        // 檢查上次聚焦的欄位是否還在當前類型的表格中
-        if (lastFocusedInvoiceInput && body.contains(lastFocusedInvoiceInput)) {
-            targetInput = lastFocusedInvoiceInput;
-        } else {
-            // 如果沒有記錄，找第一個空的發票號碼欄位
-            for (let i = 0; i < body.rows.length; i++) {
-                const row = body.rows[i];
-                const invoiceInput = row.querySelector('.data-invoice-no');
-
-                if (invoiceInput && !invoiceInput.value.trim()) {
-                    targetInput = invoiceInput;
-                    break;
-                }
-            }
-        }
-
-        // 如果還是找不到，就新增一列
-        if (!targetInput) {
-            addInvoiceRow();
-            const lastRow = body.rows[body.rows.length - 1];
-            targetInput = lastRow.querySelector('.data-invoice-no');
-        }
 
         // 填入遞增後的發票號碼
         if (targetInput) {
