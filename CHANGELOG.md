@@ -3,6 +3,34 @@
 ## [2024-12-23] - 發票系統 Bug 修復與資料持久化改進
 
 ### Fixed
+- **合併匯出遺漏部分資料** (commit: 3519724)
+  - 問題：合併匯出時，有發票號碼但金額為 0 的列被跳過
+  - 根本原因：`extractInvoiceData()` 使用舊的檢查邏輯
+    - 二聯式：`if (!totalValue) continue`
+    - 三聯式：`if (!salesValue) continue`
+  - 修正：統一使用 `hasData` 檢查邏輯（與 `extractTableData` 和 `exportCurrentType` 一致）
+    - 檢查所有欄位（date, invoiceNo, buyer/taxId, company, item, sales, tax, total）
+    - 只要有任一欄位有值就納入匯出
+    - 添加 `.trim()` 確保空白字串不被當作有效資料
+  - 影響範圍：`script.js:1166-1214`
+
+- **表頭 sticky 失效與重複發票號碼橘色框不更新** (commit: 2f20f30)
+  - 問題 1：表頭往下滾動就消失
+  - 根本原因：`border-collapse: collapse` 在某些瀏覽器會破壞 sticky positioning
+  - 修正：
+    - 改用 `border-collapse: separate` 與 `border-spacing: 0`
+    - 保持視覺效果一致但支持 sticky
+    - 為 `th` 添加 `border-bottom: 2px` 增強視覺分隔
+  - 問題 2：修正重複發票號碼後橘色框不消失
+  - 症狀：修改重複的發票號碼後，其他欄位的橘色框仍然存在
+  - 根本原因：`checkDuplicateInvoiceNumbers()` 只檢查當前值，不重新檢查所有欄位
+  - 修正：
+    - 重寫檢查邏輯，使用 `invoiceNumberCounts` 統計所有發票號碼
+    - 每次修改時重新檢查所有欄位並更新橘色框狀態
+    - 只在新產生重複時才彈出警告（避免修改時重複提示）
+    - 確保修正後橘色框立即消失
+  - 影響範圍：`style.css:131,133`, `script.js:1533-1570`
+
 - **表頭無法凍結與 Excel 匯出遺漏部分資料** (commit: 48dd18e)
   - 問題 1：勾選「發票號碼」後，往下滾動時標題無法固定在頂部
   - 根本原因：sticky 定位需要正確的父容器 `position: relative` 設定
