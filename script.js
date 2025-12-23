@@ -79,15 +79,10 @@ const InvoiceStorage = {
         if (!body) return [];
 
         const config = getInvoiceConfig(type);
-        const requiredClass = config.requiredFieldClass;
         const invoices = [];
         let rowIndex = 1;
 
         for (const row of body.rows) {
-            // 檢查必填欄位是否有值
-            const requiredField = row.querySelector(`.${requiredClass}`)?.value || '';
-            if (!requiredField.trim()) continue;
-
             const invoice = { id: rowIndex };
 
             // 通用欄位提取（使用明確的欄位映射）
@@ -117,8 +112,14 @@ const InvoiceStorage = {
                 }
             });
 
-            invoices.push(invoice);
-            rowIndex++;
+            // 檢查是否至少有一個欄位有值（消除空行）
+            const hasData = invoice.date || invoice.invoiceNo || invoice.buyer || invoice.item ||
+                            invoice.taxId || invoice.company || invoice.sales || invoice.tax || invoice.total;
+
+            if (hasData) {
+                invoices.push(invoice);
+                rowIndex++;
+            }
         }
 
         return invoices;
@@ -589,16 +590,11 @@ if (document.getElementById('invoice-section')) {
         const oppositeSummary = getSummaryElement(oppositeType);
         const targetBody = getTableBody(type);
 
-        // 第0步：確保立即保存兩種類型的數據（不依賴 debounce）
-        console.log(`[switchInvoiceType] 第0步：強制保存當前兩種類型的數據`);
-        InvoiceStorage.save('two-part');
-        InvoiceStorage.save('three-part');
-
-        // 第1步：保存即將離開的類型數據（在改變 DOM 之前）
-        console.log(`[switchInvoiceType] 第1步：再次保存 ${oppositeType} 的數據（確保最新）`);
+        // 離開前保存當前類型的數據（只保存一次，消除冗余）
+        console.log(`[switchInvoiceType] 保存 ${oppositeType} 的數據`);
         InvoiceStorage.save(oppositeType);
 
-        // 第2步：更新 UI 顯示（使用統一邏輯）
+        // 更新 UI 顯示
         currentContainer.classList.remove("hidden");
         currentSummary.classList.remove("hidden");
         currentControls.classList.remove('hidden');
@@ -606,7 +602,7 @@ if (document.getElementById('invoice-section')) {
         oppositeSummary.classList.add("hidden");
         oppositeControls.classList.add('hidden');
 
-        // 第3步：還原即將進入的類型數據
+        // 還原即將進入的類型數據
         const stored = InvoiceStorage.load();
         console.log(`[switchInvoiceType] 從 localStorage 讀取的數據:`, stored);
 
@@ -1416,47 +1412,49 @@ if (document.getElementById('invoice-section')) {
             return;
         }
 
-        // 找到倒數第二列（上一列）的發票號碼
-        const lastRowIndex = body.rows.length - 1;
-        if (lastRowIndex === 0) {
-            alert('上一列為空值，無效操作');
-            return;
+        // 從所有列中找到最後一個有效的發票號碼
+        let lastValidInvoiceNo = null;
+        let lastValidPrefix = null;
+        let lastValidNum = null;
+
+        for (let i = body.rows.length - 1; i >= 0; i--) {
+            const row = body.rows[i];
+            const invoiceInput = row.querySelector('.data-invoice-no');
+
+            if (invoiceInput && invoiceInput.value) {
+                const value = invoiceInput.value.trim();
+
+                // 驗證格式：2英文 + 8數字
+                if (/^[A-Z]{2}\d{8}$/.test(value)) {
+                    lastValidInvoiceNo = value;
+                    lastValidPrefix = value.substring(0, 2);
+                    lastValidNum = parseInt(value.substring(2), 10);
+                    break;
+                }
+            }
         }
 
-        const prevRow = body.rows[lastRowIndex - 1];
-        const prevInvoiceInput = prevRow.querySelector('.data-invoice-no');
-
-        if (!prevInvoiceInput || !prevInvoiceInput.value) {
-            alert('上一列為空值，無效操作');
+        if (!lastValidInvoiceNo) {
+            alert('找不到有效的發票號碼，請先在任一列輸入完整的發票號碼（格式：AB12345678）');
             return;
         }
-
-        const prevValue = prevInvoiceInput.value.trim();
-
-        // 驗證上一列格式
-        if (!/^[A-Z]{2}\d{8}$/.test(prevValue)) {
-            alert('上一列為空值，無效操作');
-            return;
-        }
-
-        // 提取英文和數字部分
-        const prefix = prevValue.substring(0, 2);
-        let numPart = parseInt(prevValue.substring(2), 10);
 
         // 遞增數字部分
-        numPart++;
+        let newNum = lastValidNum + 1;
 
         // 如果超過8位數，重置為00000000
-        if (numPart > 99999999) {
-            numPart = 0;
+        if (newNum > 99999999) {
+            newNum = 0;
         }
 
         // 格式化為8位數字（補零）
-        const newNumber = String(numPart).padStart(8, '0');
-        const newInvoiceNo = prefix + newNumber;
+        const newNumber = String(newNum).padStart(8, '0');
+        const newInvoiceNo = lastValidPrefix + newNumber;
 
-        // 將新發票號碼填入最後一列
-        const lastRow = body.rows[lastRowIndex];
+        // 新增一列並填入遞增後的發票號碼
+        addInvoiceRow();
+
+        const lastRow = body.rows[body.rows.length - 1];
         const lastInvoiceInput = lastRow.querySelector('.data-invoice-no');
         if (lastInvoiceInput) {
             lastInvoiceInput.value = newInvoiceNo;
