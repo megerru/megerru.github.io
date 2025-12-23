@@ -3,6 +3,30 @@
 ## [2024-12-23] - 發票系統 Bug 修復與資料持久化改進
 
 ### Fixed
+- **表頭無法凍結與 Excel 匯出遺漏部分資料** (commit: 48dd18e)
+  - 問題 1：勾選「發票號碼」後，往下滾動時標題無法固定在頂部
+  - 根本原因：sticky 定位需要正確的父容器 `position: relative` 設定
+  - 修正：
+    - 為 `.invoice-table-container` 添加 `position: relative`
+    - 為 `table` 添加 `position: relative`
+    - 提升 `th` 的 `z-index` 從 1 到 10
+    - 添加 `box-shadow` 讓凍結效果更明顯
+  - 問題 2：有發票號碼但金額為 0 的列未匯出到 Excel
+  - 症狀：5 列資料中，第 2、4 列有日期和發票號碼但金額為 0，匯出時被跳過
+  - 根本原因：`hasData` 檢查時遺漏了 `sales` 和 `tax` 欄位
+  - 修正：
+    - 二聯式：檢查所有欄位（date, invoiceNo, buyer, item, sales, tax, total）
+    - 三聯式：檢查所有欄位（date, invoiceNo, taxId, company, item, sales, tax, total）
+    - 添加 `.trim()` 確保空白字串不被當作有效資料
+  - 影響範圍：`style.css:130-133`, `script.js:960-1000`
+
+- **隨機點擊欄位測試時產生重複發票號碼** (commit: eed090b)
+  - 問題：用戶隨機點擊不同欄位測試 +1 功能時，產生重複的發票號碼
+  - 根本原因：自動焦點移動邏輯導致 `lastFocusedInvoiceInput` 與用戶意圖不同步
+  - 修正：移除 `nextEmptyInput` 的自動焦點移動邏輯，保持焦點在當前填入的欄位
+  - 新行為：用戶完全控制焦點位置，不會自動跳到下一個空欄位
+  - 影響範圍：`script.js:1503-1522`
+
 - **切換發票類型時資料消失** (commit: 1ec0fa7)
   - 問題：在二聯式輸入日期和金額後切換到三聯式，再切回來時資料消失
   - 根本原因：`extractTableData()` 只提取「必填欄位有值」的行（二聯式必填 `total-2`，三聯式必填 `sales-3`）
