@@ -5,7 +5,8 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nrefactor: Improve layout compactness - side-by-side containers and tighter checkboxes\n\nChanges:\n1. Tool 1 (AB Merger): Make file containers truly side-by-side\n   - Add display: flex to .container\n   - Change .file-container from width:48% to flex:1\n   - Add gap: 15px for spacing\n\n2. Sheet-list checkboxes: Make more compact\n   - Reduce max-height from 120px to 100px\n   - Reduce padding from 10px to 8px\n   - Change labels from display:block to inline-block (allows horizontal flow)\n   - Reduce label font-size from 13px to 12px\n   - Reduce label padding from 3px 8px to 2px 6px\n   - Reduce h4 font-size from 14px to 13px\n   - Reduce h4 border from 2px to 1px\n\nResult: Tool 1 file zones now truly side-by-side, Tool 2 checkboxes much more compact\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git push:*)",
       "Bash(node -e:*)",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
