@@ -957,13 +957,17 @@ if (document.getElementById('invoice-section')) {
             const rowData = [];
 
             if (isTwoPart) {
-                const totalValue = row.querySelector('.total-2').value;
                 // 檢查是否至少有一個欄位有值（與 extractTableData 邏輯一致）
-                const dateValue = row.querySelector('.data-date')?.value || '';
-                const invoiceNoValue = row.querySelector('.data-invoice-no')?.value || '';
-                const buyerValue = row.querySelector('.data-buyer')?.value || '';
-                const itemValue = row.querySelector('.data-item')?.value || '';
-                const hasData = dateValue || invoiceNoValue || buyerValue || itemValue || totalValue;
+                const dateValue = row.querySelector('.data-date')?.value?.trim() || '';
+                const invoiceNoValue = row.querySelector('.data-invoice-no')?.value?.trim() || '';
+                const buyerValue = row.querySelector('.data-buyer')?.value?.trim() || '';
+                const itemValue = row.querySelector('.data-item')?.value?.trim() || '';
+                const salesValue = row.querySelector('.sales-2')?.value?.trim() || '';
+                const taxValue = row.querySelector('.tax-2')?.value?.trim() || '';
+                const totalValue = row.querySelector('.total-2')?.value?.trim() || '';
+
+                // 只要有任一欄位有內容就匯出（包含金額為 0 的情況）
+                const hasData = dateValue || invoiceNoValue || buyerValue || itemValue || salesValue || taxValue || totalValue;
                 if (!hasData) continue;
 
                 rowData.push(row.cells[0].textContent);
@@ -977,14 +981,18 @@ if (document.getElementById('invoice-section')) {
                     parseFloat(totalValue) || 0
                 );
             } else {
-                const salesValue = row.querySelector('.sales-3').value;
                 // 檢查是否至少有一個欄位有值（與 extractTableData 邏輯一致）
-                const dateValue = row.querySelector('.data-date')?.value || '';
-                const invoiceNoValue = row.querySelector('.data-invoice-no')?.value || '';
-                const taxIdValue = row.querySelector('.tax-id-3')?.value || '';
-                const companyValue = row.querySelector('.company-3')?.value || '';
-                const itemValue = row.querySelector('.data-item')?.value || '';
-                const hasData = dateValue || invoiceNoValue || taxIdValue || companyValue || itemValue || salesValue;
+                const dateValue = row.querySelector('.data-date')?.value?.trim() || '';
+                const invoiceNoValue = row.querySelector('.data-invoice-no')?.value?.trim() || '';
+                const taxIdValue = row.querySelector('.tax-id-3')?.value?.trim() || '';
+                const companyValue = row.querySelector('.company-3')?.value?.trim() || '';
+                const itemValue = row.querySelector('.data-item')?.value?.trim() || '';
+                const salesValue = row.querySelector('.sales-3')?.value?.trim() || '';
+                const taxValue = row.querySelector('.tax-3')?.value?.trim() || '';
+                const totalValue = row.querySelector('.total-3')?.value?.trim() || '';
+
+                // 只要有任一欄位有內容就匯出（包含金額為 0 的情況）
+                const hasData = dateValue || invoiceNoValue || taxIdValue || companyValue || itemValue || salesValue || taxValue || totalValue;
                 if (!hasData) continue;
 
                 rowData.push(row.cells[0].textContent);
