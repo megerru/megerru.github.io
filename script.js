@@ -1011,28 +1011,24 @@ if (document.getElementById('invoice-section')) {
         const twoPartData = extractInvoiceData('two-part');
         const threePartData = extractInvoiceData('three-part');
 
-        // 智能排序：同月份的二聯式優先，再來三聯式
+        // 智能排序：先按完整日期，同一天二聯式優先
         const allData = [...twoPartData, ...threePartData];
         allData.sort((a, b) => {
             const dateA = a.date || '9999999';
             const dateB = b.date || '9999999';
 
-            // 提取年月（前5碼：YYYmm）
-            const yearMonthA = dateA.substring(0, 5);
-            const yearMonthB = dateB.substring(0, 5);
-
-            // 先比較年月
-            if (yearMonthA !== yearMonthB) {
-                return yearMonthA.localeCompare(yearMonthB);
+            // 先比較完整日期
+            if (dateA !== dateB) {
+                return dateA.localeCompare(dateB);
             }
 
-            // 同年月時，二聯式優先（type: 'two-part' 排在前面）
+            // 同一天時，二聯式優先
             if (a.type !== b.type) {
                 return a.type === 'two-part' ? -1 : 1;
             }
 
-            // 同類型再按完整日期排序
-            return dateA.localeCompare(dateB);
+            // 同類型同日期，保持原有順序
+            return 0;
         });
 
         if (allData.length === 0) {
