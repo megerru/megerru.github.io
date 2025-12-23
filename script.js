@@ -1530,35 +1530,42 @@ if (document.getElementById('invoice-section')) {
         }
     };
 
-    // 檢查重複的發票號碼
+    // 檢查重複的發票號碼（重新檢查所有欄位，確保修改後橘色框正確更新）
     function checkDuplicateInvoiceNumbers(body, currentInput) {
-        const currentValue = currentInput.value.trim();
-        if (!currentValue) return;
-
         const allInvoiceInputs = body.querySelectorAll('.data-invoice-no');
 
-        // 先清除所有重複標記（避免誤判）
+        // 先清除所有重複標記
         allInvoiceInputs.forEach(input => {
             input.classList.remove('invoice-duplicate');
         });
 
-        // 統計重複次數
-        let duplicateCount = 0;
-        const duplicateInputs = [];
-
+        // 統計每個發票號碼出現的次數
+        const invoiceNumberCounts = {};
         allInvoiceInputs.forEach(input => {
-            if (input.value.trim() === currentValue) {
-                duplicateCount++;
-                duplicateInputs.push(input);
+            const value = input.value.trim();
+            if (value && /^[A-Z]{2}\d{8}$/.test(value)) {
+                invoiceNumberCounts[value] = (invoiceNumberCounts[value] || 0) + 1;
             }
         });
 
-        // 只有當真的重複（出現 2 次以上）才標記和提示
-        if (duplicateCount > 1) {
-            duplicateInputs.forEach(input => {
+        // 標記所有重複的發票號碼（出現 2 次以上）
+        let hasNewDuplicate = false;
+        const currentValue = currentInput?.value?.trim();
+
+        allInvoiceInputs.forEach(input => {
+            const value = input.value.trim();
+            if (value && invoiceNumberCounts[value] > 1) {
                 input.classList.add('invoice-duplicate');
-            });
-            alert(`警告：發票號碼 ${currentValue} 重複出現 ${duplicateCount} 次！\n請檢查並修正重複的發票號碼。`);
+                // 只有當前修改的欄位是新產生的重複時才提示
+                if (input === currentInput && value === currentValue) {
+                    hasNewDuplicate = true;
+                }
+            }
+        });
+
+        // 只在新產生重複時才彈出警告（避免修改時重複提示）
+        if (hasNewDuplicate && currentValue && invoiceNumberCounts[currentValue] > 1) {
+            alert(`警告：發票號碼 ${currentValue} 重複出現 ${invoiceNumberCounts[currentValue]} 次！\n請檢查並修正重複的發票號碼。`);
         }
     }
 
