@@ -1517,33 +1517,8 @@ if (document.getElementById('invoice-section')) {
             // 檢查是否有重複的發票號碼
             checkDuplicateInvoiceNumbers(body, targetInput);
 
-            // 自動移動到下一個空的發票號碼欄位（避免重複填入）
-            let nextEmptyInput = null;
-            const currentRowIndex = Array.from(body.rows).indexOf(targetInput.closest('tr'));
-
-            for (let i = currentRowIndex + 1; i < body.rows.length; i++) {
-                const row = body.rows[i];
-                const invoiceInput = row.querySelector('.data-invoice-no');
-
-                if (invoiceInput && !invoiceInput.value.trim()) {
-                    nextEmptyInput = invoiceInput;
-                    break;
-                }
-            }
-
-            if (nextEmptyInput) {
-                nextEmptyInput.focus();
-                lastFocusedInvoiceInput = nextEmptyInput;
-            } else {
-                // 如果沒有下一個空欄位，新增一列
-                addInvoiceRow();
-                const newRow = body.rows[body.rows.length - 1];
-                const newInput = newRow.querySelector('.data-invoice-no');
-                if (newInput) {
-                    newInput.focus();
-                    lastFocusedInvoiceInput = newInput;
-                }
-            }
+            // 保持焦點在當前欄位（不自動移動），讓用戶手動控制
+            targetInput.focus();
         }
     };
 
