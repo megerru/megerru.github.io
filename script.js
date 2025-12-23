@@ -958,7 +958,13 @@ if (document.getElementById('invoice-section')) {
 
             if (isTwoPart) {
                 const totalValue = row.querySelector('.total-2').value;
-                if (!totalValue) continue;
+                // 檢查是否至少有一個欄位有值（與 extractTableData 邏輯一致）
+                const dateValue = row.querySelector('.data-date')?.value || '';
+                const invoiceNoValue = row.querySelector('.data-invoice-no')?.value || '';
+                const buyerValue = row.querySelector('.data-buyer')?.value || '';
+                const itemValue = row.querySelector('.data-item')?.value || '';
+                const hasData = dateValue || invoiceNoValue || buyerValue || itemValue || totalValue;
+                if (!hasData) continue;
 
                 rowData.push(row.cells[0].textContent);
                 if (showDate) rowData.push(row.querySelector('.data-date').value);
@@ -972,7 +978,14 @@ if (document.getElementById('invoice-section')) {
                 );
             } else {
                 const salesValue = row.querySelector('.sales-3').value;
-                if (!salesValue) continue;
+                // 檢查是否至少有一個欄位有值（與 extractTableData 邏輯一致）
+                const dateValue = row.querySelector('.data-date')?.value || '';
+                const invoiceNoValue = row.querySelector('.data-invoice-no')?.value || '';
+                const taxIdValue = row.querySelector('.tax-id-3')?.value || '';
+                const companyValue = row.querySelector('.company-3')?.value || '';
+                const itemValue = row.querySelector('.data-item')?.value || '';
+                const hasData = dateValue || invoiceNoValue || taxIdValue || companyValue || itemValue || salesValue;
+                if (!hasData) continue;
 
                 rowData.push(row.cells[0].textContent);
                 if (showDate) rowData.push(row.querySelector('.data-date').value);
@@ -1404,6 +1417,15 @@ if (document.getElementById('invoice-section')) {
         }
     });
 
+    // 用於記錄按下「+」號前的最後焦點元素
+    let lastFocusedInvoiceInput = null;
+
+    document.getElementById('invoice-section').addEventListener('focusin', function(e) {
+        if (e.target.classList && e.target.classList.contains('data-invoice-no')) {
+            lastFocusedInvoiceInput = e.target;
+        }
+    });
+
     // 發票號碼自動遞增功能
     window.incrementInvoiceNumber = function(type) {
         const body = type === 2 ? twoPartBody : threePartBody;
@@ -1451,15 +1473,14 @@ if (document.getElementById('invoice-section')) {
         const newNumber = String(newNum).padStart(8, '0');
         const newInvoiceNo = lastValidPrefix + newNumber;
 
-        // 找到當前聚焦的發票號碼欄位（如果有的話）
+        // 找目標欄位：優先使用上一次聚焦的發票號碼欄位
         let targetInput = null;
-        const activeElement = document.activeElement;
 
-        // 檢查當前焦點是否在發票號碼欄位上
-        if (activeElement && activeElement.classList.contains('data-invoice-no')) {
-            targetInput = activeElement;
+        // 檢查上次聚焦的欄位是否還在當前類型的表格中
+        if (lastFocusedInvoiceInput && body.contains(lastFocusedInvoiceInput)) {
+            targetInput = lastFocusedInvoiceInput;
         } else {
-            // 如果沒有焦點，找第一個空的發票號碼欄位
+            // 如果沒有記錄，找第一個空的發票號碼欄位
             for (let i = 0; i < body.rows.length; i++) {
                 const row = body.rows[i];
                 const invoiceInput = row.querySelector('.data-invoice-no');
@@ -1484,6 +1505,7 @@ if (document.getElementById('invoice-section')) {
             targetInput.classList.remove('invoice-error');
             adjustInputWidth(targetInput);
             targetInput.focus();
+            lastFocusedInvoiceInput = targetInput; // 更新記錄
         }
     };
 
