@@ -1451,20 +1451,27 @@ if (document.getElementById('invoice-section')) {
         const newNumber = String(newNum).padStart(8, '0');
         const newInvoiceNo = lastValidPrefix + newNumber;
 
-        // 找到第一個空的發票號碼欄位，如果沒有就新增一列
+        // 找到當前聚焦的發票號碼欄位（如果有的話）
         let targetInput = null;
+        const activeElement = document.activeElement;
 
-        for (let i = 0; i < body.rows.length; i++) {
-            const row = body.rows[i];
-            const invoiceInput = row.querySelector('.data-invoice-no');
+        // 檢查當前焦點是否在發票號碼欄位上
+        if (activeElement && activeElement.classList.contains('data-invoice-no')) {
+            targetInput = activeElement;
+        } else {
+            // 如果沒有焦點，找第一個空的發票號碼欄位
+            for (let i = 0; i < body.rows.length; i++) {
+                const row = body.rows[i];
+                const invoiceInput = row.querySelector('.data-invoice-no');
 
-            if (invoiceInput && !invoiceInput.value.trim()) {
-                targetInput = invoiceInput;
-                break;
+                if (invoiceInput && !invoiceInput.value.trim()) {
+                    targetInput = invoiceInput;
+                    break;
+                }
             }
         }
 
-        // 如果找不到空欄位，就新增一列
+        // 如果還是找不到，就新增一列
         if (!targetInput) {
             addInvoiceRow();
             const lastRow = body.rows[body.rows.length - 1];
