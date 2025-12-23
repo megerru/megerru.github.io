@@ -1451,16 +1451,32 @@ if (document.getElementById('invoice-section')) {
         const newNumber = String(newNum).padStart(8, '0');
         const newInvoiceNo = lastValidPrefix + newNumber;
 
-        // 新增一列並填入遞增後的發票號碼
-        addInvoiceRow();
+        // 找到第一個空的發票號碼欄位，如果沒有就新增一列
+        let targetInput = null;
 
-        const lastRow = body.rows[body.rows.length - 1];
-        const lastInvoiceInput = lastRow.querySelector('.data-invoice-no');
-        if (lastInvoiceInput) {
-            lastInvoiceInput.value = newInvoiceNo;
-            lastInvoiceInput.classList.remove('invoice-error');
-            adjustInputWidth(lastInvoiceInput);
-            lastInvoiceInput.focus();
+        for (let i = 0; i < body.rows.length; i++) {
+            const row = body.rows[i];
+            const invoiceInput = row.querySelector('.data-invoice-no');
+
+            if (invoiceInput && !invoiceInput.value.trim()) {
+                targetInput = invoiceInput;
+                break;
+            }
+        }
+
+        // 如果找不到空欄位，就新增一列
+        if (!targetInput) {
+            addInvoiceRow();
+            const lastRow = body.rows[body.rows.length - 1];
+            targetInput = lastRow.querySelector('.data-invoice-no');
+        }
+
+        // 填入遞增後的發票號碼
+        if (targetInput) {
+            targetInput.value = newInvoiceNo;
+            targetInput.classList.remove('invoice-error');
+            adjustInputWidth(targetInput);
+            targetInput.focus();
         }
     };
 
