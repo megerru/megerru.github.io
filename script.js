@@ -1549,17 +1549,28 @@ if (document.getElementById('invoice-section')) {
         if (!currentValue) return;
 
         const allInvoiceInputs = body.querySelectorAll('.data-invoice-no');
+
+        // 先清除所有重複標記（避免誤判）
+        allInvoiceInputs.forEach(input => {
+            input.classList.remove('invoice-duplicate');
+        });
+
+        // 統計重複次數
         let duplicateCount = 0;
+        const duplicateInputs = [];
 
         allInvoiceInputs.forEach(input => {
             if (input.value.trim() === currentValue) {
                 duplicateCount++;
-                // 標記重複的欄位
-                input.classList.add('invoice-duplicate');
+                duplicateInputs.push(input);
             }
         });
 
+        // 只有當真的重複（出現 2 次以上）才標記和提示
         if (duplicateCount > 1) {
+            duplicateInputs.forEach(input => {
+                input.classList.add('invoice-duplicate');
+            });
             alert(`警告：發票號碼 ${currentValue} 重複出現 ${duplicateCount} 次！\n請檢查並修正重複的發票號碼。`);
         }
     }
