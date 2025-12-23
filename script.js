@@ -844,8 +844,8 @@ if (document.getElementById('invoice-section')) {
             </button>
         `;
 
-        // 選項 2 & 3：只在兩種都有資料時顯示
-        if (hasTwoPartData && hasThreePartData) {
+        // 選項 2 & 3：只要有任一種資料就顯示（用戶可能稍後新增另一種）
+        if (hasTwoPartData || hasThreePartData) {
             optionsHTML += `
                 <button class="export-option-btn" data-mode="merged" style="
                     width: 100%;
