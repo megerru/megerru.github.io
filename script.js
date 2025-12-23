@@ -90,12 +90,19 @@ const InvoiceStorage = {
 
             const invoice = { id: rowIndex };
 
-            // 通用欄位提取
-            const commonFields = ['data-date', 'data-invoice-no', 'data-buyer', 'data-item', 'tax-id-3', 'company-3'];
-            commonFields.forEach(fieldClass => {
+            // 通用欄位提取（使用明確的欄位映射）
+            const fieldMapping = {
+                'data-date': 'date',
+                'data-invoice-no': 'invoiceNo',
+                'data-buyer': 'buyer',
+                'data-item': 'item',
+                'tax-id-3': 'taxId',
+                'company-3': 'company'
+            };
+
+            Object.entries(fieldMapping).forEach(([fieldClass, fieldName]) => {
                 const input = row.querySelector(`.${fieldClass}`);
                 if (input) {
-                    const fieldName = fieldClass.replace('data-', '').replace('-3', '').replace('-', '');
                     invoice[fieldName] = input.value || '';
                 }
             });
@@ -1191,9 +1198,9 @@ if (document.getElementById('invoice-section')) {
         }).map(inv => ({
             type,
             date: inv.date || '',
-            invoiceNo: inv.invoiceno || '',
+            invoiceNo: inv.invoiceNo || '',  // 修正：使用駝峰式
             buyer: inv.buyer || '',
-            taxId: inv.taxid || '',
+            taxId: inv.taxId || '',          // 修正：使用駝峰式
             company: inv.company || '',
             item: inv.item || '',
             sales: parseFloat(inv.sales) || 0,
