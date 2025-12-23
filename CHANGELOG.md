@@ -18,6 +18,12 @@
   - `js/modules/invoice.js` - 統一發票系統模組（待整合）
 
 ### Fixed
+- **匯出選項只顯示當前類型按鈕** (commit: fa38ae4)
+  - 問題：Line 848 條件 `hasTwoPartData && hasThreePartData` 過於嚴格
+  - 症狀：只有一種類型有資料時，合併/分開匯出按鈕消失
+  - 修正：改為 `hasTwoPartData || hasThreePartData`
+  - 邏輯：只要有任一種資料就應顯示所有匯出選項
+
 - **合併匯出排序邏輯最終修正** (commit: e1e3417)
   - 確認排序規則：年月 → 發票類型 → 完整日期
   - 同月份內所有二聯式排完後，再排所有三聯式
