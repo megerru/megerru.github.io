@@ -239,13 +239,6 @@ const InvoiceStorage = {
                  <td><input type="number" class="tax-3" value="${invoice.tax}" ${taxReadonlyAttr}></td>
                  <td><input type="number" class="total-3" readonly value="${invoice.total}"></td>`;
 
-            newRow.querySelectorAll('input:not([readonly])').forEach(input => {
-                if (input.placeholder) {
-                    try {
-                        adjustInputWidth(input);
-                    } catch (e) {}
-                }
-            });
         });
     }
 };
@@ -554,28 +547,6 @@ if (document.getElementById('invoice-section')) {
     const threePartTable = document.getElementById('invoice-table-three-part');
     const vatEditButton = document.getElementById('toggle-vat-edit-button');
 
-    let textMeasureSpan = null;
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const h1Element = document.querySelector('h1');
-        if (h1Element && h1Element.textContent.includes('銷項發票')) {
-            textMeasureSpan = document.createElement('span');
-            textMeasureSpan.style.visibility = 'hidden';
-            textMeasureSpan.style.position = 'absolute';
-            textMeasureSpan.style.whiteSpace = 'pre';
-            document.body.appendChild(textMeasureSpan);
-        }
-    });
-
-    window.adjustInputWidth = function(input) {
-        if (!input || !textMeasureSpan || !input.parentElement) return;
-
-        const style = window.getComputedStyle(input);
-        textMeasureSpan.style.font = style.font;
-        textMeasureSpan.textContent = input.value || input.placeholder;
-        const newTdWidth = textMeasureSpan.offsetWidth + 25;
-        input.parentElement.style.minWidth = `${newTdWidth}px`;
-    };
 
     window.switchInvoiceType = function() {
         const type = invoiceTypeSelect.value;
@@ -665,9 +636,6 @@ if (document.getElementById('invoice-section')) {
             `;
         }
 
-        newRow.querySelectorAll('input:not([readonly])').forEach(input => {
-            if (input.placeholder) adjustInputWidth(input);
-        });
 
         const firstVisibleInput = Array.from(newRow.querySelectorAll('input:not([readonly])'))
             .find(el => el.offsetParent !== null);
@@ -1294,17 +1262,10 @@ if (document.getElementById('invoice-section')) {
      */
     async function lookupCompanyByTaxId(taxId, companyInput) {
         companyInput.value = '查詢中...';
-        try {
-            adjustInputWidth(companyInput);
-        } catch(e) {}
 
         // 使用 common.js 提供的查詢函數
         const companyName = await lookupCompanyName(taxId);
         companyInput.value = companyName;
-
-        try {
-            adjustInputWidth(companyInput);
-        } catch(e) {}
     }
 
     // findNextVisibleInput 已移至 common.js，這裡不再重複定義
@@ -1316,8 +1277,6 @@ if (document.getElementById('invoice-section')) {
 
         const row = target.closest('tr');
         if (!row) return;
-
-        adjustInputWidth(target);
 
         if (target.classList.contains('data-invoice-no')) {
             // 發票號碼驗證：2英文 + 8數字
@@ -1383,14 +1342,12 @@ if (document.getElementById('invoice-section')) {
         // 使用 debounce 版本：減少頻繁輸入時的重複計算
         debouncedUpdateSummary();
         debouncedSaveInvoice();  // 自動保存到 localStorage
-        row.querySelectorAll('input[readonly]').forEach(adjustInputWidth);
     });
 
     // Focus 事件處理
     document.getElementById('invoice-section').addEventListener('focusin', function(e) {
         if (e.target.classList.contains('data-date') && e.target.value.includes('/')) {
             e.target.value = e.target.value.replace(/\//g, '');
-            adjustInputWidth(e.target);
         }
     });
 
@@ -1402,7 +1359,6 @@ if (document.getElementById('invoice-section')) {
                 const m = input.value.substring(3, 5);
                 const d = input.value.substring(5, 7);
                 input.value = `${y}/${m}/${d}`;
-                adjustInputWidth(input);
             }
         }
     });
@@ -1539,7 +1495,6 @@ if (document.getElementById('invoice-section')) {
         if (targetInput) {
             targetInput.value = newInvoiceNo;
             targetInput.classList.remove('invoice-error');
-            adjustInputWidth(targetInput);
 
             // 檢查是否有重複的發票號碼
             checkDuplicateInvoiceNumbers(body, targetInput);
