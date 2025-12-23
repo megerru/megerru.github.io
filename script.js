@@ -1011,27 +1011,11 @@ if (document.getElementById('invoice-section')) {
         const twoPartData = extractInvoiceData('two-part');
         const threePartData = extractInvoiceData('three-part');
 
-        // 智能排序：同月份的二聯式全部優先，再來三聯式
+        // 按照完整日期排序（年→月→日），不區分二聯式或三聯式
         const allData = [...twoPartData, ...threePartData];
         allData.sort((a, b) => {
             const dateA = a.date || '9999999';
             const dateB = b.date || '9999999';
-
-            // 提取年月（前5碼：YYYmm）
-            const yearMonthA = dateA.substring(0, 5);
-            const yearMonthB = dateB.substring(0, 5);
-
-            // 先比較年月
-            if (yearMonthA !== yearMonthB) {
-                return yearMonthA.localeCompare(yearMonthB);
-            }
-
-            // 同年月時，二聯式全部優先
-            if (a.type !== b.type) {
-                return a.type === 'two-part' ? -1 : 1;
-            }
-
-            // 同類型再按完整日期排序
             return dateA.localeCompare(dateB);
         });
 
