@@ -1167,28 +1167,47 @@ if (document.getElementById('invoice-section')) {
                 const invoice = { type };
 
                 if (isTwoPart) {
-                    const totalValue = row.querySelector('.total-2')?.value;
-                    if (!totalValue) continue;
+                    // 檢查是否至少有一個欄位有值（與 extractTableData 和 exportCurrentType 邏輯一致）
+                    const dateValue = row.querySelector('.data-date')?.value?.trim() || '';
+                    const invoiceNoValue = row.querySelector('.data-invoice-no')?.value?.trim() || '';
+                    const buyerValue = row.querySelector('.data-buyer')?.value?.trim() || '';
+                    const itemValue = row.querySelector('.data-item')?.value?.trim() || '';
+                    const salesValue = row.querySelector('.sales-2')?.value?.trim() || '';
+                    const taxValue = row.querySelector('.tax-2')?.value?.trim() || '';
+                    const totalValue = row.querySelector('.total-2')?.value?.trim() || '';
 
-                    invoice.date = row.querySelector('.data-date')?.value || '';
-                    invoice.invoiceNo = row.querySelector('.data-invoice-no')?.value || '';
-                    invoice.buyer = row.querySelector('.data-buyer')?.value || '';
-                    invoice.item = row.querySelector('.data-item')?.value || '';
-                    invoice.sales = parseFloat(row.querySelector('.sales-2')?.value) || 0;
-                    invoice.tax = parseFloat(row.querySelector('.tax-2')?.value) || 0;
+                    const hasData = dateValue || invoiceNoValue || buyerValue || itemValue || salesValue || taxValue || totalValue;
+                    if (!hasData) continue;
+
+                    invoice.date = dateValue;
+                    invoice.invoiceNo = invoiceNoValue;
+                    invoice.buyer = buyerValue;
+                    invoice.item = itemValue;
+                    invoice.sales = parseFloat(salesValue) || 0;
+                    invoice.tax = parseFloat(taxValue) || 0;
                     invoice.total = parseFloat(totalValue) || 0;
                 } else {
-                    const salesValue = row.querySelector('.sales-3')?.value;
-                    if (!salesValue) continue;
+                    // 檢查是否至少有一個欄位有值（與 extractTableData 和 exportCurrentType 邏輯一致）
+                    const dateValue = row.querySelector('.data-date')?.value?.trim() || '';
+                    const invoiceNoValue = row.querySelector('.data-invoice-no')?.value?.trim() || '';
+                    const taxIdValue = row.querySelector('.tax-id-3')?.value?.trim() || '';
+                    const companyValue = row.querySelector('.company-3')?.value?.trim() || '';
+                    const itemValue = row.querySelector('.data-item')?.value?.trim() || '';
+                    const salesValue = row.querySelector('.sales-3')?.value?.trim() || '';
+                    const taxValue = row.querySelector('.tax-3')?.value?.trim() || '';
+                    const totalValue = row.querySelector('.total-3')?.value?.trim() || '';
 
-                    invoice.date = row.querySelector('.data-date')?.value || '';
-                    invoice.invoiceNo = row.querySelector('.data-invoice-no')?.value || '';
-                    invoice.taxId = row.querySelector('.tax-id-3')?.value || '';
-                    invoice.company = row.querySelector('.company-3')?.value || '';
-                    invoice.item = row.querySelector('.data-item')?.value || '';
+                    const hasData = dateValue || invoiceNoValue || taxIdValue || companyValue || itemValue || salesValue || taxValue || totalValue;
+                    if (!hasData) continue;
+
+                    invoice.date = dateValue;
+                    invoice.invoiceNo = invoiceNoValue;
+                    invoice.taxId = taxIdValue;
+                    invoice.company = companyValue;
+                    invoice.item = itemValue;
                     invoice.sales = parseFloat(salesValue) || 0;
-                    invoice.tax = parseFloat(row.querySelector('.tax-3')?.value) || 0;
-                    invoice.total = parseFloat(row.querySelector('.total-3')?.value) || 0;
+                    invoice.tax = parseFloat(taxValue) || 0;
+                    invoice.total = parseFloat(totalValue) || 0;
                 }
 
                 invoices.push(invoice);
