@@ -1301,6 +1301,10 @@ if (document.getElementById('invoice-section')) {
             if (target.value.length === 10) {
                 if (isValid) {
                     target.classList.remove('invoice-error');
+                    // 檢查重複
+                    const currentType = invoiceTypeSelect.value;
+                    const body = currentType === 'two-part' ? twoPartBody : threePartBody;
+                    checkDuplicateInvoiceNumbers(body, target);
                 } else {
                     target.classList.add('invoice-error');
                 }
@@ -1308,6 +1312,7 @@ if (document.getElementById('invoice-section')) {
                 target.classList.add('invoice-error');
             } else {
                 target.classList.remove('invoice-error');
+                target.classList.remove('invoice-duplicate');
             }
         } else if (target.classList.contains('data-date') || target.classList.contains('tax-id-3')) {
             const numericValue = target.value.replace(/\D/g, '');
@@ -1504,10 +1509,60 @@ if (document.getElementById('invoice-section')) {
             targetInput.value = newInvoiceNo;
             targetInput.classList.remove('invoice-error');
             adjustInputWidth(targetInput);
-            targetInput.focus();
-            lastFocusedInvoiceInput = targetInput; // 更新記錄
+
+            // 檢查是否有重複的發票號碼
+            checkDuplicateInvoiceNumbers(body, targetInput);
+
+            // 自動移動到下一個空的發票號碼欄位（避免重複填入）
+            let nextEmptyInput = null;
+            const currentRowIndex = Array.from(body.rows).indexOf(targetInput.closest('tr'));
+
+            for (let i = currentRowIndex + 1; i < body.rows.length; i++) {
+                const row = body.rows[i];
+                const invoiceInput = row.querySelector('.data-invoice-no');
+
+                if (invoiceInput && !invoiceInput.value.trim()) {
+                    nextEmptyInput = invoiceInput;
+                    break;
+                }
+            }
+
+            if (nextEmptyInput) {
+                nextEmptyInput.focus();
+                lastFocusedInvoiceInput = nextEmptyInput;
+            } else {
+                // 如果沒有下一個空欄位，新增一列
+                addInvoiceRow();
+                const newRow = body.rows[body.rows.length - 1];
+                const newInput = newRow.querySelector('.data-invoice-no');
+                if (newInput) {
+                    newInput.focus();
+                    lastFocusedInvoiceInput = newInput;
+                }
+            }
         }
     };
+
+    // 檢查重複的發票號碼
+    function checkDuplicateInvoiceNumbers(body, currentInput) {
+        const currentValue = currentInput.value.trim();
+        if (!currentValue) return;
+
+        const allInvoiceInputs = body.querySelectorAll('.data-invoice-no');
+        let duplicateCount = 0;
+
+        allInvoiceInputs.forEach(input => {
+            if (input.value.trim() === currentValue) {
+                duplicateCount++;
+                // 標記重複的欄位
+                input.classList.add('invoice-duplicate');
+            }
+        });
+
+        if (duplicateCount > 1) {
+            alert(`警告：發票號碼 ${currentValue} 重複出現 ${duplicateCount} 次！\n請檢查並修正重複的發票號碼。`);
+        }
+    }
 
     // 初始化發票狀態 UI 同步
     document.addEventListener('DOMContentLoaded', () => {

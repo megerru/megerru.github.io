@@ -193,6 +193,13 @@ input.invoice-error {
     box-shadow: inset 0 0 0 1px #dc3545 !important;
 }
 
+/* 發票號碼重複樣式 - 橘色框框 */
+input.invoice-duplicate {
+    border: 2px solid #ff9800 !important;
+    background-color: #fff9f0 !important;
+    box-shadow: inset 0 0 0 1px #ff9800 !important;
+}
+
 /* =================================================================== */
 /* V. 動態載入動畫 - 優化版 */
 /* =================================================================== */
