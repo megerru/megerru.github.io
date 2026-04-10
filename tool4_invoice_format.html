@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工具四：電子發票格式</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/components.css">
+    <style>
+        body.tool-page-body {
+            display: block;
+            padding: 20px;
+        }
+
+        body.tool-page-body .container {
+            max-width: none;
+            width: auto;
+            padding: 0;
+            box-shadow: none;
+            background-color: transparent;
+            text-align: left;
+            display: flex;
+            gap: 20px;
+            justify-content: space-between;
+        }
+
+        /* 左右兩欄 */
+        .file-panel {
+            flex: 1;
+            min-width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* 區塊標題列 */
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1em;
+        }
+
+        .panel-header.left {
+            background-color: #e8f4fd;
+            border-left: 4px solid #1a73e8;
+            color: #1a5276;
+        }
+
+        .panel-header.right {
+            background-color: #eafaf1;
+            border-left: 4px solid #1d8348;
+            color: #1a5632;
+        }
+
+        .panel-header .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            font-size: 0.85em;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .panel-header.left .badge {
+            background-color: #1a73e8;
+            color: white;
+        }
+
+        .panel-header.right .badge {
+            background-color: #1d8348;
+            color: white;
+        }
+
+        /* 說明卡片 */
+        .panel-hint {
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.88em;
+            line-height: 1.6;
+        }
+
+        .panel-hint.left {
+            background-color: #f0f7ff;
+            border: 1px solid #b3d4f5;
+            color: #2c3e50;
+        }
+
+        .panel-hint.right {
+            background-color: #f0fff5;
+            border: 1px solid #a9dfbf;
+            color: #2c3e50;
+        }
+
+        .panel-hint ul {
+            margin: 6px 0 0 0;
+            padding-left: 18px;
+        }
+
+        .panel-hint li {
+            margin-bottom: 3px;
+        }
+
+        /* 檔案資訊卡片（上傳後顯示） */
+        .file-info-card {
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.88em;
+            line-height: 1.7;
+            display: none;
+        }
+
+        .file-info-card.left {
+            background-color: #d6eaf8;
+            border: 1px solid #85c1e9;
+            color: #1a5276;
+        }
+
+        .file-info-card.right {
+            background-color: #d5f5e3;
+            border: 1px solid #82e0aa;
+            color: #1a5632;
+        }
+
+        .file-info-card .info-label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* 警告訊息（如活頁簿數量不符） */
+        .file-warning {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            display: none;
+        }
+
+        /* 中間控制區 */
+        .controls-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body class="tool-page-body">
+    <a href="data_processing_landing.html" class="btn-back">← 返回工具箱</a>
+
+    <div class="tool-section">
+        <h2>工具四：電子發票格式</h2>
+        <h3>轉換成匯入文中格式</h3>
+
+        <div class="container">
+
+            <!-- 左欄：原始檔案 A -->
+            <div class="file-panel">
+                <div class="panel-header left">
+                    <span class="badge">A</span>
+                    <span>原始檔案（格式範本）</span>
+                </div>
+
+                <div class="panel-hint left">
+                    <strong>此檔案需包含兩個活頁簿：</strong>
+                    <ul>
+                        <li><strong>活頁簿 1</strong>：定義欄位標題（輸出將套用此標題列）</li>
+                        <li><strong>活頁簿 2</strong>：固定內容（將原封不動複製至輸出）</li>
+                    </ul>
+                </div>
+
+                <div class="drop-zone" id="dropZoneA">
+                    <p>將原始檔案（A）拖曳至此</p>
+                    <p style="font-size: 12px; color: #999;">或點擊選擇檔案</p>
+                    <p class="file-list-display" id="fileAName"></p>
+                    <input type="file" id="fileInputA" style="display: none;" accept=".xlsx,.xls">
+                </div>
+
+                <div class="file-info-card left" id="fileInfoA">
+                    <span class="info-label" id="fileInfoATitle"></span>
+                    <span id="fileInfoASheets"></span>
+                </div>
+
+                <div class="file-warning" id="fileWarningA"></div>
+            </div>
+
+            <!-- 右欄：已處理檔案 B -->
+            <div class="file-panel">
+                <div class="panel-header right">
+                    <span class="badge">B</span>
+                    <span>已處理資料（要匯入的內容）</span>
+                </div>
+
+                <div class="panel-hint right">
+                    <strong>此檔案需包含一個活頁簿：</strong>
+                    <ul>
+                        <li>您已篩選好、要匯入的資料集</li>
+                        <li>若欄位比 A 的標題多，多出的欄位將自動移除</li>
+                        <li>若欄位比 A 的標題少，缺少的欄位填入空白</li>
+                    </ul>
+                </div>
+
+                <div class="drop-zone" id="dropZoneB">
+                    <p>將已處理資料（B）拖曳至此</p>
+                    <p style="font-size: 12px; color: #999;">或點擊選擇檔案</p>
+                    <p class="file-list-display" id="fileBName"></p>
+                    <input type="file" id="fileInputB" style="display: none;" accept=".xlsx,.xls">
+                </div>
+
+                <div class="file-info-card right" id="fileInfoB">
+                    <span class="info-label" id="fileInfoBTitle"></span>
+                    <span id="fileInfoBSheets"></span>
+                </div>
+
+                <div class="file-warning" id="fileWarningB"></div>
+            </div>
+
+        </div>
+
+        <!-- 欄位預覽與篩選（上傳 A 檔後顯示） -->
+        <div id="headerPreviewSection" style="display: none; margin-top: 24px;">
+            <div class="controls" style="text-align: left; padding: 20px 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <strong style="font-size: 1em;">輸出欄位確認</strong>
+                        <span id="headerCountBadge" style="margin-left: 10px; background: #2c6e7a; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.85em;"></span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.88em; color: #666;">勾選不需要的欄位，再點右側按鈕移除</span>
+                        <button id="deleteHeadersBtn" class="btn btn-danger" style="padding: 6px 16px; font-size: 0.9em;">刪除標題</button>
+                    </div>
+                </div>
+                <div id="headerCheckList" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 220px; overflow-y: auto; padding: 4px 0;"></div>
+            </div>
+        </div>
+
+        <!-- 執行按鈕 -->
+        <div class="controls-row">
+            <div class="controls" style="width: 100%; max-width: 500px; padding: 20px;">
+                <button id="processButton" class="btn btn-primary" disabled style="width: 100%; font-size: 1.1em; padding: 14px;">
+                    開始轉換並匯出
+                </button>
+            </div>
+        </div>
+
+        <!-- 狀態顯示 -->
+        <div class="results">
+            <p id="invoiceStatus"></p>
+
+            <!-- 轉換後標題預覽 -->
+            <div id="outputPreviewSection" style="display: none; margin-top: 8px;">
+                <button id="toggleOutputPreviewBtn" style="
+                    background: none; border: 1px solid #2c6e7a; color: #2c6e7a;
+                    padding: 7px 18px; border-radius: 5px; font-size: 0.9em;
+                    cursor: pointer; transition: all 0.2s;
+                " onmouseover="this.style.background='#2c6e7a';this.style.color='white';"
+                   onmouseout="this.style.background='none';this.style.color='#2c6e7a';">
+                    ▶ 轉換檔案標題預覽
+                </button>
+                <div id="outputHeaderList" style="
+                    display: none; margin-top: 12px; padding: 16px 20px;
+                    background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px;
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <strong style="font-size: 0.95em;">輸出活頁簿 1 的標題欄位</strong>
+                            <span id="outputHeaderCountBadge" style="background: #2c6e7a; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.82em;"></span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 0.83em; color: #888;">勾選後刪除，並自動重新匯出</span>
+                            <button id="deleteOutputHeadersBtn" class="btn btn-danger" style="padding: 5px 14px; font-size: 0.88em;">刪除標題</button>
+                        </div>
+                    </div>
+                    <div id="outputHeaderTags" style="display: flex; flex-wrap: wrap; gap: 7px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/common.js"></script>
+
+    <script>
+        (function () {
+            const dropZoneA = document.getElementById('dropZoneA');
+            const dropZoneB = document.getElementById('dropZoneB');
+            const fileInputA = document.getElementById('fileInputA');
+            const fileInputB = document.getElementById('fileInputB');
+            const fileAName = document.getElementById('fileAName');
+            const fileBName = document.getElementById('fileBName');
+            const fileInfoA = document.getElementById('fileInfoA');
+            const fileInfoB = document.getElementById('fileInfoB');
+            const fileInfoATitle = document.getElementById('fileInfoATitle');
+            const fileInfoBTitle = document.getElementById('fileInfoBTitle');
+            const fileInfoASheets = document.getElementById('fileInfoASheets');
+            const fileInfoBSheets = document.getElementById('fileInfoBSheets');
+            const fileWarningA = document.getElementById('fileWarningA');
+            const fileWarningB = document.getElementById('fileWarningB');
+            const processButton = document.getElementById('processButton');
+
+            let workbookA = null;
+            let workbookB = null;
+            let effectiveHeaders = [];   // A 的標題，可由使用者刪減
+
+            // ── 拖放設定 ──────────────────────────────────────────
+
+            setupDropZone(dropZoneA, fileInputA, (files) => handleFile(files[0], 'A'));
+            setupDropZone(dropZoneB, fileInputB, (files) => handleFile(files[0], 'B'));
+
+            // ── 檔案讀取 ──────────────────────────────────────────
+
+            async function handleFile(file, target) {
+                if (!file) return;
+
+                const isA = target === 'A';
+                const nameEl = isA ? fileAName : fileBName;
+                const infoCard = isA ? fileInfoA : fileInfoB;
+                const infoTitle = isA ? fileInfoATitle : fileInfoBTitle;
+                const infoSheets = isA ? fileInfoASheets : fileInfoBSheets;
+                const warningEl = isA ? fileWarningA : fileWarningB;
+
+                nameEl.textContent = file.name;
+                infoCard.style.display = 'none';
+                warningEl.style.display = 'none';
+                showErrorMessage('', 'invoiceStatus');
+                document.getElementById('invoiceStatus').innerHTML = '';
+
+                try {
+                    const [result] = await readExcelFiles([file]);
+                    const wb = result.workbook;
+                    const sheetNames = wb.SheetNames;
+
+                    if (isA) {
+                        workbookA = wb;
+
+                        // 驗證：A 必須有 2 個活頁簿
+                        if (sheetNames.length < 2) {
+                            warningEl.textContent = `⚠ 此檔案只有 ${sheetNames.length} 個活頁簿，需要至少 2 個才能繼續。`;
+                            warningEl.style.display = 'block';
+                            workbookA = null;
+                            effectiveHeaders = [];
+                            renderHeaderPreview();
+                        } else {
+                            const sheet1Data = readSheetData(wb.Sheets[sheetNames[0]]);
+                            const headersA = sheet1Data.length > 0 ? Object.keys(sheet1Data[0]).map(h => h.trim()) : [];
+                            const sheet2RowCount = readSheetData(wb.Sheets[sheetNames[1]]).length;
+
+                            infoTitle.textContent = `✓ ${file.name}`;
+                            infoSheets.innerHTML =
+                                `活頁簿 1「${sheetNames[0]}」：${headersA.length} 個欄位<br>` +
+                                `活頁簿 2「${sheetNames[1]}」：${sheet2RowCount} 筆資料` +
+                                (sheetNames.length > 2 ? `<br><em style="opacity:0.7">（僅使用前兩個活頁簿）</em>` : '');
+                            infoCard.style.display = 'block';
+
+                            // 更新有效標題並渲染預覽
+                            effectiveHeaders = headersA;
+                            renderHeaderPreview();
+                        }
+                    } else {
+                        workbookB = wb;
+
+                        const sheet1Data = readSheetData(wb.Sheets[sheetNames[0]]);
+                        const headersB = sheet1Data.length > 0 ? Object.keys(sheet1Data[0]) : [];
+
+                        infoTitle.textContent = `✓ ${file.name}`;
+                        infoSheets.innerHTML =
+                            `活頁簿 1「${sheetNames[0]}」：${headersB.length} 個欄位，${sheet1Data.length} 筆資料` +
+                            (sheetNames.length > 1 ? `<br><em style="opacity:0.7">（僅使用第一個活頁簿）</em>` : '');
+                        infoCard.style.display = 'block';
+                    }
+
+                } catch (err) {
+                    warningEl.textContent = `✗ 讀取失敗：${err.message}`;
+                    warningEl.style.display = 'block';
+                    if (isA) {
+                        workbookA = null;
+                        effectiveHeaders = [];
+                        renderHeaderPreview();
+                    } else {
+                        workbookB = null;
+                    }
+                }
+
+                updateProcessButton();
+            }
+
+            function updateProcessButton() {
+                processButton.disabled = !(workbookA && workbookB && effectiveHeaders.length > 0);
+            }
+
+            // ── 欄位預覽渲染 ──────────────────────────────────────
+
+            function renderHeaderPreview() {
+                const section = document.getElementById('headerPreviewSection');
+                const list = document.getElementById('headerCheckList');
+                const badge = document.getElementById('headerCountBadge');
+
+                if (effectiveHeaders.length === 0) {
+                    section.style.display = 'none';
+                    return;
+                }
+
+                section.style.display = 'block';
+                badge.textContent = `共 ${effectiveHeaders.length} 個欄位`;
+
+                list.innerHTML = '';
+                effectiveHeaders.forEach(h => {
+                    const label = document.createElement('label');
+                    label.style.cssText =
+                        'display:inline-flex; align-items:center; gap:6px; padding:5px 12px;' +
+                        'border:1px solid #ccc; border-radius:20px; cursor:pointer;' +
+                        'background:#fff; font-size:0.88em; transition:background 0.15s;';
+
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.value = h;
+                    cb.style.cssText = 'width:auto; cursor:pointer;';
+
+                    // 勾選時標示為「待刪除」
+                    cb.addEventListener('change', () => {
+                        label.style.background = cb.checked ? '#fdecea' : '#fff';
+                        label.style.borderColor = cb.checked ? '#e74c3c' : '#ccc';
+                    });
+
+                    const text = document.createElement('span');
+                    text.textContent = h;
+
+                    label.appendChild(cb);
+                    label.appendChild(text);
+                    list.appendChild(label);
+                });
+            }
+
+            // 刪除標題按鈕
+            document.getElementById('deleteHeadersBtn').addEventListener('click', () => {
+                const checked = Array.from(
+                    document.querySelectorAll('#headerCheckList input[type="checkbox"]:checked')
+                ).map(cb => cb.value);
+
+                if (checked.length === 0) return;
+
+                effectiveHeaders = effectiveHeaders.filter(h => !checked.includes(h));
+                renderHeaderPreview();
+                updateProcessButton();
+            });
+
+            // ── 輸出標題預覽 ──────────────────────────────────────
+
+            function showOutputHeaderPreview(headers) {
+                const section = document.getElementById('outputPreviewSection');
+                const tags = document.getElementById('outputHeaderTags');
+                const badge = document.getElementById('outputHeaderCountBadge');
+                const list = document.getElementById('outputHeaderList');
+                const btn = document.getElementById('toggleOutputPreviewBtn');
+
+                // 重置收合狀態
+                list.style.display = 'none';
+                btn.textContent = '▶ 轉換檔案標題預覽';
+                btn.style.background = 'none';
+                btn.style.color = '#2c6e7a';
+
+                // 填入標題（label + checkbox 可勾選刪除）
+                badge.textContent = `共 ${headers.length} 個欄位`;
+                tags.innerHTML = '';
+                headers.forEach((h, i) => {
+                    const label = document.createElement('label');
+                    label.style.cssText =
+                        'display:inline-flex; align-items:center; gap:6px; padding:4px 12px;' +
+                        'background:#e8f4fd; border:1px solid #85c1e9; border-radius:16px;' +
+                        'font-size:0.85em; color:#1a5276; cursor:pointer; transition:background 0.15s;';
+
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.className = 'output-header-cb';
+                    cb.value = h;
+                    cb.style.cssText = 'width:auto; cursor:pointer;';
+
+                    cb.addEventListener('change', () => {
+                        label.style.background = cb.checked ? '#fdecea' : '#e8f4fd';
+                        label.style.borderColor = cb.checked ? '#e74c3c' : '#85c1e9';
+                        label.style.color = cb.checked ? '#922b21' : '#1a5276';
+                    });
+
+                    const num = document.createElement('span');
+                    num.style.cssText = 'color:#7fb3d3; font-size:0.8em;';
+                    num.textContent = i + 1;
+
+                    const text = document.createElement('span');
+                    text.textContent = h;
+
+                    label.appendChild(cb);
+                    label.appendChild(num);
+                    label.appendChild(text);
+                    tags.appendChild(label);
+                });
+
+                section.style.display = 'block';
+            }
+
+            // 輸出預覽：刪除標題並重新匯出
+            document.getElementById('deleteOutputHeadersBtn').addEventListener('click', async () => {
+                const checked = Array.from(
+                    document.querySelectorAll('.output-header-cb:checked')
+                ).map(cb => cb.value);
+
+                if (checked.length === 0) return;
+
+                // 更新 effectiveHeaders
+                effectiveHeaders = effectiveHeaders.filter(h => !checked.includes(h));
+
+                // 同步上方的欄位確認區
+                renderHeaderPreview();
+                updateProcessButton();
+
+                // 自動重新執行轉換匯出
+                processButton.disabled = true;
+                processButton.textContent = '處理中...';
+                document.body.style.cursor = 'wait';
+                try {
+                    await performConversion();
+                } catch (err) {
+                    showErrorMessage(`發生錯誤：${err.message}`, 'invoiceStatus');
+                } finally {
+                    processButton.disabled = false;
+                    processButton.textContent = '開始轉換並匯出';
+                    document.body.style.cursor = 'default';
+                }
+            });
+
+            // 展開/收合切換
+            document.getElementById('toggleOutputPreviewBtn').addEventListener('click', function () {
+                const list = document.getElementById('outputHeaderList');
+                const isOpen = list.style.display !== 'none';
+                list.style.display = isOpen ? 'none' : 'block';
+                this.textContent = isOpen ? '▶ 轉換檔案標題預覽' : '▼ 轉換檔案標題預覽';
+            });
+
+            // ── 核心處理邏輯 ──────────────────────────────────────
+
+            processButton.addEventListener('click', async () => {
+                if (!workbookA || !workbookB) return;
+
+                processButton.disabled = true;
+                processButton.textContent = '處理中...';
+                document.body.style.cursor = 'wait';
+
+                try {
+                    await performConversion();
+                } catch (err) {
+                    showErrorMessage(`發生錯誤：${err.message}`, 'invoiceStatus');
+                } finally {
+                    processButton.disabled = false;
+                    processButton.textContent = '開始轉換並匯出';
+                    document.body.style.cursor = 'default';
+                }
+            });
+
+            async function performConversion() {
+                const sheetNamesA = workbookA.SheetNames;
+                const sheetNamesB = workbookB.SheetNames;
+
+                // 使用使用者確認過的欄位清單（effectiveHeaders）
+                updateProgress(1, 4, '讀取欄位設定', 'invoiceStatus');
+                await sleep(0);
+
+                const headersA = [...effectiveHeaders];
+
+                if (headersA.length === 0) {
+                    showErrorMessage('沒有可用的欄位標題，請重新上傳 A 檔。', 'invoiceStatus');
+                    return;
+                }
+
+                // 讀取 B 的資料
+                updateProgress(2, 4, '讀取 B 檔資料', 'invoiceStatus');
+                await sleep(0);
+
+                const dataB = readSheetData(workbookB.Sheets[sheetNamesB[0]]);
+                // 同樣 trim B 的所有欄位名稱，確保比對一致
+                const dataBNormalized = dataB.map(row => {
+                    const normalized = {};
+                    Object.entries(row).forEach(([k, v]) => { normalized[k.trim()] = v; });
+                    return normalized;
+                });
+                const headersB = dataBNormalized.length > 0 ? Object.keys(dataBNormalized[0]) : [];
+
+                // 計算欄位差異（比對的都已 trim）
+                const headersASet = new Set(headersA);
+                const headersBSet = new Set(headersB);
+                const removedColumns = headersB.filter(h => !headersASet.has(h));
+                const addedColumns = headersA.filter(h => !headersBSet.has(h));
+
+                // 過濾 B 的欄位，只保留 A 有的
+                updateProgress(3, 4, '對齊欄位並整合資料', 'invoiceStatus');
+                await sleep(0);
+
+                const filteredData = dataBNormalized.map(row => {
+                    const newRow = {};
+                    headersA.forEach(h => {
+                        newRow[h] = row.hasOwnProperty(h) ? row[h] : null;
+                    });
+                    return newRow;
+                });
+
+                // 建立輸出活頁簿
+                updateProgress(4, 4, '產生 Excel 檔案', 'invoiceStatus');
+                await sleep(100);
+
+                const wbOut = XLSX.utils.book_new();
+
+                // 活頁簿 1：標題來自 A，資料來自過濾後的 B
+                let ws1;
+                if (filteredData.length > 0) {
+                    ws1 = XLSX.utils.json_to_sheet(filteredData, { header: headersA });
+                } else {
+                    // B 沒有資料，只輸出標題列
+                    ws1 = XLSX.utils.aoa_to_sheet([headersA]);
+                }
+                XLSX.utils.book_append_sheet(wbOut, ws1, sheetNamesA[0]);
+
+                // 活頁簿 2：直接複製 A 的活頁簿 2
+                const wsA2 = workbookA.Sheets[sheetNamesA[1]];
+                XLSX.utils.book_append_sheet(wbOut, wsA2, sheetNamesA[1]);
+
+                XLSX.writeFile(wbOut, 'invoice_format_output.xlsx');
+
+                // 組合完成說明
+                let details = `活頁簿 1：套用 A 的 ${headersA.length} 個欄位標題，共 ${filteredData.length} 筆資料。`;
+
+                if (removedColumns.length > 0) {
+                    details += `<br>已移除 B 多出的 ${removedColumns.length} 個欄位：<em>${removedColumns.join('、')}</em>`;
+                }
+                if (addedColumns.length > 0) {
+                    details += `<br>B 缺少 ${addedColumns.length} 個欄位（填入空白）：<em>${addedColumns.join('、')}</em>`;
+                }
+
+                details += `<br>活頁簿 2：已複製 A 的「${sheetNamesA[1]}」內容。`;
+
+                showCompleteMessage('轉換完成！已匯出為 invoice_format_output.xlsx', details, 'invoiceStatus');
+                showOutputHeaderPreview(headersA);
+            }
+
+        })();
+    </script>
+</body>
+</html>
