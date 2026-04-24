@@ -1270,6 +1270,11 @@ if (document.getElementById('invoice-section')) {
 
     // findNextVisibleInput 已移至 common.js，這裡不再重複定義
 
+    // 防止 number input 被滾輪誤改值
+    document.getElementById('invoice-section').addEventListener('wheel', function(e) {
+        if (e.target.matches('input[type="number"]')) e.preventDefault();
+    }, { passive: false });
+
     // Input 事件處理
     document.getElementById('invoice-section').addEventListener('input', function(e) {
         const target = e.target;
