@@ -237,6 +237,18 @@
             border-radius: 4px;
             font-size: 15px;
         }
+
+        /* 移除 number 欄位右側的上下微調箭頭（本頁樣式全部內嵌，未載入 style.css） */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
         .calc-result {
             grid-column: 1 / -1;
             background-color: #fff;

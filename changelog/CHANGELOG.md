@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## [2026-09-15] - 移除 number 欄位的上下微調箭頭
+
+### Fixed
+- **`exchange-rate.html` 的外幣金額欄位仍有上下微調箭頭**
+  - `style.css` 早已有 spinner 移除規則，但該頁樣式全部內嵌、
+    未載入任何外部 CSS，因此不受涵蓋 — 這是全站唯一的缺口
+  - 於該頁內嵌樣式補上相同規則
+  - `report_generator.html` 同樣未載入外部 CSS，但頁面只有 checkbox，
+    無 number 欄位，不需處理
+
+### Changed
+- **`style.css` 的 spinner 規則現代化**
+  - 選擇器由 `input::-webkit-*-spin-button` 收斂為 `input[type="number"]::...`
+  - 補上標準 `appearance` 屬性（原本只有 `-webkit-` 與 `-moz-` 前綴版本）
+
+### Notes
+- 驗證方式：先確認 headless Chromium 確實會繪製 spinner（同頁比對有無規則的
+  兩個欄位，截圖 2219B vs 1815B 有差異），再對每個實際欄位截圖，
+  並注入 CSS 強制開啟箭頭後再截一次，兩者有差異即代表原本確實已移除
+- 涵蓋靜態欄位與動態產生的發票列（銷售額／稅額／總計）
+
+---
+
 ## [2026-09-15] - 全站停用滑鼠滾輪改動欄位值
 
 ### Fixed

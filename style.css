@@ -158,8 +158,9 @@ input[readonly] { background-color: transparent; border-color: transparent; box-
 .hidden { display: none !important; }
 .result-hidden { display: none; }
 .result-visible { display: block; }
-input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-input[type=number] { -moz-appearance: textfield; }
+/* 移除 number 欄位右側的上下微調箭頭（避免誤點改值） */
+input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .optional-columns-controls { text-align: left; margin-bottom: 15px; padding: 12px 15px; background-color: #f8f9fa; border-radius: 8px; }
 .optional-columns-controls label { margin-right: 12px; margin-bottom: 8px; cursor: pointer; font-weight: 500; display: inline-block; padding: 8px 16px; border-radius: 6px; transition: all 0.2s; background-color: #fff; border: 2px solid #dee2e6; color: #495057; user-select: none; }
 .optional-columns-controls label:hover { background-color: #e9ecef; border-color: #adb5bd; }
