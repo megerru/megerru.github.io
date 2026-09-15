@@ -1270,10 +1270,8 @@ if (document.getElementById('invoice-section')) {
 
     // findNextVisibleInput 已移至 common.js，這裡不再重複定義
 
-    // 防止 number input 被滾輪誤改值
-    document.getElementById('invoice-section').addEventListener('wheel', function(e) {
-        if (e.target.matches('input[type="number"]')) e.preventDefault();
-    }, { passive: false });
+    // 防止 number input 被滾輪誤改值的邏輯已移至 js/no-wheel.js（全站通用）。
+    // 該版本改以失焦方式處理，欄位不會被改值，且游標停在欄位上時仍可捲動頁面。
 
     // Input 事件處理
     document.getElementById('invoice-section').addEventListener('input', function(e) {
