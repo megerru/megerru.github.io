@@ -1,0 +1,11 @@
+{
+  "name": "megerru-github-io",
+  "private": true,
+  "description": "匯率資料擷取工具（供 GitHub Actions 使用，網站本身為純靜態）",
+  "scripts": {
+    "fetch-rates": "node scripts/fetch_bot_rates.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.0"
+  }
+}

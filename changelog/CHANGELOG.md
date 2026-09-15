@@ -1,5 +1,50 @@
 # CHANGELOG
 
+## [2026-09-15] - 修復匯率查詢：改為 GitHub Actions 定期擷取
+
+### Fixed
+- **匯率查詢完全失效** (`exchange-rate.html`)
+  - **根本原因（兩層同時失效）**
+    1. 台銀 `rate.bot.com.tw` 全站啟用 **Akamai Bot Manager** 防護（`sec_cpt` cookie）。
+       所有端點（`/xrt`、`/xrt/all/{date}`、`/xrt/flcsv/...`）一律回傳 1897 bytes 的
+       `Challenge Validation` 頁面，補上完整 Chrome User-Agent 也無效。
+       原本的解析邏輯因此找不到表格，拋出「找不到匯率表格」。
+    2. 程式碼中三個 CORS 代理**全數失效**：
+       - `api.allorigins.win` → HTTP 522（服務連不上）
+       - `corsproxy.io` → HTTP 403（已改為需註冊 API key）
+       - `thingproxy.freeboard.io` → 連線失敗（服務已下線）
+  - **結論**：「純前端 + 公共 CORS 代理」的架構已不可行。任何資料中心 IP、
+    無法執行 JS 的請求都過不了挑戰，更換代理清單只是治標。
+
+### Changed
+- **改為靜態資料架構**
+  - 新增 `scripts/fetch_bot_rates.js`：以 Playwright 真實瀏覽器執行挑戰的
+    JS proof-of-work，擷取後存成 `data/rates/YYYY-MM-DD.json`
+  - 新增 `.github/workflows/fetch-rates.yml`：每個營業日 10:30 與 17:30（台北時間）
+    自動更新，並將資料 commit 回 repo
+  - 前端 `fetchBOTRates()` 改為讀取**同源**的 `data/rates/{date}.json`
+    → 免代理、無 CORS 問題、載入速度大幅提升
+  - 資料格式與原本 `displayRates()` / `initCalculator()` 完全相容，顯示邏輯未更動
+
+### Added
+- **可查詢範圍提示**：載入時讀取 `data/rates/index.json`，在使用說明區顯示
+  實際可查詢的日期區間，並將輸入框 placeholder 設為最新營業日
+- **精準的錯誤說明**：查無資料時改以索引判斷真正原因，區分
+  「假日／非營業日」（並提示前後一個營業日）、「超出資料庫最早紀錄」、
+  「尚未更新」三種情況，取代原本籠統的失敗訊息
+- **當日盤中牌價**：`/xrt/all/{date}` 僅收錄已收盤日期，當天查詢會回空，
+  因此改由即時牌告頁擷取，並在標題標示「盤中 HH:MM 更新」以區別定盤價
+- **歷史資料回補**：一次性回補 2025-01-01 起的所有營業日資料
+
+### Notes
+- 台銀本身僅保留約 **2025 年初之後**的歷史資料（實測 2024-12-16 已查無），
+  但資料一旦收錄進 repo 即永久保存，不受台銀下架影響
+- 擷取腳本必須使用 `channel: 'chromium'`（新版 headless）；
+  舊的 headless shell 無法通過 Akamai 挑戰。挑戰約需 50 秒，
+  但 session 建立後可連續擷取多日而不再被挑戰
+
+---
+
 ## [待辦] - 資料處理工具待改善項目
 
 ### TODO #1 — 保留原始儲存格格式（四大工具通用）

@@ -357,6 +357,7 @@
 
     <script>
         let currentRatesData = null;
+        let ratesIndexCache = null;
 
         document.getElementById('query-btn').addEventListener('click', handleQuery);
         document.getElementById('date-input').addEventListener('keypress', (e) => {
@@ -366,6 +367,22 @@
         // 計算機事件監聽
         document.getElementById('calc-amount').addEventListener('input', calculateExchange);
         document.getElementById('calc-currency').addEventListener('change', calculateExchange);
+
+        // 載入時顯示可查詢範圍,並預設帶入最新一個營業日
+        initDateRangeHint();
+
+        async function initDateRangeHint() {
+            const index = await loadRatesIndex();
+            if (!index || !index.earliest) return;
+
+            const hint = document.createElement('p');
+            hint.innerHTML = `• 可查詢範圍:<strong>${toRocInput(index.earliest)}</strong> ~ ` +
+                `<strong>${toRocInput(index.latest)}</strong>(共 ${index.count} 個營業日)`;
+            document.querySelector('.info-box').appendChild(hint);
+
+            const input = document.getElementById('date-input');
+            if (!input.value) input.placeholder = `例如:${toRocInput(index.latest)}`;
+        }
 
         function handleQuery() {
             const dateInput = document.getElementById('date-input').value.trim();
@@ -411,122 +428,103 @@
         async function fetchRates(date) {
             const loadingDiv = document.getElementById('loading');
             const btn = document.getElementById('query-btn');
-            
+
             loadingDiv.classList.remove('hidden');
             btn.disabled = true;
 
             try {
                 const ratesData = await fetchBOTRates(date);
-                
+
                 if (ratesData && ratesData.rates && ratesData.rates.length > 0) {
                     currentRatesData = ratesData;
                     displayRates(ratesData);
                     initCalculator(ratesData);
                 } else {
-                    showError(`查無 ${date} 的匯率資料,可能原因:<br>• 該日為假日或銀行非營業日<br>• 銀行尚未公布該日匯率<br>• 日期超出可查詢範圍`);
+                    showError(await describeMissingDate(date));
                 }
 
             } catch (error) {
                 console.error('查詢錯誤:', error);
-                showError(`查詢失敗: ${error.message}<br><br>可能原因:<br>• 網路連線問題<br>• 代理服務暫時無法使用<br>• 請稍後再試`);
+                showError(`查詢失敗: ${error.message}<br><br>可能原因:<br>• 網路連線問題<br>• 請重新整理頁面後再試`);
             } finally {
                 loadingDiv.classList.add('hidden');
                 btn.disabled = false;
             }
         }
 
-        async function fetchBOTRates(date) {
-            const targetUrl = `https://rate.bot.com.tw/xrt/all/${date}`;
-            
-            // 嘗試多個代理服務
-            const proxies = [
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-                `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-                `https://thingproxy.freeboard.io/fetch/${targetUrl}`
-            ];
-
-            let lastError = null;
-
-            for (let i = 0; i < proxies.length; i++) {
-                try {
-                    console.log(`嘗試代理 ${i + 1}/${proxies.length}`);
-                    
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 10000);
-                    
-                    const response = await fetch(proxies[i], {
-                        signal: controller.signal
-                    });
-                    
-                    clearTimeout(timeoutId);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-                    
-                    const htmlContent = await response.text();
-                    
-                    // 解析HTML
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(htmlContent, 'text/html');
-                    
-                    // 尋找表格
-                    const table = doc.querySelector('table.table') || 
-                                 doc.querySelector('table');
-                    
-                    if (!table) {
-                        throw new Error('找不到匯率表格');
-                    }
-
-                    const rows = table.querySelectorAll('tbody tr');
-                    const rates = [];
-                    
-                    rows.forEach(row => {
-                        const cells = row.querySelectorAll('td');
-                        if (cells.length >= 5) {
-                            const firstCell = cells[0].textContent.trim();
-                            const match = firstCell.match(/\(([A-Z]{3})\)/);
-                            
-                            if (match) {
-                                const currency = match[1];
-                                const cashBuy = cells[1].textContent.trim();
-                                const cashSell = cells[2].textContent.trim();
-                                const spotBuy = cells[3].textContent.trim();
-                                const spotSell = cells[4].textContent.trim();
-                                
-                                if (spotSell && spotSell !== '-') {
-                                    rates.push([currency, cashBuy, cashSell, spotBuy, spotSell]);
-                                }
-                            }
-                        }
-                    });
-
-                    if (rates.length > 0) {
-                        console.log(`成功! 找到 ${rates.length} 種貨幣`);
-                        return {
-                            bankName: '台灣銀行',
-                            date: date,
-                            headers: ['幣別', '現金買入', '現金賣出', '即期買入', '即期賣出'],
-                            rates: rates
-                        };
-                    }
-                    
-                    throw new Error('未找到有效匯率資料');
-                    
-                } catch (error) {
-                    console.error(`代理 ${i + 1} 失敗:`, error.message);
-                    lastError = error;
-                    
-                    if (i < proxies.length - 1) {
-                        continue; // 嘗試下一個代理
-                    }
-                }
+        /**
+         * 查無資料時,用索引判斷真正的原因並給出具體說明。
+         */
+        async function describeMissingDate(date) {
+            const index = await loadRatesIndex();
+            if (!index || !index.dates || !index.dates.length) {
+                return `查無 ${date} 的匯率資料。<br><br>匯率資料庫目前是空的,請稍後再試。`;
             }
-            
-            throw new Error(lastError?.message || '所有代理服務均無法連線');
+
+            if (date > index.latest) {
+                return `查無 ${date} 的匯率資料。<br><br>` +
+                    `目前資料庫最新只到 <strong>${index.latest}</strong>。<br>` +
+                    `若你查的是今天,可能是台銀尚未開牌,或資料還沒更新(每個營業日 10:30 與 17:30 自動更新)。`;
+            }
+
+            if (date < index.earliest) {
+                return `查無 ${date} 的匯率資料。<br><br>` +
+                    `資料庫最早的紀錄為 <strong>${index.earliest}</strong>,更早的日期查不到。`;
+            }
+
+            // 落在資料範圍內卻沒有資料 → 該日為假日或銀行非營業日
+            const before = index.dates.filter(d => d < date).pop();
+            const after = index.dates.find(d => d > date);
+            const hints = [];
+            if (before) hints.push(`前一個營業日 <strong>${toRocInput(before)}</strong>(${before})`);
+            if (after) hints.push(`後一個營業日 <strong>${toRocInput(after)}</strong>(${after})`);
+
+            return `${date} 為假日或銀行非營業日,無牌告匯率。` +
+                (hints.length ? `<br><br>可改查:${hints.join('、')}` : '');
         }
 
-        function displayRates({ bankName, date, headers, rates }) {
+        /** 西元日期字串轉成本頁輸入框用的 7 碼民國日期 */
+        function toRocInput(iso) {
+            const [y, m, d] = iso.split('-');
+            return `${parseInt(y, 10) - 1911}${m}${d}`;
+        }
+
+        /**
+         * 讀取匯率資料。
+         *
+         * 台銀 rate.bot.com.tw 已全站啟用 Akamai 機器人防護,瀏覽器直接抓(或透過
+         * 公共 CORS 代理)一律只會拿到 Challenge Validation 頁面,因此改為由
+         * GitHub Actions 以 Playwright 定期擷取,存成同源靜態 JSON。
+         * 好處:免代理、無 CORS 問題、載入快,且資料一旦收錄就永久保存。
+         *
+         * 資料產生器:scripts/fetch_bot_rates.js
+         */
+        async function fetchBOTRates(date) {
+            const response = await fetch(`data/rates/${date}.json`, { cache: 'no-cache' });
+
+            if (response.status === 404) {
+                return null; // 該日無資料,交由 describeMissingDate() 說明原因
+            }
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        }
+
+        /** 讀取並快取匯率資料索引(可用日期清單) */
+        async function loadRatesIndex() {
+            if (ratesIndexCache) return ratesIndexCache;
+            try {
+                const response = await fetch('data/rates/index.json', { cache: 'no-cache' });
+                if (response.ok) ratesIndexCache = await response.json();
+            } catch (error) {
+                console.error('讀取索引失敗:', error);
+            }
+            return ratesIndexCache;
+        }
+
+        function displayRates({ bankName, date, headers, rates, quoteTime }) {
             const thead = document.querySelector('#rate-table thead');
             const tbody = document.querySelector('#rate-table tbody');
             const title = document.getElementById('result-title');
@@ -545,7 +543,10 @@
             });
             tbody.innerHTML = bodyHtml;
 
-            title.textContent = `${bankName} - ${date} 牌告匯率`;
+            // quoteTime 只在「當日盤中即時牌告」的資料才有,標示出來避免誤認為定盤價
+            title.textContent = quoteTime
+                ? `${bankName} - ${date} 牌告匯率(盤中 ${quoteTime} 更新)`
+                : `${bankName} - ${date} 牌告匯率`;
             container.classList.remove('hidden');
         }
 

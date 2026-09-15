@@ -1,0 +1,4 @@
+# 匯率資料由 Linux 上的 GitHub Actions 產生，固定 LF 避免跨平台換行差異
+data/rates/*.json text eol=lf
+scripts/*.js text eol=lf
+*.yml text eol=lf
