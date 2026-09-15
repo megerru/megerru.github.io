@@ -1,0 +1,101 @@
+name: 擷取台銀牌告匯率
+
+# 台銀 rate.bot.com.tw 有 Akamai 機器人防護，瀏覽器以外的請求一律被擋，
+# 因此改由 Actions 用 Playwright 定期抓取，存成靜態 JSON 供網頁直接讀取。
+on:
+  schedule:
+    # 台銀約 09:00 開牌、16:00 後定盤。cron 為 UTC，台北時間 = UTC + 8
+    - cron: '30 2 * * 1-5'   # 台北 10:30 — 盤中先抓一次
+    - cron: '30 9 * * 1-5'   # 台北 17:30 — 收盤後抓定盤價
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: '回補最近 N 天（留空則只抓今天）'
+        required: false
+        default: ''
+      from:
+        description: '起始日期 YYYY-MM-DD（台銀僅保留約 2025-01 之後）'
+        required: false
+        default: ''
+      to:
+        description: '結束日期 YYYY-MM-DD'
+        required: false
+        default: ''
+      force:
+        description: '覆寫已存在的資料'
+        type: boolean
+        required: false
+        default: false
+
+# 讓 workflow 能把抓到的資料 commit 回 repo
+permissions:
+  contents: write
+
+# 避免排程與手動觸發同時跑造成 push 衝突
+concurrency:
+  group: fetch-rates
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 取出程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 安裝相依套件
+        run: npm ci
+
+      - name: 安裝 Chromium
+        # 必須是完整 Chromium（新版 headless），headless shell 過不了 Akamai 挑戰
+        run: npx playwright install --with-deps chromium
+
+      - name: 組合擷取參數
+        id: args
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.backfill }}" ]; then
+            ARGS="$ARGS --backfill ${{ github.event.inputs.backfill }}"
+          fi
+          if [ -n "${{ github.event.inputs.from }}" ]; then
+            ARGS="$ARGS --from ${{ github.event.inputs.from }}"
+          fi
+          if [ -n "${{ github.event.inputs.to }}" ]; then
+            ARGS="$ARGS --to ${{ github.event.inputs.to }}"
+          fi
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            ARGS="$ARGS --force"
+          fi
+          # 排程觸發時預設回補最近 10 天，順便補上先前失敗或漏抓的日子
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            ARGS="--backfill 10"
+          fi
+          echo "value=$ARGS" >> "$GITHUB_OUTPUT"
+          echo "擷取參數: $ARGS"
+
+      - name: 擷取匯率
+        run: node scripts/fetch_bot_rates.js ${{ steps.args.outputs.value }}
+
+      - name: Commit 並推送資料
+        run: |
+          if [ -z "$(git status --porcelain data/rates)" ]; then
+            echo "資料無變動，不需 commit。"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/rates
+          LATEST=$(node -e "console.log(require('./data/rates/index.json').latest)")
+          COUNT=$(node -e "console.log(require('./data/rates/index.json').count)")
+          git commit -m "chore(rates): 更新台銀匯率資料至 $LATEST（共 $COUNT 天）"
+          # 併發或排程重疊時可能落後，先 rebase 再推
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
