@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## [2026-09-15] - 停用鍵盤上下鍵改動 number 欄位值
+
+### Added
+- **阻擋鍵盤上下鍵增減數值**（`js/input-guards.js`）
+  - 實測確認僅 `ArrowUp` / `ArrowDown` 會改動 number 欄位，
+    `PageUp` / `PageDown` / `Home` / `End` 皆不影響，故只需處理上下鍵
+  - 與滾輪處理同樣採 document 層級委派，動態產生的欄位一併涵蓋
+
+### Changed
+- **`js/no-wheel.js` 更名為 `js/input-guards.js`**
+  - 檔案已不只處理滾輪，原名不再貼切
+  - 同步更新 9 個 HTML 的引用與 `script.js` 的註解
+
+### Notes
+- **select 的上下鍵刻意保留不擋**：那是鍵盤操作下拉選單的唯一方式，
+  擋掉會讓只用鍵盤的使用者無法選取選項。已在測試中驗證
+  發票類型 select 按下 ArrowDown 仍可正常切換
+- 以對照組驗證有效性：停用 `input-guards.js` 後，總保費按兩次 ArrowUp
+  會從 36500 變成 36502；載入後則完全不受影響
+- 一併回歸測試滾輪阻擋與頁面捲動，確認未因新增鍵盤處理而受影響
+
+---
+
 ## [2026-09-15] - 移除 number 欄位的上下微調箭頭
 
 ### Fixed
