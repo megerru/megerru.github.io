@@ -96,6 +96,22 @@ jobs:
           LATEST=$(node -e "console.log(require('./data/rates/index.json').latest)")
           COUNT=$(node -e "console.log(require('./data/rates/index.json').count)")
           git commit -m "chore(rates): 更新台銀匯率資料至 $LATEST（共 $COUNT 天）"
-          # 併發或排程重疊時可能落後，先 rebase 再推
-          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+          # 併發或排程重疊時遠端可能已前進。資料是每次重新擷取產生的，
+          # 遇到衝突一律以本次結果為準（rebase 時 theirs 指的是被重放的本地 commit），
+          # 否則兩次 run 產生的 fetchedAt 差異就會導致衝突而失敗。
+          for attempt in 1 2 3; do
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "推送成功（第 $attempt 次嘗試）"
+              exit 0
+            fi
+            echo "推送被拒，改以遠端最新狀態重放本次資料（嘗試 $attempt/3）"
+            git fetch origin "${GITHUB_REF_NAME}"
+            if ! git rebase -X theirs "origin/${GITHUB_REF_NAME}"; then
+              git rebase --abort || true
+              echo "::error::rebase 失敗，無法自動解決衝突"
+              exit 1
+            fi
+          done
+          echo "::error::重試 3 次後仍無法推送"
+          exit 1
