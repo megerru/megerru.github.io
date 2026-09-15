@@ -25,7 +25,9 @@ function isValidRow(row) {
 function readSheetData(worksheet) {
     if (!worksheet || !worksheet['!ref']) return [];
     const range = XLSX.utils.decode_range(worksheet['!ref']);
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null, raw: false, range: range });
+    // raw: true 保留原始型別（數字寫成數字、日期為 Date），
+    // 輸出的 Excel 才能正常參與公式運算；搭配 read 的 cellDates: true 使用。
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null, raw: true, range: range });
     return jsonData.filter(isValidRow);
 }
 
@@ -175,7 +177,7 @@ async function readExcelFiles(files) {
             try {
                 resolve({
                     name: file.name,
-                    workbook: XLSX.read(new Uint8Array(e.target.result), { type: 'array' })
+                    workbook: XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true })
                 });
             } catch (err) {
                 reject(err);
@@ -408,10 +410,21 @@ async function lookupCompanyName(taxId) {
         return '統編格式錯誤';
     }
 
-    // 策略 1：g0v 主 API
+    // 逾時必須用 AbortController。fetch 沒有 timeout 選項，
+    // 原本寫的 { timeout: 5000 } 會被完全忽略，等於毫無逾時保護。
+    async function fetchWithTimeout(url, ms) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), ms);
+        try {
+            return await fetch(url, { signal: controller.signal });
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
+    // 策略 1：g0v 公司資料 API（實測正常運作且有 CORS 標頭）
     try {
-        const g0vUrl = `https://company.g0v.ronny.tw/api/show/${taxId}`;
-        const response = await fetch(g0vUrl, { timeout: 5000 });
+        const response = await fetchWithTimeout(CONFIG.API.G0V_COMPANY_API + taxId, CONFIG.API.LOOKUP_TIMEOUT_MS);
 
         if (response.ok) {
             const data = await response.json();
@@ -439,72 +452,14 @@ async function lookupCompanyName(taxId) {
             }
         }
     } catch (error) {
-        console.warn('g0v 主 API 查詢失敗:', error.message);
+        console.warn('g0v 公司資料 API 查詢失敗:', error.message);
     }
 
-    // 策略 2：g0v API 備用端點（https://company.g0v.ronny.tw/api 的替代路由）
-    try {
-        const g0vAltUrl = `https://company.g0v.ronny.tw/api/search/${taxId}`;
-        const response = await fetch(g0vAltUrl, { timeout: 5000 });
+    // 原本還有三層後備（g0v /api/search、NexData、allorigins 代理）已於
+    // 2026-09-15 移除：/api/search 是名稱搜尋端點，用統編查一律回 found:0；
+    // NexData 與 allorigins 實測皆已無法連線（HTTP 000）。
+    // 它們不會提高成功率，只會在查詢失敗時多等數秒。
 
-        if (response.ok) {
-            const data = await response.json();
-            if (data) {
-                const companyName = data['商業名稱'] ||
-                                   data['公司名稱'] ||
-                                   data['名稱'] ||
-                                   (data.data && data.data['商業名稱']);
-                if (companyName && typeof companyName === 'string' && companyName.trim()) {
-                    return companyName.trim();
-                }
-            }
-        }
-    } catch (error) {
-        console.warn('g0v 備用端點查詢失敗:', error.message);
-    }
-
-    // 策略 3：NexData 台灣公司資料
-    try {
-        const nexdataUrl = `https://company.nexdata.com.tw/api/company/${taxId}`;
-        const response = await fetch(nexdataUrl, { timeout: 5000 });
-
-        if (response.ok) {
-            const data = await response.json();
-            if (data && data.company_name) {
-                return data.company_name.trim();
-            }
-        }
-    } catch (error) {
-        console.warn('NexData 查詢失敗:', error.message);
-    }
-
-    // 策略 4：CORS 代理 + 政府資料（備用到最後）
-    try {
-        const proxyUrl = 'https://api.allorigins.win/get?url=';
-        const govApiUrl = `https://data.gov.tw/api/v2/rest/dataset/9D17AE0D-09B5-4732-A8F4-81ADED04B679?%24filter=Business_Accounting_NO%20eq%20${taxId}`;
-        const response = await fetch(proxyUrl + encodeURIComponent(govApiUrl), { timeout: 8000 });
-
-        if (response.ok) {
-            const proxyData = await response.json();
-            if (proxyData && proxyData.contents) {
-                try {
-                    const results = JSON.parse(proxyData.contents);
-                    if (results && Array.isArray(results) && results.length > 0) {
-                        const companyName = results[0]['營業人名稱'] || results[0]['公司名稱'];
-                        if (companyName) {
-                            return companyName.trim();
-                        }
-                    }
-                } catch (e) {
-                    console.warn('政府 API 回應解析失敗:', e.message);
-                }
-            }
-        }
-    } catch (error) {
-        console.warn('政府資料 API 查詢失敗:', error.message);
-    }
-
-    // 所有 API 都失敗，返回查無資料
     return '查無資料';
 }
 

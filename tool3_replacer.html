@@ -42,6 +42,7 @@
         .direct-replace-option label { cursor: pointer; }
         .config-section { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0; }
     </style>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%A7%AE%3C/text%3E%3C/svg%3E">
 </head>
 <body class="tool-page-body">
     <a href="data_processing_landing.html" class="btn-back">← 返回工具箱</a>
@@ -55,7 +56,7 @@
         <div class="controls" id="replacerControls" style="display: none;">
             <div class="config-section">
                 <span>選擇要取代內容的欄位:</span>
-                <select id="headerSelectReplacer"></select>
+                <select id="headerSelectReplacer" aria-label="要取代的欄位"></select>
             </div>
             <div class="direct-replace-option">
                 <label><input type="checkbox" id="directReplaceCheckbox"> 不須尋找，直接取代整欄內容</label>
@@ -70,10 +71,29 @@
     </div>
 
     <!-- 引入共用模組 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+    <script src="js/config.js"></script>
     <script src="js/common.js"></script>
 
     <script>
+
+            /**
+             * 以 Excel 標題填入下拉選單。
+             *
+             * 必須用 createElement + textContent，不能用 innerHTML 字串插值：
+             * 標題若含雙引號（例如「規格 15" 螢幕」），value="${h}" 的屬性會被
+             * 提前結束，導致選項值遭靜默截斷、比對鍵錯誤而產生錯誤的合併結果。
+             */
+            function fillSelectWithHeaders(select, headers, selectedValue) {
+                select.innerHTML = '';
+                headers.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h;
+                    opt.textContent = h;
+                    if (selectedValue !== undefined && h === selectedValue) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            }
         // 主程式邏輯
         (function() {
             const dropZone = document.getElementById('dropZoneReplacer');
@@ -112,7 +132,7 @@
 
                     if (allData.length > 0) {
                         const headers = Object.keys(allData[0]);
-                        headerSelect.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
+                        fillSelectWithHeaders(headerSelect, headers);
                         controls.style.display = 'block';
                         statusDisplay.textContent = `讀取完成！共 ${allData.length} 筆資料。請設定取代規則。`;
                         pairsContainer.innerHTML = '';
@@ -132,9 +152,9 @@
                 const pairDiv = document.createElement('div');
                 pairDiv.className = 'replace-pair';
                 pairDiv.innerHTML = `
-                    <input type="text" class="find-input" placeholder="尋找這個值...">
+                    <input type="text" class="find-input" aria-label="尋找的值" placeholder="尋找這個值...">
                     <span>取代為</span>
-                    <input type="text" class="replace-input" placeholder="這個新值...">
+                    <input type="text" class="replace-input" aria-label="取代成的新值" placeholder="這個新值...">
                     <button class="remove-pair-btn">移除</button>
                 `;
                 pairsContainer.appendChild(pairDiv);

@@ -49,6 +49,7 @@
         .aggregation-list { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-height: 100px; overflow-y: auto; padding: 8px; background-color: #fafafa; border: 1px solid #eee;}
         .aggregation-list label { font-size: 13px; }
     </style>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%A7%AE%3C/text%3E%3C/svg%3E">
 </head>
 <body class="tool-page-body">
     <a href="data_processing_landing.html" class="btn-back">← 返回工具箱</a>
@@ -83,8 +84,8 @@
         <div class="results"><p id="mergeStatus"></p></div>
     </div>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js" integrity="sha384-DpVxUeeBWjUvUV1czyIHJAjh+jYUZFu2lLakbdua5vbwOrBGi1UgaKCHjTC+x3Ky" crossorigin="anonymous"></script>
     <script>
         // 工具函式
         function normalizeValue(value, type) { 
@@ -129,7 +130,8 @@
         function readSheetData(worksheet) { 
             if (!worksheet || !worksheet['!ref']) return []; 
             const range = XLSX.utils.decode_range(worksheet['!ref']); 
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null, raw: false, range: range }); 
+            // raw: true 保留原始型別，輸出的 Excel 才能正常參與公式運算
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null, raw: true, range: range }); 
             return jsonData.filter(isValidRow); 
         }
         
@@ -202,7 +204,7 @@
                     const reader = new FileReader(); 
                     reader.onload = e => { 
                         try { 
-                            resolve({ name: file.name, workbook: XLSX.read(new Uint8Array(e.target.result), { type: 'array' }) }); 
+                            resolve({ name: file.name, workbook: XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true }) }); 
                         } catch(err) { 
                             reject(err); 
                         }
@@ -298,12 +300,10 @@
             
             function repopulateAllHeaderDropdowns() { 
                 document.querySelectorAll('.headerA-select').forEach(sel => { 
-                    const currentVal = sel.value; 
-                    sel.innerHTML = headersA.map(h => `<option value="${h}" ${h === currentVal ? 'selected' : ''}>${h}</option>`).join(''); 
+                    fillSelectWithHeaders(sel, headersA, sel.value); 
                 }); 
                 document.querySelectorAll('.headerB-select').forEach(sel => { 
-                    const currentVal = sel.value; 
-                    sel.innerHTML = headersB.map(h => `<option value="${h}" ${h === currentVal ? 'selected' : ''}>${h}</option>`).join(''); 
+                    fillSelectWithHeaders(sel, headersB, sel.value); 
                 }); 
             }
             
@@ -324,8 +324,27 @@
             }
             
             function populateSelect(select, headers) { 
-                select.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join(''); 
+                fillSelectWithHeaders(select, headers); 
             }
+
+            /**
+             * 以 Excel 標題填入下拉選單。
+             *
+             * 必須用 createElement + textContent，不能用 innerHTML 字串插值：
+             * 標題若含雙引號（例如「規格 15" 螢幕」），value="${h}" 的屬性會被
+             * 提前結束，導致選項值遭靜默截斷、比對鍵錯誤而產生錯誤的合併結果。
+             */
+            function fillSelectWithHeaders(select, headers, selectedValue) {
+                select.innerHTML = '';
+                headers.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h;
+                    opt.textContent = h;
+                    if (selectedValue !== undefined && h === selectedValue) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            }
+
             
             function updateKeyPairLabels() { 
                 Array.from(keyPairsContainer.children).forEach((pairDiv, index) => { 

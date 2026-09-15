@@ -136,7 +136,6 @@ const InvoiceStorage = {
 
             // 只更新指定類型的數據，保留另一種類型的舊數據
             const data = this.extractTableData(type);
-            console.log(`[InvoiceStorage.save] 保存 ${type}，提取到 ${data.length} 行數據`);
 
             if (type === 'two-part') {
                 existingData.twoPartInvoices = data;
@@ -146,10 +145,33 @@ const InvoiceStorage = {
 
             existingData.timestamp = new Date().toISOString();
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(existingData));
-            console.log(`[InvoiceStorage.save] 成功保存，localStorage 現在包含: 二聯 ${existingData.twoPartInvoices.length} 行, 三聯 ${existingData.threePartInvoices.length} 行`);
+            this.notifySaveFailed(false);
         } catch (e) {
             console.warn('localStorage 保存失敗:', e.message);
+            // 只記在 console 的話，使用者會以為資料已自動保存，
+            // 實際上重新整理就全沒了（容量已滿或無痕模式皆會如此）。
+            this.notifySaveFailed(true);
         }
+    },
+
+    /** 顯示／收起「自動保存失敗」的持續性提醒 */
+    notifySaveFailed(failed) {
+        const ID = 'storage-warning';
+        let el = document.getElementById(ID);
+
+        if (!failed) {
+            if (el) el.remove();
+            return;
+        }
+        if (el) return; // 已顯示，不重複插入
+
+        el = document.createElement('div');
+        el.id = ID;
+        el.setAttribute('role', 'alert');
+        el.textContent = '⚠️ 自動保存失敗，本頁資料不會被保留，請先匯出 Excel 再離開。';
+        el.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;padding:12px 16px;' +
+            'background:#c0392b;color:#fff;font-size:14px;text-align:center;box-shadow:0 -2px 8px rgba(0,0,0,.2);';
+        document.body.appendChild(el);
     },
 
     load() {
@@ -562,7 +584,6 @@ if (document.getElementById('invoice-section')) {
         const targetBody = getTableBody(type);
 
         // 離開前保存當前類型的數據（只保存一次，消除冗余）
-        console.log(`[switchInvoiceType] 保存 ${oppositeType} 的數據`);
         InvoiceStorage.save(oppositeType);
 
         // 更新 UI 顯示
@@ -575,7 +596,6 @@ if (document.getElementById('invoice-section')) {
 
         // 還原即將進入的類型數據
         const stored = InvoiceStorage.load();
-        console.log(`[switchInvoiceType] 從 localStorage 讀取的數據:`, stored);
 
         // 決定是否有可還原的數據
         const invoicesToRestore = type === 'two-part' ?
@@ -583,11 +603,9 @@ if (document.getElementById('invoice-section')) {
             (stored && stored.threePartInvoices);
 
         if (invoicesToRestore && invoicesToRestore.length > 0) {
-            console.log(`[switchInvoiceType] 還原 ${type}，數據行數: ${invoicesToRestore.length}`);
             InvoiceStorage.restore(type, invoicesToRestore);
             updateInvoiceSummary();
         } else {
-            console.log(`[switchInvoiceType] 沒有保存的 ${type} 數據，添加空行`);
             targetBody.innerHTML = '';
             addInvoiceRow();
         }

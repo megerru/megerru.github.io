@@ -21,6 +21,7 @@
             text-align: left;
         }
     </style>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%A7%AE%3C/text%3E%3C/svg%3E">
 </head>
 <body class="tool-page-body">
     <a href="data_processing_landing.html" class="btn-back">← 返回工具箱</a>
@@ -50,8 +51,8 @@
 
             <!-- 簡單模式 -->
             <div id="simpleMode" class="filter-controls">
-                <input type="text" id="keywordInput" placeholder="輸入關鍵字 (例如: 油)">
-                <select id="headerSelectFilter"></select>
+                <input type="text" id="keywordInput" aria-label="篩選關鍵字" placeholder="輸入關鍵字 (例如: 油)">
+                <select id="headerSelectFilter" aria-label="要篩選的欄位"></select>
                 <button id="filterButton" class="btn btn-primary" disabled>開始篩選與匯出</button>
             </div>
 
@@ -59,7 +60,7 @@
             <div id="advancedMode" style="display: none;">
                 <div style="margin-bottom: 15px; text-align: center;">
                     <span style="font-weight: bold;">在欄位</span>
-                    <select id="headerSelectAdvanced"></select>
+                    <select id="headerSelectAdvanced" aria-label="進階篩選的欄位"></select>
                     <span style="font-weight: bold;">中篩選資料</span>
                 </div>
 
@@ -87,10 +88,29 @@
     </div>
 
     <!-- 引入共用模組 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+    <script src="js/config.js"></script>
     <script src="js/common.js"></script>
 
     <script>
+
+            /**
+             * 以 Excel 標題填入下拉選單。
+             *
+             * 必須用 createElement + textContent，不能用 innerHTML 字串插值：
+             * 標題若含雙引號（例如「規格 15" 螢幕」），value="${h}" 的屬性會被
+             * 提前結束，導致選項值遭靜默截斷、比對鍵錯誤而產生錯誤的合併結果。
+             */
+            function fillSelectWithHeaders(select, headers, selectedValue) {
+                select.innerHTML = '';
+                headers.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h;
+                    opt.textContent = h;
+                    if (selectedValue !== undefined && h === selectedValue) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            }
         // 主程式邏輯
         (function() {
             const dropZoneFilter = document.getElementById('dropZoneFilter');
@@ -179,8 +199,8 @@
 
                 if (allUploadedDataForFilter.length > 0) {
                     const headers = Object.keys(allUploadedDataForFilter[0]);
-                    headerSelectFilter.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
-                    headerSelectAdvanced.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
+                    fillSelectWithHeaders(headerSelectFilter, headers);
+                    fillSelectWithHeaders(headerSelectAdvanced, headers);
                     filterButton.disabled = false;
                     filterButtonAdvanced.disabled = false;
                     document.getElementById('filterStatus').textContent =

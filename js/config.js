@@ -18,14 +18,14 @@ const CONFIG = {
 
     // ============ API 端點配置 ============
     API: {
-        // 政府稅籍資料 API
-        TAX_ID_LOOKUP: 'https://data.gov.tw/api/v2/rest/dataset/9D17AE0D-09B5-4732-A8F4-81ADED04B679',
+        // g0v 公司資料 API（統編查公司名稱；有 CORS 標頭，可由瀏覽器直接呼叫）
+        G0V_COMPANY_API: 'https://company.g0v.ronny.tw/api/show/',
 
-        // CORS 代理（用於繞過瀏覽器跨域限制）
-        CORS_PROXY: 'https://api.allorigins.win/get?url=',
+        // 統編查詢逾時（毫秒）
+        LOOKUP_TIMEOUT_MS: 5000
 
-        // g0v 公司資料備用 API
-        G0V_COMPANY_API: 'https://company.g0v.ronny.tw/api/show/'
+        // 註：原本的 TAX_ID_LOOKUP（政府資料 API）與 CORS_PROXY（allorigins）
+        // 已於 2026-09-15 移除 — allorigins 服務已無法連線，該路徑不再可用。
     },
 
     // ============ UI 動畫時長 ============

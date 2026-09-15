@@ -1,5 +1,76 @@
 # CHANGELOG
 
+## [2026-09-15] - 全面體檢修正
+
+### Fixed
+- **Excel 欄位標題含雙引號時，選項值遭靜默截斷**（`tool1` / `tool2` / `tool3`）
+  - 原本以 `innerHTML` 字串插值產生選項：`<option value="${h}">`，
+    標題若含 `"`（例如「規格 15" 螢幕」）會提前結束屬性，
+    value 被截成「規格 15」— **且無任何錯誤訊息**
+  - tool1 是拿這個 value 當比對鍵合併兩份檔案，鍵值錯誤會直接產出
+    看似正常但內容錯誤的合併結果，屬於靜默的資料正確性問題
+  - 改用 `createElement` + `textContent`（新增 `fillSelectWithHeaders()`），共 6 處
+  - A/B 實測：改動前 value 為 `"規格 15"`，改動後為 `"規格 15\" 螢幕"`
+
+- **`fetch` 的 timeout 參數無效**（`js/common.js`）
+  - 四處寫 `fetch(url, { timeout: 5000 })`，但 fetch 並無 `timeout` 選項，
+    該參數被完全忽略 — 統編查詢實際上毫無逾時保護
+  - 改用 `AbortController`
+
+- **全站缺少 favicon** — 每位訪客的瀏覽器都會對 `/favicon.ico` 發出請求並得到 404
+  （線上實測確認）。以 data URI 內嵌 SVG 圖示，不需額外檔案
+
+- **`localStorage` 保存失敗時使用者毫不知情**（`script.js`）
+  - 原本僅 `console.warn`。容量已滿或無痕模式下，使用者會以為發票資料
+    已自動保存，實際上重新整理即全部遺失
+  - 改為顯示持續性提醒，並提示先匯出 Excel
+
+### Changed
+- **保留 Excel 原始儲存格型別**（待辦 TODO #1，已完成）
+  - `sheet_to_json` 的 `raw: false` 改為 `raw: true`，
+    並於 `XLSX.read` 加上 `cellDates: true`
+  - A/B 實測：改動前金額為字串 `"1000"`、日期為字串 `"1/5/26"`（Excel 公式無法運算）；
+    改動後金額為數值 `1000`、日期為 `Date` 物件
+  - **合併筆數與比對結果完全一致**，未改變既有行為
+  - 可安全改動的原因：`normalizeValue()` 早已針對 `typeof value === 'number'`
+    處理 Excel 日期序號，本來就相容 `raw: true`
+
+- **SheetJS 0.18.5 → 0.20.3，並全面加上 SRI**
+  - 0.18.5 為 2022 年版本，有已知的 prototype pollution 與 ReDoS 漏洞。
+    本站用途正是處理外部寄來的 Excel，風險情境吻合
+  - SheetJS 已不在 cdnjs 發佈新版，改用官方 `cdn.sheetjs.com`
+  - 6 個 CDN script 全數加上 `integrity` 與 `crossorigin`（原本 0 個）
+
+- **統編查詢移除三層失效的後備**（`js/common.js`）
+  - `g0v /api/search`（名稱搜尋端點，用統編查一律回 `found:0`）、
+    NexData 與 allorigins 實測皆已無法連線（HTTP 000）
+  - 保留實測正常且具 CORS 標頭的 g0v `/api/show/`
+
+- **`js/config.js` 改為真正被使用** — 原本定義的 API 常數
+  在 `common.js` 中全是硬編碼、一個都沒用到，改網址時必然漏改。
+  同時為 tool2/3/4 補上 `config.js`（`common.js` 依賴 `CONFIG`，
+  原本未載入，屬於未爆彈）
+
+### Removed
+- **35 個無用檔案**
+  - `scripts/` 下 31 個一次性除錯腳本 — 硬編碼指向桌面上的
+    `更動1.xlsx`、`世華.xlsx`（不在 repo 內），且會將本機路徑結構公開
+  - `exchange-rate.html.backup`（仍使用已失效代理的舊版）、
+    `script.js.backup`、`apply_fixes.py`、`fix-script.txt`
+    — 四者線上皆可直接存取（實測 HTTP 200）
+- **正式環境的 6 個 `console.log`**（保留 `warn` / `error`）
+
+### Accessibility
+- 補上 8 處 `aria-label`（日期的月／日子欄位、篩選關鍵字、取代值、4 個 `select`）
+- 以瀏覽器實測可及名稱：26 個控制項，缺漏數由 4 降為 **0**
+
+### Notes
+- 稅額計算經 1~100000 元全範圍驗證**無誤**，合計恆自洽，未做更動
+- 每項修正皆以 A/B 對照驗證（改動前後跑同一份資料比較），
+  避免測試空轉而得出無效結論
+
+---
+
 ## [2026-09-15] - 停用鍵盤上下鍵改動 number 欄位值
 
 ### Added

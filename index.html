@@ -9,6 +9,7 @@
     <meta property="og:url" content="https://megerru.github.io/">
     <meta property="og:type" content="website">
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%A7%AE%3C/text%3E%3C/svg%3E">
 </head>
 <body>
     <div id="welcome-section" class="container">
@@ -38,9 +39,9 @@
             <div class="manual-date-container">
                 <input type="tel" id="startDateManualYear" placeholder="113" maxlength="3" onkeyup="autoTab(this, 'startDateManualMonth')">
                 <span>/</span>
-                <input type="tel" id="startDateManualMonth" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'startDateManualDay')">
+                <input type="tel" id="startDateManualMonth" aria-label="保險起始日期 月" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'startDateManualDay')">
                 <span>/</span>
-                <input type="tel" id="startDateManualDay" placeholder="30" maxlength="2" onkeyup="autoTab(this, 'endDateManualYear')">
+                <input type="tel" id="startDateManualDay" aria-label="保險起始日期 日" placeholder="30" maxlength="2" onkeyup="autoTab(this, 'endDateManualYear')">
             </div>
             <input type="date" id="startDate" style="display: none;">
         </div>
@@ -49,9 +50,9 @@
             <div class="manual-date-container">
                 <input type="tel" id="endDateManualYear" placeholder="114" maxlength="3" onkeyup="autoTab(this, 'endDateManualMonth')">
                 <span>/</span>
-                <input type="tel" id="endDateManualMonth" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'endDateManualDay')">
+                <input type="tel" id="endDateManualMonth" aria-label="保險結束日期 月" placeholder="03" maxlength="2" onkeyup="autoTab(this, 'endDateManualDay')">
                 <span>/</span>
-                <input type="tel" id="endDateManualDay" placeholder="23" maxlength="2" onkeyup="autoTab(this, 'totalPremium')">
+                <input type="tel" id="endDateManualDay" aria-label="保險結束日期 日" placeholder="23" maxlength="2" onkeyup="autoTab(this, 'totalPremium')">
             </div>
             <input type="date" id="endDate" style="display: none;">
         </div>
@@ -97,7 +98,7 @@
         <button class="back-to-welcome-button" onclick="showWelcome()">← 返回首頁</button>
         <h1>銷項發票稅額計算</h1>
         <div class="invoice-controls">
-            <select id="invoice-type-select" onchange="switchInvoiceType()">
+            <select id="invoice-type-select" aria-label="發票類型" onchange="switchInvoiceType()">
                 <option value="two-part">二聯式發票</option>
                 <option value="three-part">三聯式發票</option>
             </select>
@@ -169,7 +170,7 @@
     </div>
 
     <!-- 外部依賴 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
 
     <!-- 配置和工具函數（必須在 script.js 之前載入） -->
     <script src="js/config.js"></script>
