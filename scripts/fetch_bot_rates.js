@@ -104,7 +104,7 @@ async function createSession() {
 
     log('[session] 嘗試 ' + attempt + '/' + SESSION_RETRIES + ' — 開啟 ' + BASE + '/xrt');
     try {
-      await page.goto(BASE + '/xrt', { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.goto(BASE + '/xrt?Lang=zh-TW', { waitUntil: 'domcontentloaded', timeout: 60000 });
       const started = Date.now();
       while (Date.now() - started < CHALLENGE_TIMEOUT_MS) {
         const title = await page.title().catch(() => '');
@@ -130,7 +130,7 @@ async function createSession() {
 /** 在已驗證的 session 內抓取並解析指定日期的匯率 */
 async function fetchDate(page, date) {
   return await page.evaluate(async (d) => {
-    const res = await fetch('https://rate.bot.com.tw/xrt/all/' + d, { credentials: 'include' });
+    const res = await fetch('https://rate.bot.com.tw/xrt/all/' + d + '?Lang=zh-TW', { credentials: 'include' });
     const html = await res.text();
     if (/Challenge Validation/.test(html)) return { challenged: true };
 
@@ -160,7 +160,7 @@ async function fetchDate(page, date) {
  * 因此今天的資料必須改從這個即時頁取得（欄位結構與歷史頁相同）。
  */
 async function fetchLiveBoard(page) {
-  await page.goto(BASE + '/xrt', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(BASE + '/xrt?Lang=zh-TW', { waitUntil: 'domcontentloaded', timeout: 60000 });
   return await page.evaluate(() => {
     if (/Challenge Validation/.test(document.title)) return { challenged: true };
     const rates = [];
