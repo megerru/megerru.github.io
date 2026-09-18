@@ -90,6 +90,15 @@
         [data-editable="true"] { font-family:'DFKai-SB','標楷體','BiauKai',serif; }
         input, textarea, [contenteditable="true"] { font-family:'DFKai-SB','標楷體','BiauKai',serif; }
 
+        /* 每個直行的計算方式切換鈕 */
+        .controls .calc-mode-row { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; border-top:1px solid #e9ecef; padding-top:10px; }
+        .calc-mode-label { font-size:15px; color:#495057; }
+        #calc-mode-toggles { display:flex; flex-wrap:wrap; gap:8px; }
+        .controls .calc-mode-button { margin:0; padding:6px 14px; font-size:14px; border-radius:20px; border:1px solid #198754; background-color:#198754; }
+        .controls .calc-mode-button:hover { background-color:#146c43; }
+        .controls .calc-mode-button.manual { border-color:#fd7e14; background-color:#fd7e14; }
+        .controls .calc-mode-button.manual:hover { background-color:#e8690b; }
+
         /* 自動計算欄位：自動帶值，編輯模式下用綠底標示 */
         body.edit-mode .computed-cell { background-color:#e8f6ec; }
         /* 手動改過的計算欄位改用琥珀色，提醒這格已脫離公式 */
@@ -152,6 +161,10 @@
             <button onclick="addHistoryRow()">歷年表新增列</button>
             <button onclick="addHistoryColumn()">歷年表新增欄</button>
             <button id="toggle-delete-mode" onclick="toggleDeleteMode()">刪除欄位/項目</button>
+        </div>
+        <div class="calc-mode-row">
+            <span class="calc-mode-label">主表格各欄計算方式：</span>
+            <div id="calc-mode-toggles"></div>
         </div>
     </div>
 
@@ -802,6 +815,60 @@
             return text;
         }
 
+        // ===================================================================
+        // 每個數值直行可各自選擇「自動計算」或「手動輸入」
+        //
+        // 設定記在該欄標題 <th> 的 dataset 上，所以拖曳搬移欄位、
+        // 新增或刪除欄位時，設定都會跟著那一欄走。
+        // ===================================================================
+        const COLUMN_MODE_AUTO = 'auto';
+        const COLUMN_MODE_MANUAL = 'manual';
+
+        function getColumnMode(col) {
+            const th = mainTableHeaderRow.cells[col];
+            return (th && th.dataset.calcMode === COLUMN_MODE_MANUAL)
+                ? COLUMN_MODE_MANUAL : COLUMN_MODE_AUTO;
+        }
+
+        function setColumnMode(col, mode) {
+            const th = mainTableHeaderRow.cells[col];
+            if (!th) return;
+            th.dataset.calcMode = mode;
+            if (mode === COLUMN_MODE_AUTO) {
+                // 切回自動時清掉該欄的手動覆寫記號，讓公式重新接管整欄
+                Array.from(mainTableBody.rows).forEach(tr => {
+                    const cell = tr.cells[col];
+                    if (cell) delete cell.dataset.overridden;
+                });
+            }
+            markComputedCells();
+            renderCalcModeToggles();
+            updatePageMode();
+            recalcMainTable();
+        }
+
+        function renderCalcModeToggles() {
+            const container = document.getElementById('calc-mode-toggles');
+            if (!container) return;
+            container.textContent = '';
+            numericColumnIndexes().forEach(col => {
+                const th = mainTableHeaderRow.cells[col];
+                const manual = getColumnMode(col) === COLUMN_MODE_MANUAL;
+                const name = (th.textContent || '').replace(/\s+/g, ' ').trim() || ('第 ' + col + ' 欄');
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'calc-mode-button' + (manual ? ' manual' : '');
+                button.textContent = name + '：' + (manual ? '手動' : '自動');
+                button.title = manual
+                    ? '目前整欄由你自己填。點一下改為自動計算（會以公式重算，並清除該欄的手動值）'
+                    : '目前毛利、毛利率、淨利、淨利率由公式自動計算。點一下改為整欄手動輸入';
+                button.addEventListener('click', () => {
+                    setColumnMode(col, manual ? COLUMN_MODE_AUTO : COLUMN_MODE_MANUAL);
+                });
+                container.appendChild(button);
+            });
+        }
+
         // 標記計算欄位並加上公式提示。這些格子仍然可以編輯，
         // 手動輸入後會標成 overridden，重算時就不再覆蓋它。
         function markComputedCells() {
@@ -812,17 +879,19 @@
                 cols.forEach(col => {
                     const cell = tr.cells[col];
                     if (!cell) return;
-                    if (isComputed) {
+                    // 要「該列是計算列」且「該欄設為自動」才交給公式接管
+                    const auto = isComputed && getColumnMode(col) === COLUMN_MODE_AUTO;
+                    if (auto) {
                         cell.dataset.editable = 'true';
                         cell.classList.add('computed-cell');
                         cell.title = cell.dataset.overridden === 'true'
                             ? COMPUTED_OVERRIDE_HINT
                             : (COMPUTED_HINTS[role] || '自動計算欄位');
-                    } else if (cell.classList.contains('computed-cell')) {
+                    } else {
                         cell.classList.remove('computed-cell');
                         cell.removeAttribute('title');
-                        delete cell.dataset.overridden;
                         cell.dataset.editable = 'true';
+                        if (!isComputed) delete cell.dataset.overridden;
                     }
                 });
             });
@@ -865,6 +934,8 @@
             }
 
             cols.forEach(col => {
+                // 整欄設為手動輸入時完全不碰它
+                if (getColumnMode(col) === COLUMN_MODE_MANUAL) return;
                 const revenue = sumRole('revenue', col);
                 const cogs = sumRole('cogs', col);
                 const opex = sumRole('opex', col);
@@ -999,6 +1070,7 @@
             initializeAllHeaderEvents();
             initializeHistoryHeaderEvents();
             markComputedCells();
+            renderCalcModeToggles();
             updatePageMode();
             recalcMainTable();
         }
@@ -1026,6 +1098,7 @@
                     if (row.cells[columnIndex]) { row.deleteCell(columnIndex); }
                 });
                 markComputedCells();
+                renderCalcModeToggles();
                 recalcMainTable();
             } else {
                 alert("只能刪除您新增的欄位！");
@@ -1068,6 +1141,9 @@
         });
 
         mainTable.addEventListener('focusout', event => {
+            // 改了欄位標題就重畫切換鈕，讓上面顯示的欄位名稱同步
+            const th = event.target && event.target.closest ? event.target.closest('th') : null;
+            if (th && mainTableHeaderRow.contains(th)) { renderCalcModeToggles(); return; }
             const cell = cellOfEvent(event);
             if (!cell) return;
             if (numericColumnIndexes().indexOf(cell.cellIndex) === -1) return;
@@ -1186,6 +1262,8 @@
                     row.insertBefore(cell, row.cells[toIndex] || null);
                 }
             }
+            // 計算方式記在 <th> 上，會跟著欄位一起搬，但切換鈕的順序要重畫
+            renderCalcModeToggles();
         }
 
         function initializeAllHeaderEvents() {
@@ -1242,6 +1320,7 @@
             initializeHistoryHeaderEvents();
             markComputedCells();
             normalizeAllNumericCells();
+            renderCalcModeToggles();
             updatePageMode();
             recalcMainTable();
         });
