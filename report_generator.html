@@ -90,6 +90,18 @@
         [data-editable="true"] { font-family:'DFKai-SB','標楷體','BiauKai',serif; }
         input, textarea, [contenteditable="true"] { font-family:'DFKai-SB','標楷體','BiauKai',serif; }
 
+        /* 自動計算欄位：自動帶值，編輯模式下用綠底標示 */
+        body.edit-mode .computed-cell { background-color:#e8f6ec; }
+        /* 手動改過的計算欄位改用琥珀色，提醒這格已脫離公式 */
+        body.edit-mode .computed-cell[data-overridden="true"] { background-color:#fdf3e2; }
+        /* 判讀不出來的數字 */
+        td.invalid-number { background-color:#ffe3e3; box-shadow:inset 0 0 0 1px #dc3545; }
+        /* 歷年表新增的欄／列也要能在刪除模式下點掉 */
+        body.delete-mode #history-table th[data-user-added="true"] { cursor:crosshair; background-color:#fff0f0; border:2px dashed #dc3545; }
+        body.delete-mode #history-table th[data-user-added="true"]:hover { background-color:#ffe0e0; }
+        body.delete-mode #history-table tr[data-user-added="true"] { cursor:crosshair; background-color:#fff0f0; }
+        body.delete-mode #history-table tr[data-user-added="true"]:hover { background-color:#ffe0e0; }
+
         @media print {
             body { background-color: white; margin: 0; padding: 0; }
             .controls, .back-button-container { display: none; }
@@ -111,6 +123,7 @@
             .status-description div[data-editable=true] { border: 1px solid #333 !important; }
             .signature div { border: 1px solid #333 !important; }
             .checkmark { border: 1px solid black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .computed-cell, td.invalid-number { background-color:transparent !important; box-shadow:none !important; }
             .info { font-size: 9pt; }
             .reminders, .status-description, .signature, .footer { font-size: 9pt; }
             .reminders li { padding: 2px 0; }
@@ -131,10 +144,13 @@
         <div class="bottom-row">
             <button onclick="window.print()">儲存為 PDF / 列印</button>
             <button onclick="exportToWord()" style="background-color: #17a2b8; border-color: #117a8b;">匯出 Word</button>
+            <button id="export-excel-button" onclick="exportToExcel()" style="background-color: #1d6f42; border-color: #14532d;">匯出 Excel</button>
             <button id="toggle-edit-mode" onclick="toggleEditMode()">編輯內文</button>
             <button id="toggle-arrange-mode" onclick="toggleArrangeMode()">移動欄位位置</button>
-            <button onclick="addRow()">新增項目</button>
-            <button onclick="addColumn()">新增欄位</button>
+            <button onclick="addRow()">主表新增項目</button>
+            <button onclick="addColumn()">主表新增欄位</button>
+            <button onclick="addHistoryRow()">歷年表新增列</button>
+            <button onclick="addHistoryColumn()">歷年表新增欄</button>
             <button id="toggle-delete-mode" onclick="toggleDeleteMode()">刪除欄位/項目</button>
         </div>
     </div>
@@ -209,23 +225,23 @@
                         <th class="draggable-header" data-editable="true" style="width: 18%;">1-6 月帳載數</th>
                         <th class="draggable-header" data-editable="true" style="width: 18%;">114 年預估值</th>
                         <th class="draggable-header" data-editable="true" style="width: 18%;">113 年申報數</th>
-                        <th class="draggable-header" data-editable="true" style="width: 21%;">備註</th>
+                        <th class="draggable-header" data-editable="true" data-role="note" style="width: 21%;">備註</th>
                     </tr>
                 </thead>
                 <tbody id="main-table-body">
-                    <tr class="draggable"><td><span data-editable="true">營業收入</span></td><td data-editable="true">49,141,049</td><td data-editable="true">98,300,000</td><td data-editable="true">104,080,182</td><td data-editable="true"></td></tr>
-                    <tr class="draggable"><td><span data-editable="true">營業成本</span></td><td data-editable="true">34,428,137</td><td data-editable="true">77,657,000</td><td data-editable="true">82,305,003</td><td data-editable="true"></td></tr>
-                    <tr class="draggable"><td><span data-editable="true">毛利</span></td><td data-editable="true">14,712,912</td><td data-editable="true">20,643,000</td><td data-editable="true">21,775,179</td><td data-editable="true">-4323萬</td></tr>
-                    <tr class="draggable"><td><span data-editable="true">毛利率=</span></td><td data-editable="true">29.94%</td><td data-editable="true">21%</td><td data-editable="true">20.92%</td><td data-editable="true"></td></tr>
-                    <tr class="draggable"><td><span data-editable="true">營業費用: 一般</span></td><td data-editable="true">2,865,940</td><td data-editable="true"></td><td data-editable="true">6,894,071</td><td data-editable="true"></td></tr>
-                    <tr class="draggable"><td><span data-editable="true">營業費用: 折舊</span></td><td data-editable="true">283,014</td><td data-editable="true"></td><td data-editable="true">654,304</td><td data-editable="true"></td></tr>
-                    <tr class="draggable"><td><span data-editable="true">營業費用: 薪資</span></td><td data-editable="true">1,330,920</td><td data-editable="true"></td><td data-editable="true">2,661,840</td><td data-editable="true"></td></tr>
-                    <tr class="draggable"><td><span data-editable="true">營業費用: 其他</span></td><td data-editable="true">1,283,893</td><td data-editable="true"></td><td data-editable="true">3,238,549</td><td data-editable="true">-722萬</td></tr>
-                    <tr class="draggable"><td><span data-editable="true">(±)非營業收支</span></td><td data-editable="true">+16056</td><td data-editable="true">+32112</td><td data-editable="true">+101526</td><td data-editable="true"></td></tr>
-                    <tr class="draggable"><td><span data-editable="true"></span></td><td data-editable="true">-407358</td><td data-editable="true">-635938</td><td data-editable="true">-541105</td><td data-editable="true"></td></tr>
-                    <tr class="draggable"><td><span data-editable="true">淨利</span></td><td data-editable="true">8,557,843</td><td data-editable="true">7,260,174</td><td data-editable="true">7,886,836</td><td data-editable="true"></td></tr>
-                    <tr class="draggable"><td><span data-editable="true">淨利率=</span></td><td data-editable="true">17.40%</td><td data-editable="true">7.39%</td><td data-editable="true">7.57%</td><td data-editable="true"></td></tr>
-                    <tr class="draggable"><td><span data-editable="true">預估營所稅額 20%</span></td><td data-editable="true"></td><td data-editable="true">$1,452,035</td><td data-editable="true"></td><td data-editable="true"></td></tr>
+                    <tr class="draggable" data-role="revenue"><td><span data-editable="true">營業收入</span></td><td data-editable="true">49,141,049</td><td data-editable="true">98,300,000</td><td data-editable="true">104,080,182</td><td data-editable="true"></td></tr>
+                    <tr class="draggable" data-role="cogs"><td><span data-editable="true">營業成本</span></td><td data-editable="true">34,428,137</td><td data-editable="true">77,657,000</td><td data-editable="true">82,305,003</td><td data-editable="true"></td></tr>
+                    <tr class="draggable" data-role="gross-profit"><td><span data-editable="true">毛利</span></td><td data-editable="true">14,712,912</td><td data-editable="true">20,643,000</td><td data-editable="true">21,775,179</td><td data-editable="true">-4323萬</td></tr>
+                    <tr class="draggable" data-role="gross-margin"><td><span data-editable="true">毛利率=</span></td><td data-editable="true">29.94%</td><td data-editable="true">21%</td><td data-editable="true">20.92%</td><td data-editable="true"></td></tr>
+                    <tr class="draggable" data-role="opex"><td><span data-editable="true">營業費用: 一般</span></td><td data-editable="true">2,865,940</td><td data-editable="true"></td><td data-editable="true">6,894,071</td><td data-editable="true"></td></tr>
+                    <tr class="draggable" data-role="opex"><td><span data-editable="true">營業費用: 折舊</span></td><td data-editable="true">283,014</td><td data-editable="true"></td><td data-editable="true">654,304</td><td data-editable="true"></td></tr>
+                    <tr class="draggable" data-role="opex"><td><span data-editable="true">營業費用: 薪資</span></td><td data-editable="true">1,330,920</td><td data-editable="true"></td><td data-editable="true">2,661,840</td><td data-editable="true"></td></tr>
+                    <tr class="draggable" data-role="opex"><td><span data-editable="true">營業費用: 其他</span></td><td data-editable="true">1,283,893</td><td data-editable="true"></td><td data-editable="true">3,238,549</td><td data-editable="true">-722萬</td></tr>
+                    <tr class="draggable" data-role="non-operating"><td><span data-editable="true">(±)非營業收支</span></td><td data-editable="true">+16056</td><td data-editable="true">+32112</td><td data-editable="true">+101526</td><td data-editable="true"></td></tr>
+                    <tr class="draggable" data-role="non-operating"><td><span data-editable="true"></span></td><td data-editable="true">-407358</td><td data-editable="true">-635938</td><td data-editable="true">-541105</td><td data-editable="true"></td></tr>
+                    <tr class="draggable" data-role="net-profit"><td><span data-editable="true">淨利</span></td><td data-editable="true">8,557,843</td><td data-editable="true">7,260,174</td><td data-editable="true">7,886,836</td><td data-editable="true"></td></tr>
+                    <tr class="draggable" data-role="net-margin"><td><span data-editable="true">淨利率=</span></td><td data-editable="true">17.40%</td><td data-editable="true">7.39%</td><td data-editable="true">7.57%</td><td data-editable="true"></td></tr>
+                    <tr class="draggable" data-role="tax"><td><span data-editable="true">預估營所稅額 20%</span></td><td data-editable="true"></td><td data-editable="true">$1,452,035</td><td data-editable="true"></td><td data-editable="true"></td></tr>
                 </tbody>
             </table>
             
@@ -351,6 +367,321 @@
         }
 
         // ===================================================================
+        // ✨ 匯出 Excel（可編輯版）
+        //
+        // 設計原則：這個檔案是要在 Excel 裡繼續新增欄位、修改數值的，
+        // 所以刻意「不」用合併儲存格去拼版面 —— 合併格無法插欄、編輯困難。
+        // 表格一律是正常儲存格，只有純文字方框（提醒、狀況說明、簽認）才合併。
+        // 數字也還原成真正的數值型別，才能直接改、直接套公式。
+        // ===================================================================
+        const EXCELJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+        const EXCELJS_SRI = 'sha384-Pqp51FUN2/qzfxZxBCtF0stpc9ONI6MYZpVqmo8m20SoaQCzf+arZvACkLkirlPz';
+        let excelJsLoader = null;
+
+        // ExcelJS 有 900KB，只在真的要匯出時才載入，不拖累單純列印的人
+        function ensureExcelJS() {
+            if (window.ExcelJS) return Promise.resolve();
+            if (excelJsLoader) return excelJsLoader;
+            excelJsLoader = new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = EXCELJS_URL;
+                s.integrity = EXCELJS_SRI;
+                s.crossOrigin = 'anonymous';
+                s.onload = () => resolve();
+                s.onerror = () => {
+                    excelJsLoader = null;
+                    reject(new Error('無法載入 Excel 函式庫，請確認網路連線後再試'));
+                };
+                document.head.appendChild(s);
+            });
+            return excelJsLoader;
+        }
+
+        // 全形字元寬度以 2 計，用來估算文字換行後需要的列高
+        function visualLength(str) {
+            let n = 0;
+            for (const ch of String(str)) {
+                const code = ch.codePointAt(0);
+                const wide = (code >= 0x1100 && code <= 0x115F)
+                    || (code >= 0x2E80 && code <= 0xA4CF)
+                    || (code >= 0xAC00 && code <= 0xD7A3)
+                    || (code >= 0xF900 && code <= 0xFAFF)
+                    || (code >= 0xFE30 && code <= 0xFE6F)
+                    || (code >= 0xFF00 && code <= 0xFF60)
+                    || (code >= 0xFFE0 && code <= 0xFFE6);
+                n += wide ? 2 : 1;
+            }
+            return n;
+        }
+
+        // 把畫面上的字串還原成 Excel 可運算的數值。
+        // 判斷不出來的（例如「-4323萬」「Δ萬元」）原樣保留為文字，不要亂猜。
+        function toExcelValue(text) {
+            const raw = (text || '').replace(/\s+/g, ' ').trim();
+            if (!raw) return { value: null, numFmt: null };
+            let s = raw.replace(/\s/g, '');
+
+            // 會計式負數：(407,358) 等同 -407,358
+            let sign = 1;
+            const wrapped = s.match(/^[(\uFF08](.*)[)\uFF09]$/);
+            if (wrapped) { sign = -1; s = wrapped[1]; }
+
+            const plus = /^\+/.test(s);
+
+            const pct = s.match(/^([+-]?[\d,]+(?:\.\d+)?)\s*%$/);
+            if (pct) {
+                const n = parseFloat(pct[1].replace(/,/g, ''));
+                if (isFinite(n)) {
+                    const dec = (pct[1].split('.')[1] || '').length;
+                    const base = dec ? '0.' + '0'.repeat(dec) + '%' : '0%';
+                    // 先四捨五入到原本的位數，否則 20.92/100 會變成 0.20920000000000002
+                    return {
+                        value: Number((sign * n / 100).toFixed(dec + 2)),
+                        numFmt: base + ';(' + base + ')'
+                    };
+                }
+            }
+            const money = s.match(/^(?:NT)?[$\uFF04]([+-]?[\d,]+(?:\.\d+)?)$/i);
+            if (money) {
+                const n = parseFloat(money[1].replace(/,/g, ''));
+                if (isFinite(n)) return { value: sign * n, numFmt: '"$"#,##0;("$"#,##0)' };
+            }
+            const num = s.match(/^([+-]?[\d,]+(?:\.\d+)?)$/);
+            if (num) {
+                const n = parseFloat(num[1].replace(/,/g, ''));
+                if (isFinite(n)) {
+                    const dec = (num[1].split('.')[1] || '').length;
+                    const base = dec ? '#,##0.' + '0'.repeat(dec) : '#,##0';
+                    // 原本顯示就帶正號的（非營業收支）保留正號
+                    const positive = (plus && sign > 0) ? '+' + base : base;
+                    return { value: sign * n, numFmt: positive + ';(' + base + ')' };
+                }
+            }
+            return { value: raw, numFmt: null };
+        }
+
+        // 讀取一格的文字；勾選欄要把 checkbox 狀態轉成符號
+        function cellTextForExport(td) {
+            if (td.classList.contains('checkbox-cell')) {
+                return Array.from(td.querySelectorAll('.checkbox-container')).map(label => {
+                    const box = label.querySelector('input[type="checkbox"]');
+                    const text = (label.childNodes[0] ? label.childNodes[0].textContent : '').trim();
+                    return (box && box.checked ? '☑' : '☐') + text;
+                }).join('  ');
+            }
+            return td.textContent.replace(/\s+/g, ' ').trim();
+        }
+
+        async function exportToExcel() {
+            const button = document.getElementById('export-excel-button');
+            const originalLabel = button ? button.textContent : '';
+            try {
+                if (button) { button.disabled = true; button.textContent = '產生中…'; }
+                await ensureExcelJS();
+
+                const firmName = document.querySelector('.firm-name').textContent.trim();
+                const reportTitle = document.querySelector('.report-title').textContent.trim();
+
+                const historyTable = document.getElementById('history-table');
+                const mainTable = document.getElementById('main-table');
+                const mainHeaderCells = Array.from(mainTableHeaderRow.cells);
+                const historyHeaderCells = Array.from(historyTable.querySelectorAll('thead th'));
+                const colCount = Math.max(mainHeaderCells.length, historyHeaderCells.length);
+
+                const wb = new ExcelJS.Workbook();
+                wb.creator = firmName;
+                wb.created = new Date();
+
+                const ws = wb.addWorksheet('年度報告', {
+                    pageSetup: {
+                        paperSize: 9,              // A4
+                        orientation: 'portrait',
+                        fitToPage: true,
+                        fitToWidth: 1,
+                        fitToHeight: 0,            // 高度不壓縮，內容長就自然分頁
+                        horizontalCentered: true,
+                        // 12mm ≒ 0.47 吋，與網頁版 .page 的 padding 一致
+                        margins: { left: 0.47, right: 0.47, top: 0.47, bottom: 0.47, header: 0.3, footer: 0.3 }
+                    }
+                });
+
+                // --- 欄寬：依主表格的百分比配置，總量約等於 A4 直式可用寬度 ---
+                const TOTAL_WIDTH = 96;
+                const weights = mainHeaderCells.map(th => parseFloat(th.style.width) || (100 / mainHeaderCells.length));
+                const weightSum = weights.reduce((a, b) => a + b, 0) || mainHeaderCells.length;
+                for (let c = 1; c <= colCount; c++) {
+                    const w = weights[c - 1];
+                    ws.getColumn(c).width = w
+                        ? Math.max(8, Math.round((w / weightSum) * TOTAL_WIDTH * 10) / 10)
+                        : 12;   // 歷年表比主表多出來的欄位給預設寬度
+                }
+
+                const FONT = '標楷體';
+                const thin = { style: 'thin', color: { argb: 'FF000000' } };
+                const fullBorder = { top: thin, left: thin, bottom: thin, right: thin };
+                const HEADER_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+
+                let R = 0;
+
+                // 寫一整列。values 可以是字串，或 toExcelValue() 回傳的 {value, numFmt}
+                function writeRow(values, opt) {
+                    opt = opt || {};
+                    R++;
+                    const row = ws.getRow(R);
+                    for (let i = 0; i < colCount; i++) {
+                        const cell = row.getCell(i + 1);
+                        const v = i < values.length ? values[i] : null;
+                        if (v && typeof v === 'object') {
+                            cell.value = v.value;
+                            if (v.numFmt) cell.numFmt = v.numFmt;
+                        } else {
+                            cell.value = (v === '' ? null : v);
+                        }
+                        cell.font = { name: FONT, size: opt.size || 10, bold: !!opt.bold };
+                        cell.alignment = {
+                            vertical: 'middle',
+                            horizontal: (opt.align && opt.align[i]) || opt.defaultAlign || 'center',
+                            wrapText: opt.wrap !== false
+                        };
+                        if (opt.border) cell.border = fullBorder;
+                        if (opt.fill) cell.fill = HEADER_FILL;
+                    }
+                    if (opt.height) row.height = opt.height;
+                    return row;
+                }
+
+                // 整列合併成一個文字方框（提醒、狀況說明、簽認用）。
+                // 這幾塊是段落文字不是資料欄位，合併不影響表格編輯。
+                function writeTextBlock(text, opt) {
+                    opt = opt || {};
+                    R++;
+                    ws.mergeCells(R, 1, R, colCount);
+                    const cell = ws.getCell(R, 1);
+                    cell.value = text || null;
+                    cell.font = { name: FONT, size: opt.size || 10, bold: !!opt.bold };
+                    cell.alignment = { vertical: 'top', horizontal: 'left', wrapText: true, indent: 1 };
+                    // 合併範圍內每一格都要設框線，否則 Excel 只畫左上角那格
+                    if (opt.border) {
+                        for (let c = 1; c <= colCount; c++) ws.getCell(R, c).border = opt.border;
+                    }
+                    const lines = Math.max(1, Math.ceil(visualLength(text || '') / (TOTAL_WIDTH - 4)));
+                    ws.getRow(R).height = opt.height || Math.max(16, lines * 15 + 4);
+                    return R;
+                }
+
+                // --- 抬頭：事務所名稱（左）＋ 報告標題（右）---
+                R++;
+                const splitAt = Math.max(1, Math.ceil(colCount / 2));
+                ws.mergeCells(R, 1, R, splitAt);
+                ws.mergeCells(R, splitAt + 1, R, colCount);
+                const firmCell = ws.getCell(R, 1);
+                firmCell.value = firmName;
+                firmCell.font = { name: FONT, size: 14, bold: true };
+                firmCell.alignment = { vertical: 'bottom', horizontal: 'left' };
+                const titleCell = ws.getCell(R, splitAt + 1);
+                titleCell.value = reportTitle;
+                titleCell.font = { name: FONT, size: 16, bold: true };
+                titleCell.alignment = { vertical: 'bottom', horizontal: 'right' };
+                // 網頁版抬頭下方是 2px 黑線
+                for (let c = 1; c <= colCount; c++) {
+                    ws.getCell(R, c).border = { bottom: { style: 'medium', color: { argb: 'FF000000' } } };
+                }
+                ws.getRow(R).height = 26;
+
+                writeRow([], { height: 6 });
+
+                // --- 基本資料 ---
+                document.querySelectorAll('.info p').forEach(p => {
+                    writeTextBlock(p.textContent.replace(/\s+/g, ' ').trim(), { size: 10 });
+                });
+
+                writeRow([], { height: 6 });
+                writeTextBlock('歷年營所稅申報紀錄：', { size: 10, bold: true });
+
+                // --- 歷年申報紀錄表 ---
+                writeRow(historyHeaderCells.map(th => th.textContent.trim()),
+                    { bold: true, border: true, fill: true, height: 20 });
+                historyTable.querySelectorAll('tbody tr').forEach(tr => {
+                    const cells = Array.from(tr.cells);
+                    const align = cells.map(td => td.classList.contains('checkbox-cell') ? 'left' : 'center');
+                    writeRow(cells.map(td => toExcelValue(cellTextForExport(td))),
+                        { border: true, align: align, height: 20 });
+                });
+
+                writeRow([], { height: 8 });
+
+                // --- 主表格 ---
+                writeRow(mainHeaderCells.map(th => th.textContent.trim()),
+                    { bold: true, border: true, fill: true, height: 20 });
+                mainTable.querySelectorAll('tbody tr').forEach(tr => {
+                    const cells = Array.from(tr.cells);
+                    // 第一欄是項目名稱，靠左比較好讀；其餘維持置中
+                    const align = cells.map((td, i) => i === 0 ? 'left' : 'center');
+                    writeRow(cells.map(td => toExcelValue(cellTextForExport(td))),
+                        { border: true, align: align, height: 18 });
+                });
+
+                writeRow([], { height: 8 });
+
+                // --- 提醒與建議（整塊外框）---
+                const remindersItems = Array.from(document.querySelectorAll('.reminders li'))
+                    .map(li => li.textContent.replace(/\s+/g, ' ').trim());
+                const remindersRows = ['提醒與建議：'].concat(remindersItems);
+                remindersRows.forEach((text, i) => {
+                    const border = { left: thin, right: thin };
+                    if (i === 0) border.top = thin;
+                    if (i === remindersRows.length - 1) border.bottom = thin;
+                    writeTextBlock(text, { size: 10, bold: i === 0, border: border });
+                });
+
+                writeRow([], { height: 8 });
+
+                // --- 狀況說明 ---
+                writeTextBlock('狀況說明：', { size: 10, bold: true });
+                const statusText = document.querySelector('.status-description div[data-editable="true"]')
+                    .textContent.replace(/\s+/g, ' ').trim();
+                writeTextBlock(statusText, { size: 10, border: fullBorder });
+
+                writeRow([], { height: 8 });
+
+                // --- 客戶意見與簽認（空白框，留給客戶填寫）---
+                writeTextBlock('客戶意見與簽認：', { size: 10, bold: true });
+                writeTextBlock('', { border: fullBorder, height: 60 });
+
+                writeRow([], { height: 8 });
+
+                // --- 頁尾 ---
+                const footerValues = new Array(colCount).fill('');
+                footerValues[0] = '覆核：';
+                footerValues[Math.floor(colCount / 2)] = '記帳員：';
+                writeRow(footerValues, {
+                    align: new Array(colCount).fill('left'),
+                    height: 20
+                });
+
+                // --- 下載 ---
+                const buffer = await wb.xlsx.writeBuffer();
+                const blob = new Blob([buffer], {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                });
+                // 檔名去掉 Windows 不允許的字元，避免下載失敗
+                const safeName = (reportTitle || '年度報告').replace(/[\\/:*?"<>|]/g, '_');
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = safeName + '.xlsx';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+            } catch (error) {
+                console.error('匯出 Excel 時發生錯誤:', error);
+                alert('匯出 Excel 失敗：' + error.message);
+            } finally {
+                if (button) { button.disabled = false; button.textContent = originalLabel; }
+            }
+        }
+
+        // ===================================================================
         // 頁面功能
         // ===================================================================
         let isDeleteMode = false, isEditMode = false, isArrangeMode = false;
@@ -376,52 +707,326 @@
         function toggleDeleteMode() { isDeleteMode = !isDeleteMode; if (isDeleteMode) { isEditMode = false; isArrangeMode = false; } updatePageMode(); }
         function toggleArrangeMode() { isArrangeMode = !isArrangeMode; if (isArrangeMode) { isEditMode = false; isDeleteMode = false; } updatePageMode(); }
 
-        function addRow() {
-            const headerCells = mainTableHeaderRow.cells.length;
-            const newRow = document.createElement("tr");
-            newRow.className = "draggable";
-            newRow.dataset.userAdded = "true";
-            let cellHTML = `<td><span data-editable="true">新項目</span></td>`;
-            for (let i = 1; i < headerCells; i++) { cellHTML += '<td data-editable="true"></td>'; }
-            newRow.innerHTML = cellHTML;
-            mainTableBody.appendChild(newRow);
-            addRowDragEvents(newRow);
-            addRowClickEvent(newRow);
-            updatePageMode();
+        const mainTable = document.getElementById('main-table');
+        const historyTable = document.getElementById('history-table');
+        const historyHeaderRow = historyTable.tHead.rows[0];
+
+        // ===================================================================
+        // 主表格自動計算
+        //
+        //   毛利   = 營業收入 − 營業成本
+        //   毛利率 = 毛利 ÷ 營業收入
+        //   淨利   = 毛利 − 營業費用（一般＋折舊＋薪資＋其他）＋ 非營業收支
+        //   淨利率 = 淨利 ÷ 營業收入
+        //
+        // 兩列非營業收支一律「照欄位內的正負號直接加總」，所以支出要填負數。
+        // 以上算法是拿表上原有的 1-6 月帳載數與 113 年申報數反推驗證過的，
+        // 兩欄都完全吻合（折舊必須計入營業費用才對得上）。
+        // ===================================================================
+        const COMPUTED_HINTS = {
+            'gross-profit': '自動計算：營業收入 − 營業成本',
+            'gross-margin': '自動計算：毛利 ÷ 營業收入',
+            'net-profit': '自動計算：毛利 − 營業費用 + 非營業收支',
+            'net-margin': '自動計算：淨利 ÷ 營業收入'
+        };
+        const COMPUTED_OVERRIDE_HINT = '已手動輸入，這格不再自動計算。清空這格即可恢復公式。';
+        const COMPUTED_ROLES = ['gross-profit', 'gross-margin', 'net-profit', 'net-margin'];
+
+        // 使用者新增的列沒有 data-role，改由項目名稱推斷，
+        // 這樣新增「營業費用: 租金」之類的列也會自動併入淨利計算
+        function getRowRole(tr) {
+            if (tr.dataset.role) return tr.dataset.role;
+            const label = (tr.cells[0] ? tr.cells[0].textContent : '').trim();
+            if (/^營業費用/.test(label)) return 'opex';
+            if (/非營業/.test(label)) return 'non-operating';
+            return '';
         }
 
+        // 備註欄以外的欄位都當數值處理
+        function numericColumnIndexes() {
+            const out = [];
+            for (let i = 1; i < mainTableHeaderRow.cells.length; i++) {
+                if (mainTableHeaderRow.cells[i].dataset.role !== 'note') out.push(i);
+            }
+            return out;
+        }
+
+        // 解析儲存格文字，接受千分位、全形正負號、$ 開頭、% 結尾
+        function parseCellNumber(text) {
+            let s = String(text == null ? '' : text)
+                .replace(/[\s ]/g, '')
+                .replace(/[−－]/g, '-')
+                .replace(/＋/g, '+')
+                .replace(/[,，]/g, '')
+                .replace(/^(NT\$|\$|＄)/i, '');
+            if (!s) return { empty: true, valid: true, value: 0 };
+
+            // 會計式負數：(407,358) 等同 -407,358
+            let paren = false;
+            const wrapped = s.match(/^[(\uFF08](.*)[)\uFF09]$/);
+            if (wrapped) {
+                paren = true;
+                s = wrapped[1].replace(/^(NT\$|\$|\uFF04)/i, '');
+            }
+
+            let percent = false;
+            if (/[%\uFF05]$/.test(s)) { percent = true; s = s.slice(0, -1); }
+            const m = s.match(/^([+-]?)(\d+(?:\.\d+)?)$/);
+            if (!m) return { empty: false, valid: false, value: NaN };
+            // 括號與負號同時出現時以括號為準，不讓它們互相抵消
+            let value = parseFloat(m[2]);
+            if (paren || m[1] === '-') value = -value;
+            return {
+                empty: false,
+                valid: true,
+                percent: percent,
+                explicitPlus: !paren && m[1] === '+',
+                value: percent ? value / 100 : value
+            };
+        }
+
+        // 負數一律以會計慣例的括號呈現：-407,358 顯示成 (407,358)
+        function formatNumber(value, opts) {
+            opts = opts || {};
+            if (value === null || value === undefined || !isFinite(value)) return '';
+            let rounded, text;
+            if (opts.percent) {
+                rounded = Math.round(value * 10000) / 100;
+                text = Math.abs(rounded).toFixed(2) + '%';
+            } else {
+                rounded = Math.round(value * 100) / 100;
+                text = Math.abs(rounded).toLocaleString('en-US', { maximumFractionDigits: 2 });
+            }
+            if (rounded < 0) return '(' + text + ')';
+            if (opts.explicitPlus && rounded > 0) return '+' + text;
+            return text;
+        }
+
+        // 標記計算欄位並加上公式提示。這些格子仍然可以編輯，
+        // 手動輸入後會標成 overridden，重算時就不再覆蓋它。
+        function markComputedCells() {
+            const cols = numericColumnIndexes();
+            Array.from(mainTableBody.rows).forEach(tr => {
+                const role = getRowRole(tr);
+                const isComputed = COMPUTED_ROLES.indexOf(role) !== -1;
+                cols.forEach(col => {
+                    const cell = tr.cells[col];
+                    if (!cell) return;
+                    if (isComputed) {
+                        cell.dataset.editable = 'true';
+                        cell.classList.add('computed-cell');
+                        cell.title = cell.dataset.overridden === 'true'
+                            ? COMPUTED_OVERRIDE_HINT
+                            : (COMPUTED_HINTS[role] || '自動計算欄位');
+                    } else if (cell.classList.contains('computed-cell')) {
+                        cell.classList.remove('computed-cell');
+                        cell.removeAttribute('title');
+                        delete cell.dataset.overridden;
+                        cell.dataset.editable = 'true';
+                    }
+                });
+            });
+        }
+
+        function recalcMainTable() {
+            const cols = numericColumnIndexes();
+            const byRole = {};
+            Array.from(mainTableBody.rows).forEach(tr => {
+                const role = getRowRole(tr);
+                if (role) (byRole[role] = byRole[role] || []).push(tr);
+            });
+
+            function sumRole(role, col) {
+                let total = 0, any = false;
+                (byRole[role] || []).forEach(tr => {
+                    const cell = tr.cells[col];
+                    if (!cell) return;
+                    const parsed = parseCellNumber(cell.textContent);
+                    if (parsed.valid && !parsed.empty) { total += parsed.value; any = true; }
+                });
+                return { total: total, any: any };
+            }
+
+            // 若該格被手動改過就採用手動值，讓它繼續往下影響淨利、淨利率
+            function manualValue(role, col) {
+                const tr = (byRole[role] || [])[0];
+                const cell = tr ? tr.cells[col] : null;
+                if (!cell || cell.dataset.overridden !== 'true') return null;
+                const parsed = parseCellNumber(cell.textContent);
+                return (parsed.valid && !parsed.empty) ? parsed.value : null;
+            }
+
+            function writeComputed(role, col, value, isPercent) {
+                (byRole[role] || []).forEach(tr => {
+                    const cell = tr.cells[col];
+                    if (!cell || cell.dataset.overridden === 'true') return;   // 手動值不覆蓋
+                    cell.textContent = formatNumber(value, { percent: isPercent });
+                });
+            }
+
+            cols.forEach(col => {
+                const revenue = sumRole('revenue', col);
+                const cogs = sumRole('cogs', col);
+                const opex = sumRole('opex', col);
+                const nonOp = sumRole('non-operating', col);
+
+                // 毛利：手動值優先，否則 營業收入 − 營業成本
+                const grossManual = manualValue('gross-profit', col);
+                let gross, hasGross;
+                if (grossManual !== null) {
+                    gross = grossManual;
+                    hasGross = true;
+                } else {
+                    gross = revenue.total - cogs.total;
+                    hasGross = revenue.any || cogs.any;   // 整欄都沒填就留白，不要顯示 0
+                }
+
+                // 淨利：手動值優先，否則 毛利 − 營業費用 + 非營業收支
+                const netManual = manualValue('net-profit', col);
+                let net, hasNet;
+                if (netManual !== null) {
+                    net = netManual;
+                    hasNet = true;
+                } else {
+                    net = gross - opex.total + nonOp.total;
+                    hasNet = hasGross || opex.any || nonOp.any;
+                }
+
+                writeComputed('gross-profit', col, hasGross ? gross : null);
+                writeComputed('gross-margin', col,
+                    (hasGross && revenue.total !== 0) ? gross / revenue.total : null, true);
+                writeComputed('net-profit', col, hasNet ? net : null);
+                writeComputed('net-margin', col,
+                    (hasNet && revenue.total !== 0) ? net / revenue.total : null, true);
+            });
+        }
+
+        // 離開欄位時正規化數字顯示，並標出判讀不出來的內容
+        function normalizeNumericCell(cell) {
+            // 自動算出來的值已經是正規格式，只有手動改過的才需要重新整理
+            if (cell.classList.contains('computed-cell') && cell.dataset.overridden !== 'true') return;
+            const parsed = parseCellNumber(cell.textContent);
+            if (parsed.empty) {
+                cell.classList.remove('invalid-number');
+                cell.removeAttribute('title');
+                return;
+            }
+            if (!parsed.valid) {
+                cell.classList.add('invalid-number');
+                cell.title = '這一欄只能填數字（可含正負號、千分位、% 或 $）';
+                return;
+            }
+            cell.classList.remove('invalid-number');
+            cell.removeAttribute('title');
+            cell.textContent = formatNumber(parsed.value, {
+                percent: parsed.percent,
+                explicitPlus: parsed.explicitPlus
+            });
+        }
+
+        // ===================================================================
+        // 載入時先把表上既有的數字統一成正規格式（千分位、括號負數）
+        function normalizeAllNumericCells() {
+            const cols = numericColumnIndexes();
+            Array.from(mainTableBody.rows).forEach(tr => {
+                cols.forEach(col => {
+                    const cell = tr.cells[col];
+                    if (cell) normalizeNumericCell(cell);
+                });
+            });
+        }
+
+        // 列／欄的新增與刪除（主表格與歷年表共用）
+        // ===================================================================
+
+        // 依同欄既有儲存格的樣子建立新格；歷年表的「核定」欄要帶 YES/NO 勾選框
+        function buildCellLike(templateCell, isFirstColumn, isMainTable) {
+            const td = document.createElement('td');
+            if (templateCell && templateCell.classList.contains('checkbox-cell')) {
+                td.className = 'checkbox-cell';
+                // 用 cloneNode 而非 innerHTML 字串插值，沿用本站既有的安全作法
+                Array.from(templateCell.childNodes).forEach(node => td.appendChild(node.cloneNode(true)));
+                td.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+                return td;
+            }
+            if (isFirstColumn && isMainTable) {
+                const span = document.createElement('span');
+                span.dataset.editable = 'true';
+                span.textContent = '新項目';
+                td.appendChild(span);
+                return td;
+            }
+            td.dataset.editable = 'true';
+            return td;
+        }
+
+        function addTableRow(table) {
+            const isMain = table.id === 'main-table';
+            const headerRow = table.tHead.rows[0];
+            const body = table.tBodies[0];
+            const templateRow = body.rows[0];
+            const newRow = document.createElement('tr');
+            newRow.dataset.userAdded = 'true';
+            if (isMain) newRow.className = 'draggable';
+            for (let i = 0; i < headerRow.cells.length; i++) {
+                newRow.appendChild(buildCellLike(templateRow ? templateRow.cells[i] : null, i === 0, isMain));
+            }
+            body.appendChild(newRow);
+            if (isMain) addRowDragEvents(newRow);
+            addRowClickEvent(newRow);
+            markComputedCells();
+            updatePageMode();
+            recalcMainTable();
+        }
+
+        function addTableColumn(table) {
+            const isMain = table.id === 'main-table';
+            const headerRow = table.tHead.rows[0];
+            const th = document.createElement('th');
+            th.dataset.editable = 'true';
+            th.dataset.userAdded = 'true';
+            th.textContent = '新欄位';
+            if (isMain) {
+                th.className = 'draggable-header';
+                th.style.width = '18%';
+            }
+            headerRow.appendChild(th);
+            Array.from(table.tBodies[0].rows).forEach(row => {
+                const td = document.createElement('td');
+                td.dataset.editable = 'true';
+                row.appendChild(td);
+            });
+            initializeAllHeaderEvents();
+            initializeHistoryHeaderEvents();
+            markComputedCells();
+            updatePageMode();
+            recalcMainTable();
+        }
+
+        function addRow() { addTableRow(mainTable); }
+        function addColumn() { addTableColumn(mainTable); }
+        function addHistoryRow() { addTableRow(historyTable); }
+        function addHistoryColumn() { addTableColumn(historyTable); }
+
         function addRowClickEvent(row) {
-            row.addEventListener("click", function(e) {
+            row.addEventListener("click", function () {
                 if (isDeleteMode && this.dataset.userAdded === "true") {
-                    if (confirm("確定要刪除此項目嗎？")) { this.remove(); }
+                    if (confirm("確定要刪除此項目嗎？")) {
+                        this.remove();
+                        recalcMainTable();
+                    }
                 }
             });
         }
 
-        function addColumn() {
-            const mainTable = document.getElementById("main-table");
-            const newHeader = document.createElement("th");
-            newHeader.className = "draggable-header";
-            newHeader.dataset.editable = "true";
-            newHeader.dataset.userAdded = "true";
-            newHeader.innerText = "新欄位";
-            newHeader.style.width = "18%";
-            mainTableHeaderRow.appendChild(newHeader);
-            mainTable.querySelectorAll("tbody tr").forEach(row => {
-                const newCell = document.createElement("td");
-                newCell.dataset.editable = "true";
-                row.appendChild(newCell);
-            });
-            initializeAllHeaderEvents();
-            updatePageMode();
-        }
-
-        function performColumnDeletion(columnIndex) {
-            const headerCell = mainTableHeaderRow.cells[columnIndex];
+        function performColumnDeletion(table, columnIndex) {
+            const headerCell = table.tHead.rows[0].cells[columnIndex];
             if (headerCell && headerCell.dataset.userAdded === "true") {
-                document.querySelectorAll("#main-table tr").forEach(row => {
+                Array.from(table.rows).forEach(row => {
                     if (row.cells[columnIndex]) { row.deleteCell(columnIndex); }
                 });
+                markComputedCells();
+                recalcMainTable();
             } else {
                 alert("只能刪除您新增的欄位！");
             }
@@ -430,10 +1035,52 @@
         function handleColumnClick(event) {
             if (isDeleteMode) {
                 event.preventDefault();
-                performColumnDeletion(event.currentTarget.cellIndex);
+                const th = event.currentTarget;
+                performColumnDeletion(th.closest('table'), th.cellIndex);
                 toggleDeleteMode();
             }
         }
+
+        // 歷年表的欄位標題沒有拖曳功能，只需要掛上刪除用的點擊事件
+        function initializeHistoryHeaderEvents() {
+            Array.from(historyHeaderRow.cells).forEach(th => {
+                th.removeEventListener("click", handleColumnClick);
+                th.addEventListener("click", handleColumnClick);
+            });
+        }
+
+        // 取得事件發生在哪一個 td（項目欄的文字包在 span 裡）
+        function cellOfEvent(event) {
+            const node = event.target;
+            const cell = node && node.closest ? node.closest('td') : null;
+            return (cell && mainTable.contains(cell)) ? cell : null;
+        }
+
+        // 主表格輸入時即時重算；離開欄位時再正規化顯示
+        mainTable.addEventListener('input', event => {
+            const cell = cellOfEvent(event);
+            // 手動改動計算欄位時要立刻標記，否則接著的重算會把正在打的字蓋掉
+            if (cell && cell.classList.contains('computed-cell')) {
+                cell.dataset.overridden = 'true';
+                cell.title = COMPUTED_OVERRIDE_HINT;
+            }
+            recalcMainTable();
+        });
+
+        mainTable.addEventListener('focusout', event => {
+            const cell = cellOfEvent(event);
+            if (!cell) return;
+            if (numericColumnIndexes().indexOf(cell.cellIndex) === -1) return;
+            if (cell.classList.contains('computed-cell') && !cell.textContent.trim()) {
+                // 清空計算欄位＝放棄手動值，恢復自動計算
+                delete cell.dataset.overridden;
+                cell.classList.remove('invalid-number');
+                cell.title = COMPUTED_HINTS[getRowRole(cell.parentNode)] || '自動計算欄位';
+            } else {
+                normalizeNumericCell(cell);
+            }
+            recalcMainTable();
+        });
 
         function addRowDragEvents(row) {
             row.addEventListener("dragstart", () => setTimeout(() => row.classList.add("dragging-row"), 0));
@@ -592,7 +1239,11 @@
                 addRowDragEvents(row);
             });
             initializeAllHeaderEvents();
+            initializeHistoryHeaderEvents();
+            markComputedCells();
+            normalizeAllNumericCells();
             updatePageMode();
+            recalcMainTable();
         });
     </script>
     <script src="js/input-guards.js"></script>
