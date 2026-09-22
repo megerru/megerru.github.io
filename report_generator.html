@@ -132,9 +132,15 @@
                為什麼不用 JS 量測：Chrome 是在套用列印樣式「之前」才觸發 beforeprint
                （實測 .controls 當下仍是 display:flex，.page 量到的是螢幕版的 210x303mm），
                所以那時算出來的可用高度是錯的。CSS 由瀏覽器在分頁時才計算，不受時機影響。 */
-            .scalable-content { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
-            .signature { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
-            .signature div { flex: 1 1 auto; min-height: 15mm; }
+            /* 關鍵：每個項目都要 flex-shrink: 0。
+               預設的 flex-shrink: 1 會在內容超過一頁時把各區塊壓得比內容還矮，
+               區塊就互相疊上去（實測「覆核」會疊到「客戶意見與簽認」上）。
+               內容過長改由下方的 fitContentToOnePage() 整體等比縮小處理。 */
+            .header { flex: 0 0 auto; }
+            .scalable-content { display: flex; flex-direction: column; flex: 1 0 auto; }
+            .scalable-content > * { flex: 0 0 auto; }
+            .signature { display: flex; flex-direction: column; flex: 1 0 auto; }
+            .signature > div { flex: 1 0 auto; min-height: 15mm; }
             .header { transform-origin: top left; margin-bottom: 10px; border-bottom: 2px solid black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .firm-name { font-size: 16pt !important; }
             .report-title { font-size: 20pt !important; }
@@ -1428,37 +1434,91 @@
             mainTableHeaderRow.addEventListener("drop", handleDrop);
         }
 
-        window.addEventListener('beforeprint', () => {
+        // ===================================================================
+        // 列印時把內容整體等比縮到剛好一頁（內容再多都不分頁、不裁切）
+        //
+        // 為什麼掛在 matchMedia('print') 而不是 beforeprint：
+        // beforeprint 觸發時列印樣式「還沒生效」—— 實測當下 .controls 仍是
+        // display:flex、.page 量到的是螢幕版的 210x303mm，而螢幕上 .page 本來就被
+        // 內容撐高，算出來的可用高度恰等於內容高度，縮小條件永遠不成立。
+        // matchMedia('print') 的 change 事件則是在列印版面成形後才觸發
+        // （量到 210x297mm、內容 259.6mm），且該事件中對 DOM 的改動確實會反映到
+        // 列印結果（實測：在事件中隱藏主表格，PDF 文字繪製指令由 285 降為 209）。
+        // ===================================================================
+        const printMediaQuery = window.matchMedia('print');
+
+        function fitContentToOnePage(isPrinting) {
             const page = document.querySelector('.page');
             const scalableContent = document.querySelector('.scalable-content');
             const header = document.querySelector('.header');
             if (!page || !scalableContent || !header) return;
-            // 可用高度一律從實際版面量，不要寫死 297mm／12mm ——
-            // 頁面現在會依列印可用區域伸縮，寫死的數字在「預設邊界」下就是錯的
-            const pageStyle = getComputedStyle(page);
-            const availableHeightPx = page.getBoundingClientRect().height
-                - parseFloat(pageStyle.paddingTop)
-                - parseFloat(pageStyle.paddingBottom);
-            const headerHeight = header.offsetHeight;
-            const contentHeight = scalableContent.scrollHeight;
-            const availableForContent = availableHeightPx - headerHeight;
-            if (contentHeight > availableForContent) {
-                const scale = availableForContent / contentHeight;
-                scalableContent.style.transform = `scale(${scale})`;
-                scalableContent.style.transformOrigin = 'top left';
-                scalableContent.style.height = `${contentHeight}px`;
-                scalableContent.style.width = `${100 / scale}%`;
-            }
-        });
 
-        window.addEventListener('afterprint', () => {
-            const scalableContent = document.querySelector('.scalable-content');
-            if (scalableContent) {
-                scalableContent.style.transform = '';
-                scalableContent.style.height = '';
+            // 先還原，否則會拿上一次縮放後的結果再縮一次
+            scalableContent.style.transform = '';
+            scalableContent.style.transformOrigin = '';
+            scalableContent.style.width = '';
+            if (!isPrinting) return;
+
+            // 可用高度直接從版面量：頁面內距扣掉抬頭（含其下方間距）。
+            // 不用 scalableContent.clientHeight —— 它現在是 flex-shrink:0，
+            // 內容太長時那個值會等於內容高度，而不是可用高度。
+            const pageStyle = getComputedStyle(page);
+            const headerStyle = getComputedStyle(header);
+            const available = page.clientHeight
+                - parseFloat(pageStyle.paddingTop)
+                - parseFloat(pageStyle.paddingBottom)
+                - header.getBoundingClientRect().height
+                - parseFloat(headerStyle.marginBottom);
+            if (!(available > 0)) return;
+
+            // 縮小後要把寬度反向放大回來才填得滿版面，但改寬度會改變換行、
+            // 連帶改變內容高度。用固定點迭代收斂：求 scale x 高度(寬度/scale) = 可用高度
+            // 量測期間必須關掉 flex-grow：簽認欄會自動填滿剩餘空間，
+            // 使 scrollHeight 被「可用高度」蓋住，量不到內容真正需要的高度，
+            // 迭代就會在 1 與過小值之間擺盪而縮過頭（實測底部空出 27~36mm）。
+            const signatureBlock = document.querySelector('.signature');
+            const savedGrow = scalableContent.style.flexGrow;
+            const savedSignatureGrow = signatureBlock ? signatureBlock.style.flexGrow : null;
+            scalableContent.style.flexGrow = '0';
+            if (signatureBlock) signatureBlock.style.flexGrow = '0';
+
+            // 不能一「放得下」就停：那個 scale 是用加寬前的高度算的，會縮過頭。
+            // 迭代到收斂，取剛好放得下的最大縮放。
+            let scale = 1;
+            for (let i = 0; i < 6; i++) {
+                scalableContent.style.width = (100 / scale) + '%';
+                const needed = scalableContent.scrollHeight;
+                if (!(needed > 0)) break;
+                const next = Math.min(1, available / needed);
+                if (!isFinite(next) || next <= 0) break;
+                const converged = Math.abs(next - scale) < 0.002;
+                scale = next;
+                if (converged) break;
+            }
+
+            scalableContent.style.flexGrow = savedGrow;
+            if (signatureBlock) signatureBlock.style.flexGrow = savedSignatureGrow;
+            // 留一點安全餘裕，避免收斂誤差造成最後一行被裁掉
+            if (scale < 1) scale *= 0.995;
+
+            if (scale < 1) {
+                scalableContent.style.width = (100 / scale) + '%';
+                scalableContent.style.transformOrigin = 'top left';
+                scalableContent.style.transform = 'scale(' + scale + ')';
+            } else {
                 scalableContent.style.width = '';
             }
-        });
+        }
+
+        if (printMediaQuery.addEventListener) {
+            printMediaQuery.addEventListener('change', event => fitContentToOnePage(event.matches));
+        } else if (printMediaQuery.addListener) {
+            printMediaQuery.addListener(mq => fitContentToOnePage(mq.matches));
+        }
+
+        // 保險：萬一某些瀏覽器不發 matchMedia 的 change，列印結束時至少要還原，
+        // 否則縮放會殘留在螢幕上
+        window.addEventListener('afterprint', () => fitContentToOnePage(false));
 
         document.addEventListener("DOMContentLoaded", () => {
             document.querySelectorAll("#main-table-body tr").forEach(row => {
