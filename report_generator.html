@@ -713,7 +713,10 @@
             editModeButton.classList.toggle('edit-active', isEditMode);
             arrangeModeButton.classList.toggle('arrange-active', isArrangeMode);
             document.querySelectorAll('[data-editable="true"]').forEach(el => { el.contentEditable = isEditMode; });
-            document.querySelectorAll('.draggable, .draggable-header').forEach(el => { el.draggable = isArrangeMode; });
+            document.querySelectorAll('.draggable, .draggable-header').forEach(el => {
+                // 備註欄不可搬移，也就不要給它可拖曳的游標
+                el.draggable = isArrangeMode && el.dataset.role !== 'note';
+            });
         }
 
         function toggleEditMode() { isEditMode = !isEditMode; if (isEditMode) { isDeleteMode = false; isArrangeMode = false; } updatePageMode(); }
@@ -1065,6 +1068,27 @@
             recalcMainTable();
         }
 
+        // 備註欄的欄索引，-1 表示該表沒有備註欄
+        function noteColumnIndex(table) {
+            const cells = table.tHead.rows[0].cells;
+            for (let i = 0; i < cells.length; i++) {
+                if (cells[i].dataset.role === 'note') return i;
+            }
+            return -1;
+        }
+
+        // 備註欄永遠留在最後一欄。與其在每個搬移路徑各自計算邊界，
+        // 這裡統一在動完之後檢查一次，不在最後就移回去 —— 任何路徑都不會漏。
+        function keepNoteColumnLast(table) {
+            const noteIndex = noteColumnIndex(table);
+            if (noteIndex === -1) return;
+            if (noteIndex === table.tHead.rows[0].cells.length - 1) return;
+            for (const row of table.rows) {
+                const cell = row.cells[noteIndex];
+                if (cell) row.appendChild(cell);
+            }
+        }
+
         function addTableColumn(table) {
             const isMain = table.id === 'main-table';
             const headerRow = table.tHead.rows[0];
@@ -1076,11 +1100,13 @@
                 th.className = 'draggable-header';
                 th.style.width = '18%';
             }
-            headerRow.appendChild(th);
+            // 新欄位插在備註欄前面，讓備註維持在最後一欄
+            const noteIndex = noteColumnIndex(table);
+            headerRow.insertBefore(th, noteIndex === -1 ? null : headerRow.cells[noteIndex]);
             Array.from(table.tBodies[0].rows).forEach(row => {
                 const td = document.createElement('td');
                 td.dataset.editable = 'true';
-                row.appendChild(td);
+                row.insertBefore(td, noteIndex === -1 ? null : row.cells[noteIndex]);
             });
             initializeAllHeaderEvents();
             initializeHistoryHeaderEvents();
@@ -1295,6 +1321,11 @@
                 e.preventDefault();
                 return;
             }
+            // 備註欄固定在最後一欄，不提供搬移
+            if (e.target.dataset && e.target.dataset.role === 'note') {
+                e.preventDefault();
+                return;
+            }
             draggedColumn = e.target;
             setTimeout(() => draggedColumn.classList.add("dragging-col"), 0);
         }
@@ -1318,7 +1349,8 @@
             clearDropIndicators();
             const rect = targetHeader.getBoundingClientRect();
             const midpoint = rect.left + rect.width / 2;
-            if (e.clientX < midpoint) {
+            // 備註欄只能放到它左邊，不然就會被擠到非最後一欄
+            if (e.clientX < midpoint || targetHeader.dataset.role === 'note') {
                 targetHeader.classList.add('drop-target-left');
             } else {
                 targetHeader.classList.add('drop-target-right');
@@ -1338,7 +1370,7 @@
             let toIndex = targetHeader.cellIndex;
             const rect = targetHeader.getBoundingClientRect();
             const midpoint = rect.left + rect.width / 2;
-            if (e.clientX > midpoint) {
+            if (e.clientX > midpoint && targetHeader.dataset.role !== 'note') {
                 toIndex++;
             }
             if (fromIndex < toIndex) {
@@ -1356,6 +1388,7 @@
                     row.insertBefore(cell, row.cells[toIndex] || null);
                 }
             }
+            keepNoteColumnLast(table);
             // 計算方式記在 <th> 上，會跟著欄位一起搬，但切換鈕的順序要重畫
             renderCalcModeToggles();
         }
