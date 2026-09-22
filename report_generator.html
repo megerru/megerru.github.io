@@ -250,8 +250,8 @@
                     <tr class="draggable" data-role="opex"><td><span data-editable="true">營業費用: 折舊</span></td><td data-editable="true">283,014</td><td data-editable="true"></td><td data-editable="true">654,304</td><td data-editable="true"></td></tr>
                     <tr class="draggable" data-role="opex"><td><span data-editable="true">營業費用: 薪資</span></td><td data-editable="true">1,330,920</td><td data-editable="true"></td><td data-editable="true">2,661,840</td><td data-editable="true"></td></tr>
                     <tr class="draggable" data-role="opex"><td><span data-editable="true">營業費用: 其他</span></td><td data-editable="true">1,283,893</td><td data-editable="true"></td><td data-editable="true">3,238,549</td><td data-editable="true">-722萬</td></tr>
-                    <tr class="draggable" data-role="non-operating"><td><span data-editable="true">(±)非營業收支</span></td><td data-editable="true">+16056</td><td data-editable="true">+32112</td><td data-editable="true">+101526</td><td data-editable="true"></td></tr>
-                    <tr class="draggable" data-role="non-operating"><td><span data-editable="true"></span></td><td data-editable="true">-407358</td><td data-editable="true">-635938</td><td data-editable="true">-541105</td><td data-editable="true"></td></tr>
+                    <tr class="draggable" data-role="non-operating-income"><td><span data-editable="true">非營業收入</span></td><td data-editable="true">+16056</td><td data-editable="true">+32112</td><td data-editable="true">+101526</td><td data-editable="true"></td></tr>
+                    <tr class="draggable" data-role="non-operating-expense"><td><span data-editable="true">非營業支出</span></td><td data-editable="true">-407358</td><td data-editable="true">-635938</td><td data-editable="true">-541105</td><td data-editable="true"></td></tr>
                     <tr class="draggable" data-role="net-profit"><td><span data-editable="true">淨利</span></td><td data-editable="true">8,557,843</td><td data-editable="true">7,260,174</td><td data-editable="true">7,886,836</td><td data-editable="true"></td></tr>
                     <tr class="draggable" data-role="net-margin"><td><span data-editable="true">淨利率=</span></td><td data-editable="true">17.40%</td><td data-editable="true">7.39%</td><td data-editable="true">7.57%</td><td data-editable="true"></td></tr>
                     <tr class="draggable" data-role="tax"><td><span data-editable="true">預估營所稅額 20%</span></td><td data-editable="true"></td><td data-editable="true">$1,452,035</td><td data-editable="true"></td><td data-editable="true"></td></tr>
@@ -729,17 +729,21 @@
         //
         //   毛利   = 營業收入 − 營業成本
         //   毛利率 = 毛利 ÷ 營業收入
-        //   淨利   = 毛利 − 營業費用（一般＋折舊＋薪資＋其他）＋ 非營業收支
+        //   淨利   = 毛利 − 營業費用（一般＋折舊＋薪資＋其他）
+        //                 ＋ 非營業收入 − 非營業支出
         //   淨利率 = 淨利 ÷ 營業收入
         //
-        // 兩列非營業收支一律「照欄位內的正負號直接加總」，所以支出要填負數。
+        // 非營業收入照欄位值加上；非營業支出「一律減去其絕對值」，
+        // 因此該欄填 407,358 或 (407,358) 都會得到同樣的正確結果 ——
+        // 欄位名稱已是「支出」，不該再要求使用者自己記得帶負號。
+        //
         // 以上算法是拿表上原有的 1-6 月帳載數與 113 年申報數反推驗證過的，
         // 兩欄都完全吻合（折舊必須計入營業費用才對得上）。
         // ===================================================================
         const COMPUTED_HINTS = {
             'gross-profit': '自動計算：營業收入 − 營業成本',
             'gross-margin': '自動計算：毛利 ÷ 營業收入',
-            'net-profit': '自動計算：毛利 − 營業費用 + 非營業收支',
+            'net-profit': '自動計算：毛利 − 營業費用 + 非營業收入 − 非營業支出',
             'net-margin': '自動計算：淨利 ÷ 營業收入'
         };
         const COMPUTED_OVERRIDE_HINT = '已手動輸入，這格不再自動計算。清空這格即可恢復公式。';
@@ -751,7 +755,12 @@
             if (tr.dataset.role) return tr.dataset.role;
             const label = (tr.cells[0] ? tr.cells[0].textContent : '').trim();
             if (/^營業費用/.test(label)) return 'opex';
-            if (/非營業/.test(label)) return 'non-operating';
+            if (/非營業/.test(label)) {
+                // 看不出是支出的就當收入處理（照值加總），這是較保守的預設
+                return /支出|損失|費用/.test(label)
+                    ? 'non-operating-expense'
+                    : 'non-operating-income';
+            }
             return '';
         }
 
@@ -905,13 +914,17 @@
                 if (role) (byRole[role] = byRole[role] || []).push(tr);
             });
 
-            function sumRole(role, col) {
+            // useAbs 為真時取絕對值再加總（非營業支出用）
+            function sumRole(role, col, useAbs) {
                 let total = 0, any = false;
                 (byRole[role] || []).forEach(tr => {
                     const cell = tr.cells[col];
                     if (!cell) return;
                     const parsed = parseCellNumber(cell.textContent);
-                    if (parsed.valid && !parsed.empty) { total += parsed.value; any = true; }
+                    if (parsed.valid && !parsed.empty) {
+                        total += useAbs ? Math.abs(parsed.value) : parsed.value;
+                        any = true;
+                    }
                 });
                 return { total: total, any: any };
             }
@@ -939,7 +952,9 @@
                 const revenue = sumRole('revenue', col);
                 const cogs = sumRole('cogs', col);
                 const opex = sumRole('opex', col);
-                const nonOp = sumRole('non-operating', col);
+                const nonOpIncome = sumRole('non-operating-income', col);
+                // 支出取絕對值後減去，填正數或負數都得到同樣結果
+                const nonOpExpense = sumRole('non-operating-expense', col, true);
 
                 // 毛利：手動值優先，否則 營業收入 − 營業成本
                 const grossManual = manualValue('gross-profit', col);
@@ -959,8 +974,8 @@
                     net = netManual;
                     hasNet = true;
                 } else {
-                    net = gross - opex.total + nonOp.total;
-                    hasNet = hasGross || opex.any || nonOp.any;
+                    net = gross - opex.total + nonOpIncome.total - nonOpExpense.total;
+                    hasNet = hasGross || opex.any || nonOpIncome.any || nonOpExpense.any;
                 }
 
                 writeComputed('gross-profit', col, hasGross ? gross : null);
