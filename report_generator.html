@@ -1299,6 +1299,22 @@
                 scalableContent.style.transformOrigin = 'top left';
                 scalableContent.style.height = `${contentHeight}px`;
                 scalableContent.style.width = `${100 / scale}%`;
+            } else {
+                // 內容不足一頁時，把多出來的高度補給客戶簽認欄，
+                // 否則頁尾以下會留一大片空白（實測約 27mm）。
+                // 補在這裡而不是整體放大，是因為放大會連帶改變換行、
+                // 還得反過來壓縮寬度，容易溢出頁面右緣。
+                const signatureBox = document.querySelector('.signature div');
+                if (signatureBox) {
+                    // 直接量「內容底部」到「頁面內緣底部」的距離，不用推算：
+                    // 抬頭的 margin-bottom 不算在 offsetHeight 裡，推算會少算而吃掉下邊界
+                    const innerBottom = page.getBoundingClientRect().bottom
+                        - parseFloat(getComputedStyle(page).paddingBottom);
+                    const slack = innerBottom - scalableContent.getBoundingClientRect().bottom;
+                    if (slack > 1) {
+                        signatureBox.style.height = (signatureBox.offsetHeight + slack) + 'px';
+                    }
+                }
             }
         });
 
@@ -1309,6 +1325,8 @@
                 scalableContent.style.height = '';
                 scalableContent.style.width = '';
             }
+            const signatureBox = document.querySelector('.signature div');
+            if (signatureBox) signatureBox.style.height = '';
         });
 
         document.addEventListener("DOMContentLoaded", () => {
