@@ -119,7 +119,22 @@
             body { animation: none !important; opacity: 1 !important; transform: none !important; }
             body { background-color: white; margin: 0; padding: 0; }
             .controls, .back-button-container { display: none; }
-            .page { margin: 0; border: none; box-shadow: none; width: 210mm; height: 297mm; padding: 12mm; box-sizing: border-box; page-break-after: avoid; overflow: hidden; position: relative; }
+            /* 頁面填滿「列印可用區域」，不再寫死 210x297mm。
+               寫死 210mm 寬時，若列印對話框的邊界選「預設」，
+               Chrome 會把整頁縮到可印寬度（約 190mm，縮至 90%），
+               縮完的高度就短於可印高度，底部因而多出一片空白。
+               改成 width:auto + height:100% 後，不論邊界怎麼選都不會被縮放。 */
+            html, body { height: 100%; }
+            /* 螢幕上 body 是置中的 flex，align-items:center 會讓 width:auto 縮成內容寬度 */
+            body { display: block; }
+            .page { margin: 0; border: none; box-shadow: none; width: auto; height: 100%; min-height: 0; padding: 12mm; box-sizing: border-box; page-break-after: avoid; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+            /* 用 flex 把剩餘高度交給「客戶意見與簽認」欄，頁尾因此貼在頁面底部。
+               為什麼不用 JS 量測：Chrome 是在套用列印樣式「之前」才觸發 beforeprint
+               （實測 .controls 當下仍是 display:flex，.page 量到的是螢幕版的 210x303mm），
+               所以那時算出來的可用高度是錯的。CSS 由瀏覽器在分頁時才計算，不受時機影響。 */
+            .scalable-content { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+            .signature { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+            .signature div { flex: 1 1 auto; min-height: 15mm; }
             .header { transform-origin: top left; margin-bottom: 10px; border-bottom: 2px solid black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .firm-name { font-size: 16pt !important; }
             .report-title { font-size: 20pt !important; }
@@ -1418,10 +1433,12 @@
             const scalableContent = document.querySelector('.scalable-content');
             const header = document.querySelector('.header');
             if (!page || !scalableContent || !header) return;
-            const pageHeightMM = 297;
-            const paddingMM = 12;
-            const availableHeightMM = pageHeightMM - (paddingMM * 2);
-            const availableHeightPx = availableHeightMM * 3.7795;
+            // 可用高度一律從實際版面量，不要寫死 297mm／12mm ——
+            // 頁面現在會依列印可用區域伸縮，寫死的數字在「預設邊界」下就是錯的
+            const pageStyle = getComputedStyle(page);
+            const availableHeightPx = page.getBoundingClientRect().height
+                - parseFloat(pageStyle.paddingTop)
+                - parseFloat(pageStyle.paddingBottom);
             const headerHeight = header.offsetHeight;
             const contentHeight = scalableContent.scrollHeight;
             const availableForContent = availableHeightPx - headerHeight;
@@ -1431,22 +1448,6 @@
                 scalableContent.style.transformOrigin = 'top left';
                 scalableContent.style.height = `${contentHeight}px`;
                 scalableContent.style.width = `${100 / scale}%`;
-            } else {
-                // 內容不足一頁時，把多出來的高度補給客戶簽認欄，
-                // 否則頁尾以下會留一大片空白（實測約 27mm）。
-                // 補在這裡而不是整體放大，是因為放大會連帶改變換行、
-                // 還得反過來壓縮寬度，容易溢出頁面右緣。
-                const signatureBox = document.querySelector('.signature div');
-                if (signatureBox) {
-                    // 直接量「內容底部」到「頁面內緣底部」的距離，不用推算：
-                    // 抬頭的 margin-bottom 不算在 offsetHeight 裡，推算會少算而吃掉下邊界
-                    const innerBottom = page.getBoundingClientRect().bottom
-                        - parseFloat(getComputedStyle(page).paddingBottom);
-                    const slack = innerBottom - scalableContent.getBoundingClientRect().bottom;
-                    if (slack > 1) {
-                        signatureBox.style.height = (signatureBox.offsetHeight + slack) + 'px';
-                    }
-                }
             }
         });
 
@@ -1457,8 +1458,6 @@
                 scalableContent.style.height = '';
                 scalableContent.style.width = '';
             }
-            const signatureBox = document.querySelector('.signature div');
-            if (signatureBox) signatureBox.style.height = '';
         });
 
         document.addEventListener("DOMContentLoaded", () => {
