@@ -62,7 +62,7 @@
         .info { font-size:12pt; line-height:1.5; }
         .info p { margin:4px 0; }
         
-        table { width:100%; border-collapse:collapse; margin-top:10px; table-layout:auto; font-size:11pt; }
+        table { width:100%; border-collapse:collapse; margin-top:10px; table-layout:fixed; font-size:11pt; }
         th, td { border:1px solid black; padding:3px; text-align:center; word-wrap:break-word; position:relative; }
         th { background-color:#f2f2f2; }
         .checkbox-cell { text-align:left; padding-left:10px; }
@@ -71,6 +71,11 @@
         .checkmark { position:absolute; top:0; left:0; height:14px; width:14px; background-color:white; border:1px solid #000; }
         .checkbox-container input:checked~.checkmark { background-color:black; }
         
+        /* 欄寬拖曳把手：貼在標題格右緣 */
+        .col-resizer { position:absolute; top:0; right:-3px; width:6px; height:100%; cursor:col-resize; user-select:none; z-index:2; }
+        .col-resizer:hover { background-color:rgba(0,123,255,.45); }
+        body.resizing-col, body.resizing-col * { cursor:col-resize !important; user-select:none !important; }
+
         .dragging-row, .dragging-col { opacity:.5; }
         .dragging-row { background:#c8ebfb; cursor:grabbing; }
         .dragging-col { background:#d4edda; }
@@ -159,6 +164,7 @@
             .signature div { border: 1px solid #333 !important; }
             .checkmark { border: 1px solid black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .computed-cell, td.invalid-number { background-color:transparent !important; box-shadow:none !important; }
+            .col-resizer { display: none !important; }
             .info { font-size: 9pt; }
             .reminders, .status-description, .signature, .footer { font-size: 9pt; }
             .reminders li { padding: 2px 0; }
@@ -318,6 +324,9 @@
             try {
                 const pageClone = document.querySelector('.page').cloneNode(true);
                 
+                // 把手只是畫面上的操作元件，不該出現在匯出的檔案裡
+                pageClone.querySelectorAll('.col-resizer').forEach(el => el.remove());
+
                 pageClone.querySelectorAll('[contenteditable="true"]').forEach(el => {
                     el.removeAttribute('contenteditable');
                     el.removeAttribute('data-editable');
@@ -1115,6 +1124,93 @@
             }
         }
 
+        // 把各欄寬度重新正規化成合計 100%。
+        // 新增欄位原本固定給 18%，但原有 5 欄已經合計 100%，加一欄就變 118%，
+        // 欄位被擠窄後中文標題會一行一個字，看起來像直書 —— 這就是根因。
+        function normalizeColumnWidths(table) {
+            const cells = Array.from(table.tHead.rows[0].cells);
+            const weights = cells.map(th => parseFloat(th.style.width) || 0);
+            const total = weights.reduce((a, b) => a + b, 0);
+            if (!(total > 0)) return;
+            const scaled = weights.map(w => Math.round(w / total * 1000) / 10);
+            // 四捨五入的零頭補回最寬的那一欄，確保合計剛好 100%
+            const diff = Math.round((100 - scaled.reduce((a, b) => a + b, 0)) * 10) / 10;
+            if (diff !== 0) {
+                let widest = 0;
+                for (let i = 1; i < scaled.length; i++) {
+                    if (scaled[i] > scaled[widest]) widest = i;
+                }
+                scaled[widest] = Math.round((scaled[widest] + diff) * 10) / 10;
+            }
+            cells.forEach((th, i) => { th.style.width = scaled[i] + '%'; });
+        }
+
+        // ===================================================================
+        // 欄寬拖曳調整
+        //
+        // 只在相鄰兩欄之間搬移寬度，表格總寬永遠維持 100%，
+        // 所以拉某一欄不會把後面整排推歪。最後一欄右緣不給拉。
+        // ===================================================================
+        const MIN_COLUMN_PERCENT = 5;
+
+        function addColumnResizers(table) {
+            const cells = Array.from(table.tHead.rows[0].cells);
+            cells.forEach((th, index) => {
+                const existing = th.querySelector('.col-resizer');
+                if (index === cells.length - 1) {
+                    if (existing) existing.remove();   // 最後一欄不需要把手
+                    return;
+                }
+                if (existing) return;
+                const handle = document.createElement('span');
+                handle.className = 'col-resizer';
+                handle.contentEditable = 'false';      // 標題是 contenteditable，別讓把手被編輯掉
+                handle.title = '拖曳調整欄寬';
+                handle.addEventListener('mousedown', event => startColumnResize(event, table, th));
+                // 別讓把手觸發標題的點擊（刪除模式）或欄位搬移
+                handle.addEventListener('click', event => event.stopPropagation());
+                handle.addEventListener('dragstart', event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                });
+                th.appendChild(handle);
+            });
+        }
+
+        function startColumnResize(event, table, th) {
+            event.preventDefault();
+            event.stopPropagation();
+            const next = th.nextElementSibling;
+            if (!next) return;
+            const tableWidth = table.getBoundingClientRect().width;
+            if (!(tableWidth > 0)) return;
+
+            const startX = event.clientX;
+            // 用樣式上的百分比而非量測值，兩欄相加才能精準守住原本的總寬
+            const startSelf = parseFloat(th.style.width)
+                || th.getBoundingClientRect().width / tableWidth * 100;
+            const startNext = parseFloat(next.style.width)
+                || next.getBoundingClientRect().width / tableWidth * 100;
+            const pair = Math.round((startSelf + startNext) * 10) / 10;
+            document.body.classList.add('resizing-col');
+
+            function onMove(moveEvent) {
+                const deltaPercent = (moveEvent.clientX - startX) / tableWidth * 100;
+                let self = startSelf + deltaPercent;
+                self = Math.max(MIN_COLUMN_PERCENT, Math.min(pair - MIN_COLUMN_PERCENT, self));
+                const selfRounded = Math.round(self * 10) / 10;
+                th.style.width = selfRounded + '%';
+                next.style.width = (Math.round((pair - selfRounded) * 10) / 10) + '%';
+            }
+            function onUp() {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                document.body.classList.remove('resizing-col');
+            }
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        }
+
         function addTableColumn(table) {
             const isMain = table.id === 'main-table';
             const headerRow = table.tHead.rows[0];
@@ -1122,10 +1218,14 @@
             th.dataset.editable = 'true';
             th.dataset.userAdded = 'true';
             th.textContent = '新欄位';
-            if (isMain) {
-                th.className = 'draggable-header';
-                th.style.width = '18%';
-            }
+            if (isMain) th.className = 'draggable-header';
+            // 新欄位寬度取現有欄位的平均，插入後再整體正規化成 100%
+            const existingWidths = Array.from(headerRow.cells)
+                .map(cell => parseFloat(cell.style.width) || 0)
+                .filter(w => w > 0);
+            th.style.width = (existingWidths.length
+                ? existingWidths.reduce((a, b) => a + b, 0) / existingWidths.length
+                : 100 / (headerRow.cells.length + 1)) + '%';
             // 新欄位插在備註欄前面，讓備註維持在最後一欄
             const noteIndex = noteColumnIndex(table);
             headerRow.insertBefore(th, noteIndex === -1 ? null : headerRow.cells[noteIndex]);
@@ -1134,6 +1234,8 @@
                 td.dataset.editable = 'true';
                 row.insertBefore(td, noteIndex === -1 ? null : row.cells[noteIndex]);
             });
+            normalizeColumnWidths(table);
+            addColumnResizers(table);
             initializeAllHeaderEvents();
             initializeHistoryHeaderEvents();
             markComputedCells();
@@ -1164,6 +1266,8 @@
                 Array.from(table.rows).forEach(row => {
                     if (row.cells[columnIndex]) { row.deleteCell(columnIndex); }
                 });
+                normalizeColumnWidths(table);
+                addColumnResizers(table);
                 markComputedCells();
                 renderCalcModeToggles();
                 recalcMainTable();
@@ -1415,6 +1519,7 @@
                 }
             }
             keepNoteColumnLast(table);
+            addColumnResizers(table);   // 最後一欄不該有把手，搬移後要重新配置
             // 計算方式記在 <th> 上，會跟著欄位一起搬，但切換鈕的順序要重畫
             renderCalcModeToggles();
         }
@@ -1527,6 +1632,8 @@
             });
             initializeAllHeaderEvents();
             initializeHistoryHeaderEvents();
+            addColumnResizers(mainTable);
+            addColumnResizers(historyTable);
             markComputedCells();
             normalizeAllNumericCells();
             renderCalcModeToggles();
