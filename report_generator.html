@@ -112,6 +112,11 @@
         body.delete-mode #history-table tr[data-user-added="true"]:hover { background-color:#ffe0e0; }
 
         @media print {
+            /* 頁面淡入動畫純粹是螢幕上的裝飾，列印時一律關掉。
+               動畫途中 body 會殘留 translateY，把 .page 推出 A4 邊界
+               （實測 297.81mm > 297mm），Chrome 就會多印一頁幾乎空白的第二頁；
+               初始的 opacity:0 也可能讓報表印成半透明。 */
+            body { animation: none !important; opacity: 1 !important; transform: none !important; }
             body { background-color: white; margin: 0; padding: 0; }
             .controls, .back-button-container { display: none; }
             .page { margin: 0; border: none; box-shadow: none; width: 210mm; height: 297mm; padding: 12mm; box-sizing: border-box; page-break-after: avoid; overflow: hidden; position: relative; }
