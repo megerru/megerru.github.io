@@ -1173,6 +1173,85 @@
             recalcMainTable();
         });
 
+        // ===================================================================
+        // 表格內按 Enter 跳到同欄的下一格（Shift+Enter 往上）
+        //
+        // 只作用在兩個表格裡，段落文字（狀況說明、提醒等）仍可正常換行。
+        // 順帶修掉一個既有問題：contenteditable 的儲存格裡按 Enter
+        // 原本會插入換行、把列高撐開。
+        //
+        // 自動計算的格子會跳過 —— 那是公式產出的值，游標停在上面沒有意義；
+        // 但已手動覆寫的格子會停留，因為那已經是使用者自己在維護的數字。
+        // ===================================================================
+
+        // 儲存格裡真正可編輯的元素：項目欄的文字是包在 span 裡的
+        function editableInCell(cell) {
+            if (!cell) return null;
+            if (cell.dataset && cell.dataset.editable === 'true') return cell;
+            return cell.querySelector('[data-editable="true"]');
+        }
+
+        function isEnterNavigable(cell) {
+            if (!cell) return false;
+            if (cell.classList.contains('computed-cell') && cell.dataset.overridden !== 'true') return false;
+            return !!editableInCell(cell);
+        }
+
+        function focusCell(cell) {
+            const target = editableInCell(cell);
+            if (!target) return false;
+            target.focus();
+            // 游標移到內容末端，方便直接接著打或直接覆寫
+            const range = document.createRange();
+            range.selectNodeContents(target);
+            range.collapse(false);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            return true;
+        }
+
+        function moveToAdjacentCell(table, cell, goBack) {
+            const col = cell.cellIndex;
+            const row = cell.parentNode;
+            const bodyRows = Array.from(table.tBodies[0].rows);
+            const step = goBack ? -1 : 1;
+
+            // 從標題列按 Enter 就進入該欄的第一格
+            const fromHeader = table.tHead && table.tHead.contains(cell);
+            let start = fromHeader
+                ? (goBack ? -1 : 0)
+                : bodyRows.indexOf(row) + step;
+
+            // 先沿著同一欄找下一個可停留的格子
+            for (let i = start; i >= 0 && i < bodyRows.length; i += step) {
+                if (isEnterNavigable(bodyRows[i].cells[col]) && focusCell(bodyRows[i].cells[col])) return true;
+            }
+
+            // 同欄走完了就換到下一（上一）欄的第一（最後一）格。
+            // 要持續往後找，因為可能整欄都不可停留
+            // （例如歷年表的「核定」勾選欄、「年度」欄）
+            const headerCells = table.tHead.rows[0].cells;
+            const order = goBack ? bodyRows.slice().reverse() : bodyRows;
+            for (let nextCol = col + step; nextCol >= 0 && nextCol < headerCells.length; nextCol += step) {
+                for (const bodyRow of order) {
+                    const candidate = bodyRow.cells[nextCol];
+                    if (isEnterNavigable(candidate) && focusCell(candidate)) return true;
+                }
+            }
+            return false;
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' || event.ctrlKey || event.altKey || event.metaKey) return;
+            const cell = event.target && event.target.closest ? event.target.closest('td, th') : null;
+            if (!cell) return;
+            const table = cell.closest('table');
+            if (!table || (table.id !== 'main-table' && table.id !== 'history-table')) return;
+            event.preventDefault();   // 不要在儲存格裡插入換行
+            moveToAdjacentCell(table, cell, event.shiftKey);
+        });
+
         function addRowDragEvents(row) {
             row.addEventListener("dragstart", () => setTimeout(() => row.classList.add("dragging-row"), 0));
             row.addEventListener("dragend", () => row.classList.remove("dragging-row"));
